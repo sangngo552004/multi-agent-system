@@ -1,0 +1,62 @@
+# =========================
+# Operating System Files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDEs and Editors
+# =========================
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# =========================
+# Backend: Spring Boot / Java (Maven)
+# =========================
+target/
+*.jar
+*.war
+*.ear
+*.class
+.mvn/
+mvnw
+mvnw.cmd
+.springBeans
+
+# =========================
+# AI Service: Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+.pytest_cache/
+*.log
+
+# =========================
+# Frontend: Next.js / Node
+# =========================
+node_modules/
+.next/
+out/
+build/
+npm-debug.log
+yarn-error.log
+.pnp
+.pnp.js
+
+# =========================
+# Database & Infrastructure
+# =========================
+postgres_data/
+rabbitmq_data/
+
+# =========================
+# Project Specific
+# =========================
+# Ignore temporary uploaded CVs
+backend-core/uploads/
