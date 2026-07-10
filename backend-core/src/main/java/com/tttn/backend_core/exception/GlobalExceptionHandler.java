@@ -1,32 +1,30 @@
 package com.tttn.backend_core.exception;
 
 import com.tttn.backend_core.dto.response.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
   @ExceptionHandler(value = Exception.class)
   public ResponseEntity<ApiResponse<Object>> handlingRuntimeException(Exception exception) {
-    ApiResponse<Object> apiResponse = new ApiResponse<>();
-    apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
-    apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
-
     return ResponseEntity.status(ErrorCode.UNCATEGORIZED_EXCEPTION.getStatusCode())
-        .body(apiResponse);
+        .body(
+            ApiResponse.error(
+                ErrorCode.UNCATEGORIZED_EXCEPTION.getCode(),
+                ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage()));
   }
 
   @ExceptionHandler(value = AppException.class)
   public ResponseEntity<ApiResponse<Object>> handlingAppException(AppException exception) {
     ErrorCode errorCode = exception.getErrorCode();
-    ApiResponse<Object> apiResponse = new ApiResponse<>();
-    apiResponse.setCode(errorCode.getCode());
-    apiResponse.setMessage(errorCode.getMessage());
-
-    return ResponseEntity.status(errorCode.getStatusCode()).body(apiResponse);
+    return ResponseEntity.status(errorCode.getStatusCode())
+        .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
   }
 
   @ExceptionHandler(value = MethodArgumentNotValidException.class)
@@ -38,13 +36,10 @@ public class GlobalExceptionHandler {
     try {
       errorCode = ErrorCode.valueOf(enumKey);
     } catch (IllegalArgumentException e) {
-      // Default ErrorCode.INVALID_KEY is used if enumKey is not found
+      log.warn("Validation message '{}' is not defined in ErrorCode enum", enumKey);
     }
 
-    ApiResponse<Object> apiResponse = new ApiResponse<>();
-    apiResponse.setCode(errorCode.getCode());
-    apiResponse.setMessage(errorCode.getMessage());
-
-    return ResponseEntity.status(errorCode.getStatusCode()).body(apiResponse);
+    return ResponseEntity.status(errorCode.getStatusCode())
+        .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
   }
 }
