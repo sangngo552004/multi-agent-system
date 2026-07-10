@@ -17,7 +17,7 @@ jobs:
           POSTGRES_PASSWORD: password123
           POSTGRES_DB: tttn_db
         ports:
-          - 5432:5432
+          - 5433:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -46,20 +46,13 @@ jobs:
       run: mvn spotless:check
       working-directory: ./backend-core
 
-    - name: Build and Test with Maven
-      run: mvn clean verify -Pcoverage
+    - name: Build, Test and Analyze with Maven
+      run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
       working-directory: ./backend-core
-
-    - name: SonarCloud Scan
-      uses: SonarSource/sonarcloud-github-action@master
       env:
+        SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5433/tttn_db
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      with:
-        projectBaseDir: backend-core
-        args: >
-          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
-          -Dsonar.java.binaries=target/classes
 
   ai-service-test:
     runs-on: ubuntu-latest
