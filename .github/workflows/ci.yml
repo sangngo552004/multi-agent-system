@@ -1,0 +1,67 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  backend-core-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+        
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Spotless Check
+      run: mvn spotless:check
+      working-directory: ./backend-core
+        
+    - name: Build and Test with Maven
+      run: mvn clean verify -Pcoverage
+      working-directory: ./backend-core
+
+    # - name: SonarCloud Scan
+    #   uses: SonarSource/sonarcloud-github-action@master
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    #   with:
+    #     projectBaseDir: backend-core
+
+  ai-service-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+      working-directory: ./ai-service
+      
+    - name: Lint with Ruff
+      run: |
+        pip install ruff
+        ruff check .
+      working-directory: ./ai-service
+      
+    - name: Test with pytest
+      run: |
+        pip install pytest pytest-cov
+        pytest --cov=app --cov-report=xml
+      working-directory: ./ai-service
