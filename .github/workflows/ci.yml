@@ -59,6 +59,18 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+    - name: Print Test Logs
+      if: failure()
+      run: cat target/surefire-reports/*.txt || true
+      working-directory: ./backend-core
+
+    - name: Debug JaCoCo
+      if: always()
+      working-directory: ./backend-core
+      run: |
+        pwd
+        find target -type f | grep jacoco || true
+
   ai-service-test:
     runs-on: ubuntu-latest
     steps:
