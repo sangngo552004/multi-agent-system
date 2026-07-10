@@ -52,7 +52,7 @@ jobs:
       working-directory: ./backend-core
 
     - name: Build, Test and Analyze with Maven
-      run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+      run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=sangngo552004_multi-agent-system -Dsonar.organization=sangngo552004 -Dsonar.host.url=https://sonarcloud.io
       working-directory: ./backend-core
       env:
         SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5433/tttn_db
