@@ -57,6 +57,9 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
         projectBaseDir: backend-core
+        args: >
+          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+          -Dsonar.java.binaries=target/classes
 
   ai-service-test:
     runs-on: ubuntu-latest
