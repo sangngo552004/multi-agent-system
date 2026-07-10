@@ -9,59 +9,113 @@ on:
 jobs:
   backend-core-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: password123
+          POSTGRES_DB: tttn_db
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      rabbitmq:
+        image: rabbitmq:3-management
+        env:
+          RABBITMQ_DEFAULT_USER: admin
+          RABBITMQ_DEFAULT_PASS: password123
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-        
+
     - name: Set up JDK 21
       uses: actions/setup-java@v3
       with:
         java-version: '21'
         distribution: 'temurin'
         cache: maven
-        
+
     - name: Spotless Check
       run: mvn spotless:check
       working-directory: ./backend-core
-        
-    - name: Build and Test with Maven
-      run: mvn clean verify -Pcoverage
+
+    - name: Build, Test and Analyze with Maven
+      run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=sangngo552004_multi-agent-system -Dsonar.organization=sangngo552004 -Dsonar.host.url=https://sonarcloud.io
+      working-directory: ./backend-core
+      env:
+        SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5433/tttn_db
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    - name: Print Test Logs
+      if: failure()
+      run: cat target/surefire-reports/*.txt || true
       working-directory: ./backend-core
 
-    # - name: SonarCloud Scan
-    #   uses: SonarSource/sonarcloud-github-action@master
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-    #   with:
-    #     projectBaseDir: backend-core
+    - name: Debug JaCoCo
+      if: always()
+      working-directory: ./backend-core
+      run: |
+        pwd
+        find target -type f | grep jacoco || true
 
   ai-service-test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
         python-version: '3.12'
         cache: 'pip'
-        
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
       working-directory: ./ai-service
-      
+
     - name: Lint with Ruff
       run: |
         pip install ruff
         ruff check .
       working-directory: ./ai-service
-      
+
     - name: Test with pytest
       run: |
         pip install pytest pytest-cov
         pytest --cov=app --cov-report=xml
       working-directory: ./ai-service
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci
+      working-directory: ./frontend
+
+    - name: Lint and Format Check
+      run: npm run lint
+      working-directory: ./frontend
