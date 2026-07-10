@@ -9,22 +9,36 @@ on:
 jobs:
   backend-core-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: password123
+          POSTGRES_DB: tttn_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-        
+
     - name: Set up JDK 21
       uses: actions/setup-java@v3
       with:
         java-version: '21'
         distribution: 'temurin'
         cache: maven
-        
+
     - name: Spotless Check
       run: mvn spotless:check
       working-directory: ./backend-core
-        
+
     - name: Build and Test with Maven
       run: mvn clean verify -Pcoverage
       working-directory: ./backend-core
@@ -41,27 +55,47 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
         python-version: '3.12'
         cache: 'pip'
-        
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
       working-directory: ./ai-service
-      
+
     - name: Lint with Ruff
       run: |
         pip install ruff
         ruff check .
       working-directory: ./ai-service
-      
+
     - name: Test with pytest
       run: |
         pip install pytest pytest-cov
         pytest --cov=app --cov-report=xml
       working-directory: ./ai-service
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci
+      working-directory: ./frontend
+
+    - name: Lint and Format Check
+      run: npm run lint
+      working-directory: ./frontend
