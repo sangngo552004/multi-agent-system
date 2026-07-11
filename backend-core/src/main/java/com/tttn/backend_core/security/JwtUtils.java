@@ -4,6 +4,7 @@ import com.tttn.backend_core.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,8 +49,8 @@ public class JwtUtils {
     return Jwts.builder()
         .claims(claims)
         .subject(subject)
-        .issuedAt(new Date(System.currentTimeMillis()))
-        .expiration(new Date(System.currentTimeMillis() + expiration))
+        .issuedAt(Date.from(Instant.now()))
+        .expiration(Date.from(Instant.now().plusMillis(expiration)))
         .signWith(getSigningKey(), Jwts.SIG.HS256)
         .compact();
   }

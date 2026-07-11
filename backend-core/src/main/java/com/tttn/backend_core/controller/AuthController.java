@@ -1,7 +1,6 @@
 package com.tttn.backend_core.controller;
 
 import com.tttn.backend_core.annotation.RateLimit;
-import com.tttn.backend_core.annotation.RateLimits;
 import com.tttn.backend_core.dto.request.LoginRequest;
 import com.tttn.backend_core.dto.request.RegisterRequest;
 import com.tttn.backend_core.dto.response.ApiResponse;
@@ -28,10 +27,8 @@ public class AuthController {
     this.authService = authService;
   }
 
-  @RateLimits({
-    @RateLimit(action = "REGISTER", maxRequests = 1, duration = 1, unit = ChronoUnit.MINUTES),
-    @RateLimit(action = "REGISTER", maxRequests = 10, duration = 1, unit = ChronoUnit.DAYS)
-  })
+  @RateLimit(action = "REGISTER", maxRequests = 1, duration = 1, unit = ChronoUnit.MINUTES)
+  @RateLimit(action = "REGISTER", maxRequests = 10, duration = 1, unit = ChronoUnit.DAYS)
   @PostMapping("/register")
   @ResponseStatus(HttpStatus.ACCEPTED)
   public ApiResponse<String> register(@Valid @RequestBody RegisterRequest request) {

@@ -25,6 +25,7 @@ public class AuthService {
   private final JwtUtils jwtUtils;
   private final StringRedisTemplate redisTemplate;
   private final ObjectMapper objectMapper;
+  private final MailService mailService;
 
   private static final int MAX_FAILED_ATTEMPTS = 5;
   private static final long LOCKOUT_DURATION_MINUTES = 15;
@@ -36,12 +37,14 @@ public class AuthService {
       PasswordEncoder passwordEncoder,
       JwtUtils jwtUtils,
       StringRedisTemplate redisTemplate,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      MailService mailService) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtUtils = jwtUtils;
     this.redisTemplate = redisTemplate;
     this.objectMapper = objectMapper;
+    this.mailService = mailService;
   }
 
   public void register(RegisterRequest request) {
@@ -60,15 +63,9 @@ public class AuthService {
 
     // 2. Silent Routing
     if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-      System.out.println("==========================================");
-      System.out.println("Email này đã được sử dụng. Bấm vào đây để quên mật khẩu...");
-      System.out.println("==========================================");
+      mailService.sendEmailExistsNotification(request.getEmail());
     } else {
-      System.out.println("==========================================");
-      System.out.println(
-          "Vui lòng click vào link sau để kích hoạt: http://localhost:8080/api/auth/verify?token="
-              + token);
-      System.out.println("==========================================");
+      mailService.sendVerificationEmail(request.getEmail(), token);
     }
   }
 

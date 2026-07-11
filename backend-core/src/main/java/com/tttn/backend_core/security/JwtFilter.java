@@ -1,7 +1,6 @@
 package com.tttn.backend_core.security;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,8 +47,6 @@ public class JwtFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authToken);
           }
         }
-      } catch (ExpiredJwtException e) {
-        request.setAttribute("jwtException", e);
       } catch (Exception e) {
         request.setAttribute("jwtException", e);
       }

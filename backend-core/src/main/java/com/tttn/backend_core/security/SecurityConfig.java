@@ -27,8 +27,7 @@ public class SecurityConfig {
   private String allowedOrigins;
 
   private static final String[] PUBLIC_ENDPOINTS = {
-    "/api/auth/**",
-    // Bạn có thể thêm các API public khác tại đây, ví dụ: "/swagger-ui/**", "/v3/api-docs/**"
+    "/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**"
   };
 
   public SecurityConfig(
@@ -43,24 +42,27 @@ public class SecurityConfig {
   }
 
   @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http.csrf(AbstractHttpConfigurer::disable)
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-        .authorizeHttpRequests(
-            auth -> auth.requestMatchers(PUBLIC_ENDPOINTS).permitAll().anyRequest().authenticated())
-        .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+    try {
+      http.csrf(AbstractHttpConfigurer::disable)
+          .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+          .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+          .authorizeHttpRequests(
+              auth ->
+                  auth.requestMatchers(PUBLIC_ENDPOINTS).permitAll().anyRequest().authenticated())
+          .sessionManagement(
+              session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+          .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-    return http.build();
+      return http.build();
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to build SecurityFilterChain", e);
+    }
   }
 
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    // Tách chuỗi nếu có nhiều origin cấu hình trong properties (vd:
-    // http://localhost:3000,http://localhost:3001)
     configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
     configuration.setAllowedMethods(
         Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
