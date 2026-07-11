@@ -37,6 +37,7 @@ class AuthServiceTest {
   @Mock private StringRedisTemplate redisTemplate;
   @Mock private ObjectMapper objectMapper;
   @Mock private ValueOperations<String, String> valueOperations;
+  @Mock private MailService mailService;
 
   @InjectMocks private AuthService authService;
 
