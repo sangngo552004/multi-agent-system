@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Xác nhận đăng ký tài khoản</title>
+</head>
+<body>
+    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="color: #5cb85c; text-align: center;">Chào mừng bạn gia nhập!</h2>
+        <p>Cảm ơn bạn đã đăng ký tài khoản. Để hoàn tất quá trình đăng ký, vui lòng xác nhận địa chỉ email của bạn bằng cách click vào nút dưới đây:</p>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{verificationUrl}}" style="display: inline-block; padding: 12px 24px; color: white; background-color: #5cb85c; text-decoration: none; border-radius: 5px; font-weight: bold;">Xác Nhận Email</a>
+        </div>
+        <p style="color: #d9534f; font-weight: bold;">Lưu ý: Link xác nhận này sẽ hết hạn trong vòng 15 phút.</p>
+        <p>Nếu nút bấm không hoạt động, bạn có thể copy và dán đường dẫn sau vào trình duyệt:</p>
+        <p style="word-break: break-all; background-color: #f9f9f9; padding: 10px; border-radius: 4px;">{{verificationUrl}}</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #777; text-align: center;">Trân trọng,<br/>Đội ngũ hỗ trợ TTTN</p>
+    </div>
+</body>
+</html>
