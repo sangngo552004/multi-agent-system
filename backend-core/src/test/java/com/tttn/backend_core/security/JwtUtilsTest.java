@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.tttn.backend_core.entity.Role;
 import com.tttn.backend_core.entity.User;
+import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -18,20 +19,37 @@ class JwtUtilsTest {
     ReflectionTestUtils.setField(
         jwtUtils, "secret", "mySuperSecretKeyForJwtWhichMustBeAtLeast32BytesLong");
     ReflectionTestUtils.setField(jwtUtils, "jwtExpirationInMs", 3600000L);
+    ReflectionTestUtils.setField(jwtUtils, "jwtRefreshExpirationInMs", 604800000L);
   }
 
   @Test
-  void testGenerateAndValidateToken() {
+  void testGenerateAccessTokenAndParse() {
     User user = new User();
     user.setEmail("test@tttn.com");
     user.setRole(Role.HR);
 
-    UserDetailsImpl userDetails = new UserDetailsImpl(user);
-
-    String token = jwtUtils.generateToken(userDetails);
+    String token = jwtUtils.generateAccessToken(user);
 
     assertNotNull(token);
-    assertEquals("test@tttn.com", jwtUtils.extractUsername(token));
-    assertTrue(jwtUtils.validateToken(token, userDetails));
+
+    Claims claims = jwtUtils.parseClaims(token);
+    assertEquals("test@tttn.com", claims.getSubject());
+    assertEquals("ROLE_HR", claims.get("roles"));
+    assertEquals("ACCESS", claims.get("type"));
+  }
+
+  @Test
+  void testGenerateRefreshTokenAndParse() {
+    User user = new User();
+    user.setEmail("test@tttn.com");
+    user.setRole(Role.HR);
+
+    String token = jwtUtils.generateRefreshToken(user);
+
+    assertNotNull(token);
+
+    Claims claims = jwtUtils.parseClaims(token);
+    assertEquals("test@tttn.com", claims.getSubject());
+    assertEquals("REFRESH", claims.get("type"));
   }
 }
