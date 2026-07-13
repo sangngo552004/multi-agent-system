@@ -273,7 +273,7 @@ def _normalize_output(
     grouped = _group_entities_by_label(entities)
 
     # Extract fields
-    personal_info = _extract_personal_info(grouped, warnings)
+    personal_info = _extract_personal_info(grouped, warnings, text_result)
     skills = _extract_skills(grouped)
     experience = _extract_experience(grouped)
     education = _extract_education(grouped)
@@ -321,6 +321,7 @@ def _group_entities_by_label(
 def _extract_personal_info(
     grouped: dict[str, list[NEREntity]],
     warnings: list[str],
+    text_result: Optional[TextExtractionResult] = None,
 ) -> PersonalInfo:
     """Extract personal information from grouped entities."""
     info = PersonalInfo()
@@ -330,6 +331,18 @@ def _extract_personal_info(
     if names:
         best_name = max(names, key=lambda e: e.score)
         info.name = best_name.text.strip()
+    
+    # Fallback: If NER missed the name (common for all-caps standalone names),
+    # assume the first non-empty line of the CV is the name.
+    if not info.name and text_result and text_result.text:
+        lines = [line.strip() for line in text_result.text.split("\n") if line.strip()]
+        if lines:
+            # First line is highly likely to be the name
+            potential_name = lines[0]
+            # Basic validation: not too long, not an email/phone
+            if len(potential_name) < 50 and "@" not in potential_name:
+                info.name = potential_name
+                warnings.append("name_extracted_via_fallback")
 
     # Email
     emails = grouped.get("email", [])
@@ -342,6 +355,13 @@ def _extract_personal_info(
         if not info.email:
             info.email = emails[0].text.strip()
             warnings.append("email_format_uncertain")
+            
+    # Fallback for Email: Use Regex on raw text
+    if not info.email and text_result and text_result.text:
+        match = EMAIL_PATTERN.search(text_result.text)
+        if match:
+            info.email = match.group()
+            warnings.append("email_extracted_via_regex")
 
     # Phone
     phones = grouped.get("phone", [])
@@ -350,6 +370,16 @@ def _extract_personal_info(
         phone_text = best_phone.text.strip()
         phone_clean = re.sub(r"[^\d+\-\s\(\)]", "", phone_text)
         info.phone = phone_clean if phone_clean else phone_text
+        
+    # Fallback for Phone: Use Regex on raw text
+    if not info.phone and text_result and text_result.text:
+        phone_match = re.search(r"(?:0|\+84)[\d\s\-\.]{9,12}", text_result.text)
+        if phone_match:
+            phone_text = phone_match.group()
+            phone_clean = re.sub(r"[^\d+]", "", phone_text)
+            if 9 <= len(phone_clean) <= 12:
+                info.phone = phone_clean
+                warnings.append("phone_extracted_via_regex")
 
     # Location
     locations = grouped.get("location", [])
@@ -521,3 +551,4 @@ async def _try_llm_fallback(
     except Exception as e:
         logger.error("LLM fallback error: %s", e)
         return None
+    

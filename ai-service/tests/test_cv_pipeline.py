@@ -57,7 +57,7 @@ class TestOutputNormalizer:
             ),
         ]
 
-        text_result = TextExtractionResult(text="text", method="pdfplumber")
+        text_result = TextExtractionResult(text="", method="pdfplumber")
 
         response = _normalize_output(
             entities=entities,
@@ -70,7 +70,7 @@ class TestOutputNormalizer:
 
     def test_empty_entities_not_cv(self):
         """No entities at all returns FAILED with not-a-CV warning."""
-        text_result = TextExtractionResult(text="text", method="pdfplumber")
+        text_result = TextExtractionResult(text="", method="pdfplumber")
 
         response = _normalize_output(
             entities=[],

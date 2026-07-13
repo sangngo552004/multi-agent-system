@@ -297,7 +297,13 @@ class GlinerNERExtractor(BaseNERExtractor):
             "Email Address": "email",
             "Phone Number": "phone",
             "Location or Address": "location",
+            
+            # Skills can be referred to in many ways
             "Technical Skills": "skills",
+            "Programming Language": "skills",
+            "Software Framework": "skills",
+            "Technology": "skills",
+            
             "Company Name": "company",
             "Job Title": "title",
             "Time Duration": "duration",
