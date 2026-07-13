@@ -17,7 +17,9 @@ ignore = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-v --cov=app --cov-report=term-missing --cov-report=xml"
+addopts = "-v --cov=app --cov-report=term-missing"
 testpaths = [
     "tests",
 ]
+asyncio_mode = "auto"
+
