@@ -16,13 +16,15 @@ logger = logging.getLogger(__name__)
 
 _EXTRACTOR_REGISTRY: dict[str, type["BaseNERExtractor"]] = {}
 
+
 def register_extractor(name: str):
     """Decorator to register a new NER extractor."""
+
     def decorator(cls: type["BaseNERExtractor"]):
         _EXTRACTOR_REGISTRY[name] = cls
         return cls
-    return decorator
 
+    return decorator
 
 
 class BaseNERExtractor(ABC):
@@ -159,9 +161,7 @@ class TransformersNERExtractor(BaseNERExtractor):
                 overlap_sentences = []
                 overlap_tokens = 0
                 for s in reversed(current_chunk_sentences):
-                    s_tokens = len(
-                        self._tokenizer.encode(s, add_special_tokens=False)
-                    )
+                    s_tokens = len(self._tokenizer.encode(s, add_special_tokens=False))
                     if overlap_tokens + s_tokens > settings.NER_OVERLAP_TOKENS:
                         break
                     overlap_sentences.insert(0, s)
@@ -253,7 +253,9 @@ class TransformersNERExtractor(BaseNERExtractor):
         for entity in entities:
             overlaps = False
             for existing in resolved:
-                if self._spans_overlap(entity.start, entity.end, existing.start, existing.end):
+                if self._spans_overlap(
+                    entity.start, entity.end, existing.start, existing.end
+                ):
                     overlaps = True
                     if entity.score > existing.score:
                         resolved.remove(existing)
@@ -283,33 +285,32 @@ class TransformersNERExtractor(BaseNERExtractor):
 
 # ── GLiNER Extractor ──────────────────────────────────────────────────────
 
+
 @register_extractor("gliner")
 class GlinerNERExtractor(BaseNERExtractor):
     """NER extraction using GLiNER (Zero-shot Named Entity Recognition)."""
 
     def __init__(self):
         self._model = None
-        
-        # GLiNER works best with highly descriptive labels. 
+
+        # GLiNER works best with highly descriptive labels.
         # We define descriptive labels for prediction and map them back to our standard keys.
         self.label_mapping = {
             "Person Name": "name",
             "Email Address": "email",
             "Phone Number": "phone",
             "Location or Address": "location",
-            
             # Skills can be referred to in many ways
             "Technical Skills": "skills",
             "Programming Language": "skills",
             "Software Framework": "skills",
             "Technology": "skills",
-            
             "Company Name": "company",
             "Job Title": "title",
             "Time Duration": "duration",
             "University or College": "institution",
             "Academic Degree": "degree",
-            "Graduation Year": "year"
+            "Graduation Year": "year",
         }
         self.gliner_labels = list(self.label_mapping.keys())
 
@@ -319,9 +320,10 @@ class GlinerNERExtractor(BaseNERExtractor):
             return
 
         logger.info("Loading GLiNER model: %s ...", settings.GLINER_MODEL_NAME)
-        
+
         try:
             from gliner import GLiNER
+
             self._model = GLiNER.from_pretrained(settings.GLINER_MODEL_NAME)
             logger.info("GLiNER model loaded successfully.")
         except ImportError:
@@ -339,18 +341,14 @@ class GlinerNERExtractor(BaseNERExtractor):
             return []
 
         if self._model is None:
-            raise RuntimeError(
-                "GLiNER model not loaded. Call load_model() first."
-            )
+            raise RuntimeError("GLiNER model not loaded. Call load_model() first.")
 
         logger.info("Extracting entities with GLiNER (%d chars)", len(text))
-        
+
         try:
             # Predict entities using highly descriptive labels
             raw_entities = self._model.predict_entities(
-                text, 
-                self.gliner_labels, 
-                threshold=settings.CONFIDENCE_THRESHOLD
+                text, self.gliner_labels, threshold=settings.CONFIDENCE_THRESHOLD
             )
         except Exception as e:
             logger.error("GLiNER prediction error: %s", e)
@@ -360,10 +358,10 @@ class GlinerNERExtractor(BaseNERExtractor):
         for raw in raw_entities:
             gliner_label = raw.get("label", "")
             standard_label = self.label_mapping.get(gliner_label, "UNKNOWN")
-            
+
             if standard_label == "UNKNOWN":
                 continue
-                
+
             entity = NEREntity(
                 text=raw.get("text", "").strip(),
                 label=standard_label,
@@ -371,7 +369,7 @@ class GlinerNERExtractor(BaseNERExtractor):
                 start=int(raw.get("start", 0)),
                 end=int(raw.get("end", 0)),
             )
-            
+
             # Since GLiNER accepts a threshold, all returned entities are >= threshold.
             # But we can still flag them if they are close to the threshold.
             if entity.score < (settings.CONFIDENCE_THRESHOLD + 0.1):
@@ -389,27 +387,28 @@ class GlinerNERExtractor(BaseNERExtractor):
                 seen.add(key)
                 unique_entities.append(e)
 
-        logger.info(
-            "GLiNER extraction complete: %d entities",
-            len(unique_entities)
-        )
+        logger.info("GLiNER extraction complete: %d entities", len(unique_entities))
 
         return unique_entities
 
 
 # ── Extractor Factory ──────────────────────────────────────────────────
 
+
 def get_extractor(extractor_type: str) -> BaseNERExtractor:
     """Factory to get the configured NER extractor."""
     cls = _EXTRACTOR_REGISTRY.get(extractor_type)
     if cls is None:
-        raise ValueError(f"Unknown NER_EXTRACTOR_TYPE: {extractor_type}. Available: {list(_EXTRACTOR_REGISTRY.keys())}")
+        raise ValueError(
+            f"Unknown NER_EXTRACTOR_TYPE: {extractor_type}. Available: {list(_EXTRACTOR_REGISTRY.keys())}"
+        )
     return cls()
 
 
 # ── Module-level API (preserves backwards compatibility) ──────────────
 
 _extractor_instance: Optional[BaseNERExtractor] = None
+
 
 def _get_instance() -> BaseNERExtractor:
     """Get or create the singleton extractor instance."""
@@ -419,13 +418,16 @@ def _get_instance() -> BaseNERExtractor:
         _extractor_instance = get_extractor(extractor_type)
     return _extractor_instance
 
+
 def load_model() -> None:
     """Load the configured NER model into memory."""
     _get_instance().load_model()
 
+
 def is_model_loaded() -> bool:
     """Check if the configured NER model is loaded."""
     return _get_instance().is_model_loaded()
+
 
 def extract_entities(text: str) -> list[NEREntity]:
     """Extract named entities from CV text using the configured model."""

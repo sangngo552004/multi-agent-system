@@ -14,7 +14,6 @@ from typing import Optional
 
 import pdfplumber
 import pytesseract
-from PIL import Image
 from docx import Document as DocxDocument
 
 from app.config import settings
@@ -115,9 +114,7 @@ def _extract_from_pdf(file_content: bytes) -> TextExtractionResult:
                 try:
                     text = page.extract_text() or ""
                 except Exception as e:
-                    logger.warning(
-                        "pdfplumber failed on page %d: %s", page_num, e
-                    )
+                    logger.warning("pdfplumber failed on page %d: %s", page_num, e)
                     text = ""
 
                 text = clean_extracted_text(text)
@@ -134,9 +131,7 @@ def _extract_from_pdf(file_content: bytes) -> TextExtractionResult:
                     if ocr_text and len(ocr_text) > len(text):
                         text = ocr_text
                         ocr_used = True
-                        result.warnings.append(
-                            f"page_{page_num}_extracted_via_ocr"
-                        )
+                        result.warnings.append(f"page_{page_num}_extracted_via_ocr")
 
                 # Check for garbled text (font encoding issues)
                 if text and _is_text_garbled(text):
@@ -153,9 +148,7 @@ def _extract_from_pdf(file_content: bytes) -> TextExtractionResult:
                             f"page_{page_num}_garbled_text_replaced_by_ocr"
                         )
                     else:
-                        result.warnings.append(
-                            f"page_{page_num}_garbled_text_detected"
-                        )
+                        result.warnings.append(f"page_{page_num}_garbled_text_detected")
 
                 page_texts.append(text)
 
@@ -192,14 +185,10 @@ def _ocr_pdf_page(page, page_num: int) -> Optional[str]:
         img = page.to_image(resolution=300)
         pil_image = img.original
 
-        ocr_text = pytesseract.image_to_string(
-            pil_image, lang=settings.TESSERACT_LANG
-        )
+        ocr_text = pytesseract.image_to_string(pil_image, lang=settings.TESSERACT_LANG)
         ocr_text = clean_extracted_text(ocr_text)
 
-        logger.info(
-            "OCR on page %d: extracted %d chars", page_num, len(ocr_text)
-        )
+        logger.info("OCR on page %d: extracted %d chars", page_num, len(ocr_text))
         return ocr_text
 
     except Exception as e:
@@ -236,9 +225,7 @@ def _extract_from_docx(file_content: bytes) -> TextExtractionResult:
         textbox_texts = _extract_docx_textboxes(doc)
         if textbox_texts:
             parts.extend(textbox_texts)
-            result.warnings.append(
-                f"extracted_{len(textbox_texts)}_text_boxes"
-            )
+            result.warnings.append(f"extracted_{len(textbox_texts)}_text_boxes")
 
     except Exception as e:
         logger.error("DOCX text extraction failed: %s", e)
@@ -278,9 +265,7 @@ def _extract_docx_textboxes(doc: DocxDocument) -> list[str]:
                     texts.append(p.text.strip())
 
         # Find text in VML shapes (v:textbox)
-        for textbox in body.iter(
-            "{urn:schemas-microsoft-com:vml}textbox"
-        ):
+        for textbox in body.iter("{urn:schemas-microsoft-com:vml}textbox"):
             for p in textbox.iter(
                 "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t"
             ):

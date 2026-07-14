@@ -1,9 +1,5 @@
 """Tests for text_extractor service."""
 
-from unittest.mock import MagicMock, patch
-
-import pytest
-
 from app.services.text_extractor import extract_text
 
 
@@ -36,6 +32,7 @@ class TestTextExtractor:
     def test_docx_empty_content(self):
         """DOCX with no text paragraphs returns short/empty text."""
         import io
+
         from docx import Document
 
         buf = io.BytesIO()
@@ -52,5 +49,8 @@ class TestTextExtractor:
         mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         result = extract_text(sample_docx_bytes, mime)
         assert result.method != ""
-        assert result.method in ["pdfplumber", "python_docx",
-                                  "pdfplumber+ocr_tesseract"]
+        assert result.method in [
+            "pdfplumber",
+            "python_docx",
+            "pdfplumber+ocr_tesseract",
+        ]

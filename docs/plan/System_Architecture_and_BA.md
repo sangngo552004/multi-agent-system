@@ -10,7 +10,7 @@
 ### 1.1. Tầm nhìn Sản phẩm (Product Vision)
 Thay vì xây dựng một hệ thống ATS truyền thống, hệ thống của chúng ta mang tính **Đột phá và Nhân văn**:
 - Ứng viên nộp CV vào một Job. Nếu họ trượt hoặc thiếu kỹ năng, thay vì bị từ chối lạnh lùng, AI sẽ phân tích và đưa ra đánh giá: *"Bạn phù hợp 70%. Bạn đang thiếu kỹ năng A, B. Hãy học lộ trình này trong 2 tháng tới để đáp ứng yêu cầu công việc"*.
-- **Giá trị:** Nâng tầm thương hiệu nhà tuyển dụng (Employer Branding) và tạo ra công cụ Hướng nghiệp cực kỳ thiết thực cho sinh viên/người đi tìm việc. 
+- **Giá trị:** Nâng tầm thương hiệu nhà tuyển dụng (Employer Branding) và tạo ra công cụ Hướng nghiệp cực kỳ thiết thực cho sinh viên/người đi tìm việc.
 
 ### 1.2. Các Tác nhân (Actors)
 1. **Ứng viên (Candidate):** Xem Job, upload CV, nhận Lộ trình học tập (Career Path).
@@ -52,7 +52,7 @@ erDiagram
     Users ||--o{ Jobs : "HR creates"
     Users ||--o{ Applications : "Candidate applies"
     Jobs ||--o{ Applications : "receives"
-    
+
     Applications ||--|| CV_Analysis : "AI extracts"
     Applications ||--|| Skill_Gap_Reports : "AI compares with JD"
     Applications ||--|| Career_Paths : "AI generates"

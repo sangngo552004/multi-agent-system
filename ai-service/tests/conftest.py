@@ -1,8 +1,6 @@
 """Test fixtures and shared configuration."""
 
 import io
-import os
-import zipfile
 
 import pytest
 from fastapi.testclient import TestClient
@@ -127,9 +125,7 @@ def mock_ner_entities():
     from app.schemas import NEREntity
 
     return [
-        NEREntity(
-            text="John Doe", label="name", score=0.95, start=0, end=8
-        ),
+        NEREntity(text="John Doe", label="name", score=0.95, start=0, end=8),
         NEREntity(
             text="john.doe@email.com",
             label="email",
@@ -202,9 +198,7 @@ def mock_ner_entities_low_confidence():
     from app.schemas import NEREntity
 
     return [
-        NEREntity(
-            text="Nguyen", label="name", score=0.35, start=0, end=6
-        ),
+        NEREntity(text="Nguyen", label="name", score=0.35, start=0, end=6),
         NEREntity(
             text="some text",
             label="skills",

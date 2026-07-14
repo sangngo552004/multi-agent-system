@@ -9,7 +9,6 @@ Validates uploaded CV files before processing:
 
 import io
 import logging
-from typing import Optional
 
 import magic
 import pdfplumber
@@ -17,7 +16,7 @@ from docx import Document as DocxDocument
 from docx.opc.exceptions import PackageNotFoundError
 
 from app.config import settings
-from app.schemas import FileInfo, ValidationResult
+from app.schemas import ValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -145,8 +144,7 @@ def _validate_pdf(file_content: bytes, result: ValidationResult) -> None:
 
             if page_count > settings.WARN_PAGE_COUNT:
                 result.warnings.append(
-                    f"PDF has {page_count} pages. "
-                    f"CVs are typically 1-3 pages."
+                    f"PDF has {page_count} pages. " f"CVs are typically 1-3 pages."
                 )
 
             if page_count == 0:
@@ -159,14 +157,11 @@ def _validate_pdf(file_content: bytes, result: ValidationResult) -> None:
         if "password" in error_msg or "encrypted" in error_msg:
             result.is_valid = False
             result.errors.append(
-                "PDF is password-protected. "
-                "Please upload an unprotected file."
+                "PDF is password-protected. " "Please upload an unprotected file."
             )
         else:
             result.is_valid = False
-            result.errors.append(
-                f"PDF file is corrupt or cannot be opened: {str(e)}"
-            )
+            result.errors.append(f"PDF file is corrupt or cannot be opened: {str(e)}")
         logger.error("PDF validation failed for %s: %s", result.file_info.filename, e)
 
 
@@ -177,17 +172,13 @@ def _validate_docx(file_content: bytes, result: ValidationResult) -> None:
         # Estimate page count from paragraph count (rough heuristic)
         para_count = len(doc.paragraphs)
         if para_count == 0:
-            result.warnings.append(
-                "DOCX file appears to have no text paragraphs."
-            )
+            result.warnings.append("DOCX file appears to have no text paragraphs.")
         # DOCX doesn't have a reliable page count without rendering;
         # we set it to None
         result.file_info.page_count = None
     except PackageNotFoundError:
         result.is_valid = False
-        result.errors.append(
-            "DOCX file is corrupt or not a valid Word document."
-        )
+        result.errors.append("DOCX file is corrupt or not a valid Word document.")
         logger.error(
             "DOCX validation failed for %s: PackageNotFoundError",
             result.file_info.filename,
@@ -197,14 +188,11 @@ def _validate_docx(file_content: bytes, result: ValidationResult) -> None:
         if "password" in error_msg or "encrypted" in error_msg:
             result.is_valid = False
             result.errors.append(
-                "DOCX is password-protected. "
-                "Please upload an unprotected file."
+                "DOCX is password-protected. " "Please upload an unprotected file."
             )
         else:
             result.is_valid = False
-            result.errors.append(
-                f"DOCX file is corrupt or cannot be opened: {str(e)}"
-            )
+            result.errors.append(f"DOCX file is corrupt or cannot be opened: {str(e)}")
         logger.error(
             "DOCX validation failed for %s: %s",
             result.file_info.filename,

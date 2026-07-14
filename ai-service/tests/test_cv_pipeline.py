@@ -1,11 +1,10 @@
 """Tests for cv_pipeline orchestrator (includes normalizer logic)."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from app.schemas import (
-    CVExtractionResponse,
     DetectedLanguage,
     ExtractionMethod,
     ExtractionStatus,
@@ -20,9 +19,7 @@ class TestOutputNormalizer:
 
     def test_full_extraction_success(self, mock_ner_entities):
         """Full extraction with all fields returns SUCCESS status."""
-        text_result = TextExtractionResult(
-            text="some text", method="pdfplumber"
-        )
+        text_result = TextExtractionResult(text="some text", method="pdfplumber")
 
         response = _normalize_output(
             entities=mock_ner_entities,
@@ -189,9 +186,7 @@ class TestOutputNormalizer:
         )
 
         # Python and python should be deduplicated (case-insensitive)
-        python_count = sum(
-            1 for s in response.skills if s.lower() == "python"
-        )
+        python_count = sum(1 for s in response.skills if s.lower() == "python")
         assert python_count == 1
 
 
@@ -231,10 +226,17 @@ class TestCVPipeline:
     @patch("app.services.cv_pipeline._try_llm_fallback")
     @patch("app.services.cv_pipeline.settings")
     async def test_pipeline_graceful_on_ner_error(
-        self, mock_settings, mock_llm_fallback, mock_validator, mock_text, mock_ner, sample_docx_bytes
+        self,
+        mock_settings,
+        mock_llm_fallback,
+        mock_validator,
+        mock_text,
+        mock_ner,
+        sample_docx_bytes,
     ):
         """Pipeline handles NER errors gracefully without crashing."""
         from app.services.cv_pipeline import process_cv
+
         mock_settings.EXTRACTION_STRATEGY = "hybrid"
         mock_settings.MIN_TEXT_LENGTH = 50
         mock_llm_fallback.return_value = None
@@ -262,7 +264,9 @@ class TestCVPipeline:
             ExtractionStatus.PARTIAL,
             ExtractionStatus.FAILED,
         ]
-        assert any("ner_extraction_error" in w for w in response.warnings), f"Warnings were: {response.warnings}"
+        assert any(
+            "ner_extraction_error" in w for w in response.warnings
+        ), f"Warnings were: {response.warnings}"
 
     @pytest.mark.asyncio
     @patch("app.services.cv_pipeline.ner_extractor")
@@ -273,8 +277,13 @@ class TestCVPipeline:
         self, mock_settings, mock_validator, mock_text, mock_ner, sample_docx_bytes
     ):
         """When strategy is 'llm', NER is completely bypassed."""
+        from app.schemas import (
+            ConfidenceScores,
+            CVExtractionResponse,
+            PersonalInfo,
+            ProcessingLog,
+        )
         from app.services.cv_pipeline import process_cv
-        from app.schemas import CVExtractionResponse, PersonalInfo, ConfidenceScores, ProcessingLog
 
         # Force LLM strategy
         mock_settings.EXTRACTION_STRATEGY = "llm"
@@ -285,9 +294,10 @@ class TestCVPipeline:
             is_valid=True, warnings=[], file_info=MagicMock(mime_type="application/pdf")
         )
         mock_text.extract_text.return_value = TextExtractionResult(
-            text="This is a valid text that is definitely longer than fifty characters to bypass the check.", method="pdfplumber"
+            text="This is a valid text that is definitely longer than fifty characters to bypass the check.",
+            method="pdfplumber",
         )
-        
+
         # We need to patch _try_llm_fallback to return a dummy response
         with patch("app.services.cv_pipeline._try_llm_fallback") as mock_llm:
             dummy_response = CVExtractionResponse(
@@ -300,7 +310,7 @@ class TestCVPipeline:
                 education=[],
                 certifications=[],
                 confidence_scores=ConfidenceScores(overall=0.0),
-                processing_log=ProcessingLog(processing_time_ms=0)
+                processing_log=ProcessingLog(processing_time_ms=0),
             )
             mock_llm.return_value = dummy_response
 
@@ -308,7 +318,7 @@ class TestCVPipeline:
 
             # NER should NOT have been called
             mock_ner.extract_entities.assert_not_called()
-            
+
             # LLM should have been called
             mock_llm.assert_called_once()
             assert mock_llm.call_args[0][1] == "strategy_llm_only"
@@ -321,7 +331,13 @@ class TestCVPipeline:
     @patch("app.services.cv_pipeline.file_validator")
     @patch("app.services.cv_pipeline.settings")
     async def test_extraction_strategy_ner_only(
-        self, mock_settings, mock_validator, mock_text, mock_ner, sample_docx_bytes, mock_ner_entities
+        self,
+        mock_settings,
+        mock_validator,
+        mock_text,
+        mock_ner,
+        sample_docx_bytes,
+        mock_ner_entities,
     ):
         """When strategy is 'ner', LLM fallback is bypassed."""
         from app.services.cv_pipeline import process_cv
@@ -335,19 +351,20 @@ class TestCVPipeline:
             is_valid=True, warnings=[], file_info=MagicMock(mime_type="application/pdf")
         )
         mock_text.extract_text.return_value = TextExtractionResult(
-            text="This text is definitely long enough to bypass the fifty character minimum length check for NER.", method="pdfplumber"
+            text="This text is definitely long enough to bypass the fifty character minimum length check for NER.",
+            method="pdfplumber",
         )
-        
+
         # Return bad NER entities that would normally trigger fallback
         # Let's just return empty entities so _evaluate_fallback_need would normally return a reason
         mock_ner.extract_entities.return_value = []
-        
+
         with patch("app.services.cv_pipeline._try_llm_fallback") as mock_llm:
             response = await process_cv(sample_docx_bytes, "test.pdf")
 
             # NER should have been called
             mock_ner.extract_entities.assert_called_once()
-            
+
             # LLM should NOT have been called despite bad NER results
             mock_llm.assert_not_called()
 

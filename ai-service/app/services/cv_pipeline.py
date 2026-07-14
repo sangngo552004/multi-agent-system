@@ -16,8 +16,8 @@ from typing import Optional
 
 from app.config import settings
 from app.schemas import (
-    CVExtractionResponse,
     ConfidenceScores,
+    CVExtractionResponse,
     DetectedLanguage,
     EducationItem,
     ExperienceItem,
@@ -38,9 +38,7 @@ from app.services import (
 logger = logging.getLogger(__name__)
 
 # Regex patterns for validation
-EMAIL_PATTERN = re.compile(
-    r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
-)
+EMAIL_PATTERN = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 
 
 async def process_cv(
@@ -126,7 +124,7 @@ async def process_cv(
     logger.info("Step 4: Running extraction strategy: %s", settings.EXTRACTION_STRATEGY)
 
     entities = []
-    
+
     if settings.EXTRACTION_STRATEGY == "llm":
         logger.info("Strategy is LLM only. Bypassing NER.")
         llm_response = await _try_llm_fallback(
@@ -153,7 +151,8 @@ async def process_cv(
         # ── Step 5: Evaluate quality & decide fallback ────────────────
         if settings.EXTRACTION_STRATEGY == "hybrid":
             logger.info(
-                "Step 5: Evaluating NER quality (%d entities) for hybrid strategy", len(entities)
+                "Step 5: Evaluating NER quality (%d entities) for hybrid strategy",
+                len(entities),
             )
 
             fallback_reason = _evaluate_fallback_need(
@@ -331,7 +330,7 @@ def _extract_personal_info(
     if names:
         best_name = max(names, key=lambda e: e.score)
         info.name = best_name.text.strip()
-    
+
     # Fallback: If NER missed the name (common for all-caps standalone names),
     # assume the first non-empty line of the CV is the name.
     if not info.name and text_result and text_result.text:
@@ -355,7 +354,7 @@ def _extract_personal_info(
         if not info.email:
             info.email = emails[0].text.strip()
             warnings.append("email_format_uncertain")
-            
+
     # Fallback for Email: Use Regex on raw text
     if not info.email and text_result and text_result.text:
         match = EMAIL_PATTERN.search(text_result.text)
@@ -370,7 +369,7 @@ def _extract_personal_info(
         phone_text = best_phone.text.strip()
         phone_clean = re.sub(r"[^\d+\-\s\(\)]", "", phone_text)
         info.phone = phone_clean if phone_clean else phone_text
-        
+
     # Fallback for Phone: Use Regex on raw text
     if not info.phone and text_result and text_result.text:
         phone_match = re.search(r"(?:0|\+84)[\d\s\-\.]{9,12}", text_result.text)
@@ -551,4 +550,3 @@ async def _try_llm_fallback(
     except Exception as e:
         logger.error("LLM fallback error: %s", e)
         return None
-    

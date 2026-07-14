@@ -16,8 +16,8 @@ from typing import Optional
 
 from app.config import settings
 from app.schemas import (
-    CVExtractionResponse,
     ConfidenceScores,
+    CVExtractionResponse,
     EducationItem,
     ExperienceItem,
     ExtractionMethod,
@@ -91,17 +91,22 @@ async def _retry_async(func, *args, max_retries=2, base_delay=1.0):
         except Exception as e:
             last_exception = e
             if attempt < max_retries:
-                delay = min(base_delay * (2 ** attempt), 10.0)
+                delay = min(base_delay * (2**attempt), 10.0)
                 logger.warning(
                     "Attempt %d/%d failed for %s: %s. Retrying in %.1fs...",
-                    attempt + 1, max_retries + 1,
-                    func.__name__, str(e), delay,
+                    attempt + 1,
+                    max_retries + 1,
+                    func.__name__,
+                    str(e),
+                    delay,
                 )
                 await asyncio.sleep(delay)
             else:
                 logger.error(
                     "All %d attempts failed for %s: %s",
-                    max_retries + 1, func.__name__, str(e),
+                    max_retries + 1,
+                    func.__name__,
+                    str(e),
                 )
     raise last_exception  # type: ignore[misc]
 
@@ -213,8 +218,7 @@ async def llm_extract_cv(
     """
     if not settings.GOOGLE_API_KEY:
         logger.warning(
-            "LLM fallback requested but no API key configured. "
-            "Reason: %s",
+            "LLM fallback requested but no API key configured. " "Reason: %s",
             fallback_reason,
         )
         return None
@@ -273,9 +277,7 @@ def _parse_llm_json(text: str) -> Optional[dict]:
         return None
 
 
-def _convert_llm_output(
-    data: dict, fallback_reason: str
-) -> CVExtractionResponse:
+def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionResponse:
     """Convert raw LLM JSON output to CVExtractionResponse."""
     personal = data.get("personal_info", {})
     skills = data.get("skills", [])

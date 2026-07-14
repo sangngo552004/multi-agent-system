@@ -14,13 +14,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.schemas import CVExtractionResponse, ExtractionStatus
+from app.schemas import CVExtractionResponse
 from app.services import cv_pipeline, ner_extractor
 
 logger = logging.getLogger(__name__)
 
 
 # ── Logging setup ──────────────────────────────────────────────────
+
 
 def _setup_logging():
     logging.basicConfig(
@@ -31,6 +32,7 @@ def _setup_logging():
 
 
 # ── Lifespan ───────────────────────────────────────────────────────
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -88,6 +90,7 @@ app.add_middleware(
 
 
 # ── Endpoints ──────────────────────────────────────────────────────
+
 
 @app.get("/")
 def read_root():
@@ -155,7 +158,7 @@ async def extract_cv(
         raise HTTPException(
             status_code=400,
             detail=f"Failed to read uploaded file: {str(e)}",
-        )
+        ) from e
 
     # Run pipeline
     response = await cv_pipeline.process_cv(file_content, filename)
@@ -176,6 +179,7 @@ async def extract_cv(
 
 # ── Error handlers ─────────────────────────────────────────────────
 
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     """Catch-all exception handler to prevent 500 errors without context."""
@@ -186,7 +190,12 @@ async def global_exception_handler(request, exc):
             "status": "failed",
             "extraction_method": "ner_model",
             "language_detected": "unknown",
-            "personal_info": {"name": None, "email": None, "phone": None, "location": None},
+            "personal_info": {
+                "name": None,
+                "email": None,
+                "phone": None,
+                "location": None,
+            },
             "skills": [],
             "experience": [],
             "education": [],

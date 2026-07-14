@@ -1,7 +1,5 @@
 """Tests for file_validator service."""
 
-import pytest
-
 from app.services.file_validator import validate_file
 
 

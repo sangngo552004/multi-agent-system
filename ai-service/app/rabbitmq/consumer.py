@@ -80,16 +80,12 @@ def _run_consumer():
             channel.start_consuming()
 
         except AMQPConnectionError as e:
-            logger.error(
-                "RabbitMQ connection failed: %s. Retrying in 5s...", e
-            )
+            logger.error("RabbitMQ connection failed: %s. Retrying in 5s...", e)
             import time
 
             time.sleep(5)
         except Exception as e:
-            logger.error(
-                "RabbitMQ consumer error: %s. Retrying in 5s...", e
-            )
+            logger.error("RabbitMQ consumer error: %s. Retrying in 5s...", e)
             import time
 
             time.sleep(5)
@@ -103,8 +99,7 @@ def _on_message(channel, method, properties, body):
         request = CVExtractRequest(**message_data)
 
         logger.info(
-            "Received CV extraction request: application_id=%s, "
-            "file_url=%s",
+            "Received CV extraction request: application_id=%s, " "file_url=%s",
             request.application_id,
             request.file_url,
         )
@@ -164,17 +159,11 @@ def _on_message(channel, method, properties, body):
     except json.JSONDecodeError as e:
         logger.error("Invalid message JSON: %s", e)
         # Nack without requeue (bad message format, won't fix on retry)
-        channel.basic_nack(
-            delivery_tag=method.delivery_tag, requeue=False
-        )
+        channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
     except Exception as e:
-        logger.error(
-            "Error processing message: %s", e, exc_info=True
-        )
+        logger.error("Error processing message: %s", e, exc_info=True)
         # Nack with requeue (transient error, might succeed on retry)
-        channel.basic_nack(
-            delivery_tag=method.delivery_tag, requeue=True
-        )
+        channel.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
 
 def _download_file(url: str) -> Optional[bytes]:

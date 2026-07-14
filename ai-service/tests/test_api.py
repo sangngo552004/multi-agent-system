@@ -1,8 +1,6 @@
 """Tests for FastAPI REST endpoints."""
 
-from unittest.mock import AsyncMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from app.schemas import (
     CVExtractionResponse,
@@ -44,9 +42,7 @@ class TestAPI:
         """Upload CV returns extraction result."""
         mock_response = CVExtractionResponse(
             status=ExtractionStatus.SUCCESS,
-            personal_info=PersonalInfo(
-                name="John Doe", email="john@email.com"
-            ),
+            personal_info=PersonalInfo(name="John Doe", email="john@email.com"),
             skills=["Python", "Java"],
         )
         mock_process.return_value = mock_response

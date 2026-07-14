@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.schemas import NEREntity
 import app.services.ner_extractor as ne
+from app.schemas import NEREntity
 from app.services.ner_extractor import TransformersNERExtractor
 
 
@@ -155,9 +155,7 @@ class TestOverlapResolution:
         """Non-overlapping entities are all kept."""
         extractor = TransformersNERExtractor()
         entities = [
-            NEREntity(
-                text="John", label="name", score=0.9, start=0, end=4
-            ),
+            NEREntity(text="John", label="name", score=0.9, start=0, end=4),
             NEREntity(
                 text="Python",
                 label="skills",
@@ -177,6 +175,6 @@ class TestModuleLevelAPI:
     def test_module_is_model_loaded(self, mock_is_loaded):
         ne._extractor_instance = TransformersNERExtractor()
         mock_is_loaded.return_value = True
-        
+
         assert ne.is_model_loaded() is True
         mock_is_loaded.assert_called_once()
