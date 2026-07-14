@@ -54,7 +54,36 @@ services:
       timeout: 5s
       retries: 5
 
+  # AI Service (CV Extraction)
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: tttn-ai-service
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "8000"
+      RABBITMQ_URL: "amqp://admin:password123@rabbitmq:5672/"
+      RABBITMQ_ENABLED: "true"
+      LOG_LEVEL: "INFO"
+      # GOOGLE_API_KEY: "your-key-here"  # Uncomment and set for LLM fallback
+    ports:
+      - "8001:8000"
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r = httpx.get('http://localhost:8000/health'); exit(0 if r.status_code == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+
 volumes:
   postgres_data:
   rabbitmq_data:
   redis_data:
+  huggingface_cache:
