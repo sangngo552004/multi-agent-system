@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import app.services.ner_extractor as ne
-from app.schemas import NEREntity
+from app.core.schemas import NEREntity
 from app.services.ner_extractor import TransformersNERExtractor
 
 

@@ -14,8 +14,8 @@ from typing import Optional
 import pika
 from pika.exceptions import AMQPConnectionError
 
-from app.config import settings
-from app.schemas import CVExtractRequest, CVExtractResult
+from app.core.config import settings
+from app.core.schemas import CVExtractRequest, CVExtractResult
 from app.services import cv_pipeline
 
 logger = logging.getLogger(__name__)
@@ -186,7 +186,7 @@ def _publish_error(
     error_msg: str,
 ):
     """Publish an error response back to the callback queue."""
-    from app.schemas import CVExtractionResponse
+    from app.core.schemas import CVExtractionResponse
 
     response = CVExtractResult(
         application_id=request.application_id,

@@ -15,8 +15,8 @@ import pdfplumber
 from docx import Document as DocxDocument
 from docx.opc.exceptions import PackageNotFoundError
 
-from app.config import settings
-from app.schemas import ValidationResult
+from app.core.config import settings
+from app.core.schemas import ValidationResult
 
 logger = logging.getLogger(__name__)
 

@@ -9,13 +9,15 @@ import os
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.config import settings
-from app.schemas import CVExtractionResponse
-from app.services import cv_pipeline, ner_extractor
+from app.agents.extractor_agent import agent as cv_pipeline
+from app.agents.extractor_agent import ner_extractor
+from app.agents.orchestrator import agent_graph
+from app.core.config import settings
+from app.core.schemas import CVExtractionResponse
 
 logger = logging.getLogger(__name__)
 
@@ -175,6 +177,57 @@ async def extract_cv(
     )
 
     return response
+
+
+@app.post(
+    "/process-application",
+    summary="Process a full application (Extract CV -> Match -> Path)",
+    description="Upload CV and Job Data to trigger the LangGraph multi-agent flow.",
+)
+async def process_application(
+    job_data_json: str = Form(..., description="Job data in JSON string format"),
+    hr_preferences: str = Form("", description="Hidden HR preferences"),
+    file: UploadFile = File(...),
+):
+    import json
+
+    try:
+        job_data = json.loads(job_data_json)
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=400, detail="job_data_json must be valid JSON"
+        ) from e
+
+    try:
+        file_content = await file.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {e}") from e
+
+    initial_state = {
+        "application_id": file.filename or "unknown",
+        "file_content": file_content,
+        "filename": file.filename or "unknown",
+        "job_data": job_data,
+        "hr_preferences": hr_preferences,
+        "cv_data": None,
+        "match_result": None,
+        "needs_human_review": False,
+    }
+
+    # Run the graph synchronously or await if we use ainvoke
+    # We will use ainvoke since the graph contains async nodes
+    config = {"configurable": {"thread_id": "1"}}
+    try:
+        final_state = await agent_graph.ainvoke(initial_state, config)
+        return {
+            "application_id": final_state["application_id"],
+            "needs_human_review": final_state["needs_human_review"],
+            "match_result": final_state["match_result"],
+            "cv_data": final_state["cv_data"],
+        }
+    except Exception as e:
+        logger.error(f"Graph execution failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Graph failed: {e}") from e
 
 
 # ── Error handlers ─────────────────────────────────────────────────

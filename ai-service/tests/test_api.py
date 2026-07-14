@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from app.schemas import (
+from app.core.schemas import (
     CVExtractionResponse,
     ExtractionStatus,
     PersonalInfo,

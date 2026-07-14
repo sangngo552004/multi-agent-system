@@ -122,7 +122,7 @@ def corrupt_pdf_bytes():
 @pytest.fixture
 def mock_ner_entities():
     """Sample NER entity output for testing normalizer."""
-    from app.schemas import NEREntity
+    from app.core.schemas import NEREntity
 
     return [
         NEREntity(text="John Doe", label="name", score=0.95, start=0, end=8),
@@ -195,7 +195,7 @@ def mock_ner_entities():
 @pytest.fixture
 def mock_ner_entities_low_confidence():
     """NER entities with low confidence scores."""
-    from app.schemas import NEREntity
+    from app.core.schemas import NEREntity
 
     return [
         NEREntity(text="Nguyen", label="name", score=0.35, start=0, end=6),

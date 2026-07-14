@@ -135,3 +135,40 @@ class CVExtractResult(BaseModel):
     application_id: str
     result: CVExtractionResponse
     error: Optional[str] = None
+
+
+# ── Matching Schema ────────────────────────────────────────────────────
+
+
+class MatchedCriterion(BaseModel):
+    skill: str
+    evidence: str
+    match_score: float
+
+
+class MissingCriterion(BaseModel):
+    skill: str
+    criticality: str
+    reason: str
+
+
+class MatchingOutput(BaseModel):
+    overall_score: float
+    hard_skill_score: float
+    background_score: float
+    bonus_score: float
+
+    is_high_potential: bool
+    potential_reason: Optional[str] = None
+
+    matched_criteria: list[MatchedCriterion] = Field(default_factory=list)
+    missing_criteria: list[MissingCriterion] = Field(default_factory=list)
+
+    hr_recommendation: str
+
+
+class MatchRequest(BaseModel):
+    application_id: str
+    cv_data: CVExtractionResponse
+    job_data: dict
+    hr_preferences: Optional[str] = None
