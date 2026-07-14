@@ -60,13 +60,13 @@ services:
       context: ./ai-service
       dockerfile: Dockerfile
     container_name: tttn-ai-service
+    env_file:
+      - ./ai-service/.env
     environment:
       HOST: "0.0.0.0"
       PORT: "8000"
-      RABBITMQ_URL: "amqp://admin:password123@rabbitmq:5672/"
+      RABBITMQ_URL: "amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-password123}@rabbitmq:5672/"
       RABBITMQ_ENABLED: "true"
-      LOG_LEVEL: "INFO"
-      # GOOGLE_API_KEY: "your-key-here"  # Uncomment and set for LLM fallback
     ports:
       - "8001:8000"
     volumes:
