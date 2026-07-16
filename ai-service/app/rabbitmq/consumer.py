@@ -12,11 +12,10 @@ import threading
 from typing import Optional
 
 import pika
-from pika.exceptions import AMQPConnectionError
-
 from app.core.config import settings
 from app.core.schemas import CVExtractRequest, CVExtractResult
 from app.services import cv_pipeline
+from pika.exceptions import AMQPConnectionError
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +98,7 @@ def _on_message(channel, method, properties, body):
         request = CVExtractRequest(**message_data)
 
         logger.info(
-            "Received CV extraction request: application_id=%s, " "file_url=%s",
+            "Received CV extraction request: application_id=%s, file_url=%s",
             request.application_id,
             request.file_url,
         )
@@ -146,8 +145,7 @@ def _on_message(channel, method, properties, body):
         )
 
         logger.info(
-            "Published extraction result for application_id=%s "
-            "to queue=%s (status=%s)",
+            "Published extraction result for application_id=%s to queue=%s (status=%s)",
             request.application_id,
             callback_queue,
             result.status.value,
