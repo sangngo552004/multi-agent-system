@@ -37,7 +37,7 @@ class TestAPI:
         assert "confidence_threshold" in data
         assert "max_file_size_mb" in data
 
-    @patch("app.services.cv_pipeline.process_cv")
+    @patch("app.agents.extractor_agent.agent.process_cv")
     def test_extract_cv_success(self, mock_process, test_client):
         """Upload CV returns extraction result."""
         mock_response = CVExtractionResponse(
@@ -67,7 +67,7 @@ class TestAPI:
         response = test_client.post("/extract-cv")
         assert response.status_code == 422
 
-    @patch("app.services.cv_pipeline.process_cv")
+    @patch("app.agents.extractor_agent.agent.process_cv")
     def test_extract_cv_returns_partial(self, mock_process, test_client):
         """Partial extraction returns status=partial."""
         mock_response = CVExtractionResponse(

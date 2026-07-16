@@ -12,10 +12,11 @@ import threading
 from typing import Optional
 
 import pika
+from pika.exceptions import AMQPConnectionError
+
+from app.agents.extractor_agent import agent as cv_pipeline
 from app.core.config import settings
 from app.core.schemas import CVExtractRequest, CVExtractResult
-from app.services import cv_pipeline
-from pika.exceptions import AMQPConnectionError
 
 logger = logging.getLogger(__name__)
 

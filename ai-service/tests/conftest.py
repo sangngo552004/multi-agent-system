@@ -12,7 +12,7 @@ def test_client():
     # Patch model loading before importing app
     from unittest.mock import patch
 
-    with patch("app.services.ner_extractor.load_model"):
+    with patch("app.agents.extractor_agent.ner_extractor.load_model"):
         from app.main import app
 
         yield TestClient(app)

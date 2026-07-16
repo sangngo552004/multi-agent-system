@@ -72,6 +72,7 @@ class MatchingAgent:
                 status="ERROR",
                 rejection_reason="Missing API Key",
                 overall_score=hard_skill_score,
+                hard_skill_score=hard_skill_score,
                 matched_criteria=matched,
                 missing_criteria=missing,
             )
@@ -208,7 +209,7 @@ class MatchingAgent:
 
         return f"""
         [CV DATA]
-        {request.cv_data.model_dump_json(exclude={{"processing_log", "confidence_scores"}})}
+        {request.cv_data.model_dump_json(exclude={"processing_log", "confidence_scores"})}
 
         [REQUIRED COMPETENCIES with Level Descriptions]
         {json.dumps(competencies_with_levels, ensure_ascii=False) if competencies_with_levels else (job_config.model_dump_json() if job_config else json.dumps(request.job_data))}

@@ -2,10 +2,11 @@
 
 from unittest.mock import MagicMock, patch
 
-import app.services.ner_extractor as ne
 import pytest
+
+import app.agents.extractor_agent.ner_extractor as ne
+from app.agents.extractor_agent.ner_extractor import TransformersNERExtractor
 from app.core.schemas import NEREntity
-from app.services.ner_extractor import TransformersNERExtractor
 
 
 class TestTransformersNERExtractor:
