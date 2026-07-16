@@ -1,6 +1,6 @@
 """Tests for file_validator service."""
 
-from app.services.file_validator import validate_file
+from app.agents.extractor_agent.file_validator import validate_file
 
 
 class TestFileValidator:

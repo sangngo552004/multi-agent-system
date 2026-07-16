@@ -9,8 +9,8 @@ import re
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from app.config import settings
-from app.schemas import NEREntity
+from app.core.config import settings
+from app.core.schemas import NEREntity
 
 logger = logging.getLogger(__name__)
 

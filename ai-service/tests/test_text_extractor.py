@@ -1,6 +1,6 @@
 """Tests for text_extractor service."""
 
-from app.services.text_extractor import extract_text
+from app.agents.extractor_agent.text_extractor import extract_text
 
 
 class TestTextExtractor:

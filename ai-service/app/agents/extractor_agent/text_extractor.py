@@ -16,8 +16,8 @@ import pdfplumber
 import pytesseract
 from docx import Document as DocxDocument
 
-from app.config import settings
-from app.schemas import TextExtractionResult
+from app.core.config import settings
+from app.core.schemas import TextExtractionResult
 
 logger = logging.getLogger(__name__)
 

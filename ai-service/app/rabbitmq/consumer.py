@@ -14,9 +14,9 @@ from typing import Optional
 import pika
 from pika.exceptions import AMQPConnectionError
 
-from app.config import settings
-from app.schemas import CVExtractRequest, CVExtractResult
-from app.services import cv_pipeline
+from app.agents.extractor_agent import agent as cv_pipeline
+from app.core.config import settings
+from app.core.schemas import CVExtractRequest, CVExtractResult
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ def _on_message(channel, method, properties, body):
         request = CVExtractRequest(**message_data)
 
         logger.info(
-            "Received CV extraction request: application_id=%s, " "file_url=%s",
+            "Received CV extraction request: application_id=%s, file_url=%s",
             request.application_id,
             request.file_url,
         )
@@ -146,8 +146,7 @@ def _on_message(channel, method, properties, body):
         )
 
         logger.info(
-            "Published extraction result for application_id=%s "
-            "to queue=%s (status=%s)",
+            "Published extraction result for application_id=%s to queue=%s (status=%s)",
             request.application_id,
             callback_queue,
             result.status.value,
@@ -186,7 +185,7 @@ def _publish_error(
     error_msg: str,
 ):
     """Publish an error response back to the callback queue."""
-    from app.schemas import CVExtractionResponse
+    from app.core.schemas import CVExtractionResponse
 
     response = CVExtractResult(
         application_id=request.application_id,

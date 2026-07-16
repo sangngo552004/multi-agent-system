@@ -14,8 +14,8 @@ import logging
 import time
 from typing import Optional
 
-from app.config import settings
-from app.schemas import (
+from app.core.config import settings
+from app.core.schemas import (
     ConfidenceScores,
     CVExtractionResponse,
     EducationItem,
@@ -134,11 +134,18 @@ class GeminiProvider:
         prompt = CV_EXTRACTION_PROMPT.format(cv_text=text[:8000])
 
         try:
+            from google.generativeai.types import GenerationConfig
+
             loop = asyncio.get_event_loop()
             response = await asyncio.wait_for(
                 loop.run_in_executor(
                     None,
-                    lambda: model.generate_content(prompt),
+                    lambda: model.generate_content(
+                        prompt,
+                        generation_config=GenerationConfig(
+                            response_mime_type="application/json"
+                        ),
+                    ),
                 ),
                 timeout=settings.LLM_TIMEOUT_SECONDS,
             )

@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     PORT: int = 8000
     LOG_LEVEL: str = "INFO"
 
+    # --- Backend API (for Knowledge Base & CompetencyLevel lookup) ---
+    BACKEND_BASE_URL: str = "http://localhost:8080"
+    KB_CACHE_TTL_SECONDS: int = 300  # 5 phút cache KB từ backend
+
     # --- OCR ---
     TESSERACT_LANG: str = "eng+vie"
 

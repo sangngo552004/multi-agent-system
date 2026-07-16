@@ -8,11 +8,12 @@ repos:
     -   id: check-added-large-files
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.5
+    rev: v0.15.21
     hooks:
     -   id: ruff
-        args: [ --fix ]
+        args: [ --fix, --config, ai-service/pyproject.toml ]
     -   id: ruff-format
+        args: [ --config, ai-service/pyproject.toml ]
 
 -   repo: local
     hooks:

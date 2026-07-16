@@ -9,13 +9,20 @@ Coordinates the full extraction flow:
 6. Output normalization
 """
 
+import asyncio
 import logging
 import re
 import time
 from typing import Optional
 
-from app.config import settings
-from app.schemas import (
+from app.agents.extractor_agent import (
+    file_validator,
+    llm_fallback,
+    ner_extractor,
+    text_extractor,
+)
+from app.core.config import settings
+from app.core.schemas import (
     ConfidenceScores,
     CVExtractionResponse,
     DetectedLanguage,
@@ -27,12 +34,6 @@ from app.schemas import (
     PersonalInfo,
     ProcessingLog,
     TextExtractionResult,
-)
-from app.services import (
-    file_validator,
-    llm_fallback,
-    ner_extractor,
-    text_extractor,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,11 @@ async def process_cv(
     # ── Step 1: Validate file ─────────────────────────────────────
     logger.info("Step 1: Validating file '%s' (%d bytes)", filename, len(file_content))
 
-    validation = file_validator.validate_file(file_content, filename)
+    loop = asyncio.get_running_loop()
+
+    validation = await loop.run_in_executor(
+        None, file_validator.validate_file, file_content, filename
+    )
     if not validation.is_valid:
         elapsed_ms = int((time.time() - start_time) * 1000)
         return CVExtractionResponse(
@@ -78,7 +83,9 @@ async def process_cv(
     logger.info("Step 2: Extracting text (mime=%s)", mime_type)
 
     try:
-        text_result = text_extractor.extract_text(file_content, mime_type)
+        text_result = await loop.run_in_executor(
+            None, text_extractor.extract_text, file_content, mime_type
+        )
     except Exception as e:
         logger.error("Text extraction crashed: %s", e)
         elapsed_ms = int((time.time() - start_time) * 1000)
@@ -118,7 +125,9 @@ async def process_cv(
 
     # ── Step 3: Detect language (simple) ──────────────────────────
     logger.info("Step 3: Detecting language")
-    detected_lang = _detect_language_simple(text_result.text)
+    detected_lang = await loop.run_in_executor(
+        None, _detect_language_simple, text_result.text
+    )
 
     # ── Step 4: Extraction Strategy ───────────────────────────────
     logger.info("Step 4: Running extraction strategy: %s", settings.EXTRACTION_STRATEGY)
@@ -143,7 +152,9 @@ async def process_cv(
     else:
         # Strategy is "ner" or "hybrid"
         try:
-            entities = ner_extractor.extract_entities(text_result.text)
+            entities = await loop.run_in_executor(
+                None, ner_extractor.extract_entities, text_result.text
+            )
         except Exception as e:
             logger.error("NER extraction failed: %s", e)
             warnings.append(f"ner_extraction_error: {str(e)}")
@@ -184,12 +195,14 @@ async def process_cv(
 
     elapsed_ms = int((time.time() - start_time) * 1000)
 
-    response = _normalize_output(
-        entities=entities,
-        text_result=text_result,
-        detected_lang=detected_lang,
-        processing_time_ms=elapsed_ms,
-        extra_warnings=warnings,
+    response = await loop.run_in_executor(
+        None,
+        _normalize_output,
+        entities,
+        text_result,
+        detected_lang,
+        elapsed_ms,
+        warnings,
     )
 
     logger.info(

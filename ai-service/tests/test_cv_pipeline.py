@@ -4,14 +4,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.schemas import (
+from app.agents.extractor_agent.agent import _normalize_output
+from app.core.schemas import (
     DetectedLanguage,
     ExtractionMethod,
     ExtractionStatus,
     NEREntity,
     TextExtractionResult,
 )
-from app.services.cv_pipeline import _normalize_output
 
 
 class TestOutputNormalizer:
@@ -196,7 +196,7 @@ class TestCVPipeline:
     @pytest.mark.asyncio
     async def test_invalid_file_returns_failed(self, empty_file_bytes):
         """Invalid file (empty) returns FAILED status immediately."""
-        from app.services.cv_pipeline import process_cv
+        from app.agents.extractor_agent.agent import process_cv
 
         response = await process_cv(empty_file_bytes, "empty.pdf")
         assert response.status == ExtractionStatus.FAILED
@@ -205,7 +205,7 @@ class TestCVPipeline:
     @pytest.mark.asyncio
     async def test_oversized_file_returns_failed(self, large_file_bytes):
         """Oversized file returns FAILED with size error."""
-        from app.services.cv_pipeline import process_cv
+        from app.agents.extractor_agent.agent import process_cv
 
         response = await process_cv(large_file_bytes, "huge.pdf")
         assert response.status == ExtractionStatus.FAILED
@@ -214,17 +214,17 @@ class TestCVPipeline:
     @pytest.mark.asyncio
     async def test_wrong_format_returns_failed(self, text_file_bytes):
         """Non-CV file returns FAILED."""
-        from app.services.cv_pipeline import process_cv
+        from app.agents.extractor_agent.agent import process_cv
 
         response = await process_cv(text_file_bytes, "notes.txt")
         assert response.status == ExtractionStatus.FAILED
 
     @pytest.mark.asyncio
-    @patch("app.services.cv_pipeline.ner_extractor")
-    @patch("app.services.cv_pipeline.text_extractor")
-    @patch("app.services.cv_pipeline.file_validator")
-    @patch("app.services.cv_pipeline._try_llm_fallback")
-    @patch("app.services.cv_pipeline.settings")
+    @patch("app.agents.extractor_agent.agent.ner_extractor")
+    @patch("app.agents.extractor_agent.agent.text_extractor")
+    @patch("app.agents.extractor_agent.agent.file_validator")
+    @patch("app.agents.extractor_agent.agent._try_llm_fallback")
+    @patch("app.agents.extractor_agent.agent.settings")
     async def test_pipeline_graceful_on_ner_error(
         self,
         mock_settings,
@@ -235,7 +235,7 @@ class TestCVPipeline:
         sample_docx_bytes,
     ):
         """Pipeline handles NER errors gracefully without crashing."""
-        from app.services.cv_pipeline import process_cv
+        from app.agents.extractor_agent.agent import process_cv
 
         mock_settings.EXTRACTION_STRATEGY = "hybrid"
         mock_settings.MIN_TEXT_LENGTH = 50
@@ -264,26 +264,26 @@ class TestCVPipeline:
             ExtractionStatus.PARTIAL,
             ExtractionStatus.FAILED,
         ]
-        assert any(
-            "ner_extraction_error" in w for w in response.warnings
-        ), f"Warnings were: {response.warnings}"
+        assert any("ner_extraction_error" in w for w in response.warnings), (
+            f"Warnings were: {response.warnings}"
+        )
 
     @pytest.mark.asyncio
-    @patch("app.services.cv_pipeline.ner_extractor")
-    @patch("app.services.cv_pipeline.text_extractor")
-    @patch("app.services.cv_pipeline.file_validator")
-    @patch("app.services.cv_pipeline.settings")
+    @patch("app.agents.extractor_agent.agent.ner_extractor")
+    @patch("app.agents.extractor_agent.agent.text_extractor")
+    @patch("app.agents.extractor_agent.agent.file_validator")
+    @patch("app.agents.extractor_agent.agent.settings")
     async def test_extraction_strategy_llm_only(
         self, mock_settings, mock_validator, mock_text, mock_ner, sample_docx_bytes
     ):
         """When strategy is 'llm', NER is completely bypassed."""
-        from app.schemas import (
+        from app.agents.extractor_agent.agent import process_cv
+        from app.core.schemas import (
             ConfidenceScores,
             CVExtractionResponse,
             PersonalInfo,
             ProcessingLog,
         )
-        from app.services.cv_pipeline import process_cv
 
         # Force LLM strategy
         mock_settings.EXTRACTION_STRATEGY = "llm"
@@ -299,7 +299,7 @@ class TestCVPipeline:
         )
 
         # We need to patch _try_llm_fallback to return a dummy response
-        with patch("app.services.cv_pipeline._try_llm_fallback") as mock_llm:
+        with patch("app.agents.extractor_agent.agent._try_llm_fallback") as mock_llm:
             dummy_response = CVExtractionResponse(
                 status=ExtractionStatus.SUCCESS,
                 extraction_method=ExtractionMethod.LLM_FALLBACK,
@@ -326,10 +326,10 @@ class TestCVPipeline:
             assert response.extraction_method == ExtractionMethod.LLM_FALLBACK
 
     @pytest.mark.asyncio
-    @patch("app.services.cv_pipeline.ner_extractor")
-    @patch("app.services.cv_pipeline.text_extractor")
-    @patch("app.services.cv_pipeline.file_validator")
-    @patch("app.services.cv_pipeline.settings")
+    @patch("app.agents.extractor_agent.agent.ner_extractor")
+    @patch("app.agents.extractor_agent.agent.text_extractor")
+    @patch("app.agents.extractor_agent.agent.file_validator")
+    @patch("app.agents.extractor_agent.agent.settings")
     async def test_extraction_strategy_ner_only(
         self,
         mock_settings,
@@ -340,7 +340,7 @@ class TestCVPipeline:
         mock_ner_entities,
     ):
         """When strategy is 'ner', LLM fallback is bypassed."""
-        from app.services.cv_pipeline import process_cv
+        from app.agents.extractor_agent.agent import process_cv
 
         # Force NER strategy
         mock_settings.EXTRACTION_STRATEGY = "ner"
@@ -359,7 +359,7 @@ class TestCVPipeline:
         # Let's just return empty entities so _evaluate_fallback_need would normally return a reason
         mock_ner.extract_entities.return_value = []
 
-        with patch("app.services.cv_pipeline._try_llm_fallback") as mock_llm:
+        with patch("app.agents.extractor_agent.agent._try_llm_fallback") as mock_llm:
             response = await process_cv(sample_docx_bytes, "test.pdf")
 
             # NER should have been called
