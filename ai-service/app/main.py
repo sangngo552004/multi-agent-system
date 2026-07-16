@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 
 from app.agents.extractor_agent import agent as cv_pipeline
 from app.agents.extractor_agent import ner_extractor
+from app.agents.matcher_agent import kb_loader
 from app.agents.orchestrator import agent_graph
 from app.core.config import settings
 from app.core.schemas import CVExtractionResponse
@@ -49,6 +50,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("Failed to load NER model: %s", e)
         # Service starts but model endpoints will fail gracefully
+
+    # Eager-load Knowledge Base from backend
+    # KB được cache vào memory ngay khi startup — không lazy-load mỗi request.
+    # Nếu backend chưa sẵn sàng → log warning, fallback về hardcode.
+    try:
+        kb_loader.warmup_kb()
+    except Exception as e:
+        logger.warning("KB warmup failed (%s). Will fallback to hardcoded KB.", e)
 
     # Start RabbitMQ consumer if enabled
     consumer_thread = None
