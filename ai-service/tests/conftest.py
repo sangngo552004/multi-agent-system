@@ -1,6 +1,7 @@
 """Test fixtures and shared configuration."""
 
 import io
+from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -254,3 +255,148 @@ def english_cv_text():
     SKILLS
     Python, Java, Docker, Kubernetes, AWS, React
     """
+
+
+@pytest.fixture
+def career_path_request(approved_python_resource):
+    """Sanitized, final-reject request shared by deterministic core tests."""
+    from app.core.schemas import (
+        CandidateConstraints,
+        CareerPathCandidateSnapshot,
+        CareerPathCompetencyTarget,
+        CareerPathJobSnapshot,
+        CareerPathMatchingSnapshot,
+        CareerPathRequest,
+        CompetencyEvidence,
+        DecisionOutcome,
+        DecisionSnapshot,
+        DecisionSource,
+        ExtractionMethod,
+        ExtractionStatus,
+        PlanningPolicy,
+    )
+
+    return CareerPathRequest(
+        application_id="application-1",
+        decision=DecisionSnapshot(
+            decision_id="decision-1",
+            outcome=DecisionOutcome.REJECTED,
+            is_final=True,
+            source=DecisionSource.HR,
+            reason_codes=["SKILL_GAP"],
+            related_competency_ids=["python"],
+            approved_rationale="Internal rationale that must not be rendered",
+            policy_version="policy-1",
+            decided_at=datetime(2026, 7, 1, tzinfo=timezone.utc),
+        ),
+        candidate=CareerPathCandidateSnapshot(
+            status=ExtractionStatus.SUCCESS,
+            extraction_method=ExtractionMethod.NER_MODEL,
+            language_detected="vi",
+            skills=["Python"],
+        ),
+        matching=CareerPathMatchingSnapshot(
+            evidence_matrix=[
+                CompetencyEvidence(
+                    competency_id="python",
+                    competency_name="Python",
+                    evidence="Built Python services, but scale is not demonstrated.",
+                    confidence="MEDIUM",
+                    meets_requirement=False,
+                ),
+                CompetencyEvidence(
+                    competency_id="communication",
+                    competency_name="Communication",
+                    evidence="No information in the CV.",
+                    confidence="LOW",
+                    meets_requirement=False,
+                ),
+                CompetencyEvidence(
+                    competency_id="delivery",
+                    competency_name="Delivery",
+                    evidence="Led delivery of two releases.",
+                    confidence="HIGH",
+                    meets_requirement=True,
+                ),
+            ]
+        ),
+        job=CareerPathJobSnapshot(
+            job_id="job-1",
+            job_family="Software Engineering",
+            career_level="Senior",
+            title="Senior Backend Engineer",
+            required_competencies=[
+                CareerPathCompetencyTarget(
+                    competency_id="python",
+                    name="Python",
+                    category="HARD_SKILL",
+                    weight=40,
+                    required_level=3,
+                    required_level_description="Design maintainable production services.",
+                    is_mandatory=True,
+                ),
+                CareerPathCompetencyTarget(
+                    competency_id="communication",
+                    name="Communication",
+                    category="SOFT_SKILL",
+                    weight=20,
+                    required_level=3,
+                    required_level_description="Communicate trade-offs to stakeholders.",
+                ),
+                CareerPathCompetencyTarget(
+                    competency_id="delivery",
+                    name="Delivery",
+                    category="EXPERIENCE",
+                    weight=30,
+                    required_level=3,
+                    required_level_description="Lead delivery across a project lifecycle.",
+                ),
+                CareerPathCompetencyTarget(
+                    competency_id="school",
+                    name="Preferred university",
+                    category="PEDIGREE",
+                    weight=10,
+                    required_level=1,
+                    required_level_description="Institution preference.",
+                ),
+            ],
+        ),
+        constraints=CandidateConstraints(
+            hours_per_week=6,
+            max_duration_weeks=8,
+            preferred_language="vi",
+        ),
+        policy=PlanningPolicy(
+            version="policy-1",
+            applicable_reason_codes=["SKILL_GAP"],
+            default_hours_per_week=6,
+            default_duration_weeks=8,
+            max_duration_weeks=12,
+            max_phases=4,
+            core_gap_count=2,
+            allow_candidate_auto_delivery=False,
+            resource_max_age_days=365,
+        ),
+        approved_resources=[approved_python_resource],
+    )
+
+
+@pytest.fixture
+def approved_python_resource():
+    from app.core.schemas import ApprovedLearningResource
+
+    return ApprovedLearningResource(
+        resource_id="resource-python-1",
+        title="Production Python Practice",
+        provider="Approved Provider",
+        competency_ids=["python"],
+        min_level=2,
+        max_level=4,
+        language="vi",
+        format="course",
+        cost_tier="FREE",
+        estimated_hours=8,
+        url="https://learning.example/python",
+        last_verified_at=datetime.now(timezone.utc),
+        catalog_version="catalog-1",
+    )
