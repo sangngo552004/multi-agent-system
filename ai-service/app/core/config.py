@@ -1,5 +1,6 @@
 """Application configuration using pydantic-settings."""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -33,6 +34,12 @@ class Settings(BaseSettings):
     LLM_DAILY_RATE_LIMIT: int = 100
     LLM_TIMEOUT_SECONDS: int = 30
     LLM_MAX_RETRIES: int = 2
+
+    # --- Career Path Agent ---
+    CAREER_PATH_ENABLED: bool = False
+    CAREER_PATH_TIMEOUT_SECONDS: int = Field(default=45, gt=0)
+    CAREER_PATH_MAX_RETRIES: int = Field(default=1, ge=0, le=3)
+    CAREER_PATH_TEMPERATURE: float = Field(default=0.2, ge=0, le=1)
 
     # --- RabbitMQ ---
     RABBITMQ_URL: str = "amqp://admin:password123@localhost:5672/"

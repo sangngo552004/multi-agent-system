@@ -9,16 +9,21 @@ import os
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.agents.extractor_agent import agent as cv_pipeline
+from app.agents.career_path_agent.agent import career_path_agent
 from app.agents.extractor_agent import ner_extractor
 from app.agents.matcher_agent import kb_loader
-from app.agents.orchestrator import agent_graph
 from app.core.config import settings
-from app.core.schemas import CVExtractionResponse
+from app.core.schemas import (
+    ApiErrorResponse,
+    CareerPathOutput,
+    CareerPathRequest,
+    CVExtractionResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +158,8 @@ async def extract_cv(
     ),
 ) -> CVExtractionResponse:
     """Extract structured information from an uploaded CV file."""
+    from app.agents.extractor_agent import agent as cv_pipeline
+
     filename = file.filename or "unknown"
 
     logger.info(
@@ -200,6 +207,8 @@ async def process_application(
 ):
     import json
 
+    from app.agents.orchestrator import agent_graph
+
     try:
         job_data = json.loads(job_data_json)
     except json.JSONDecodeError as e:
@@ -239,39 +248,96 @@ async def process_application(
         raise HTTPException(status_code=500, detail=f"Graph failed: {e}") from e
 
 
+@app.post(
+    "/generate-career-path",
+    response_model=CareerPathOutput,
+    responses={
+        422: {
+            "model": ApiErrorResponse,
+            "description": "Request payload validation failed",
+        },
+        500: {
+            "model": ApiErrorResponse,
+            "description": "Unexpected Career Path service failure",
+        }
+    },
+    summary="Generate a decision-gated candidate career path",
+    description=(
+        "Internal service-to-service endpoint. The backend must assemble the "
+        "final decision and sanitized immutable snapshots."
+    ),
+)
+async def generate_career_path(
+    request: CareerPathRequest,
+) -> CareerPathOutput | JSONResponse:
+    """Generate a Career Path domain result without exposing internal failures."""
+
+    logger.info(
+        "Career Path request application_id=%s decision_id=%s",
+        request.application_id,
+        request.decision.decision_id,
+    )
+    try:
+        output = await career_path_agent.generate(request)
+    except Exception:
+        logger.error(
+            "Career Path endpoint failed application_id=%s",
+            request.application_id,
+        )
+        error = ApiErrorResponse(
+            error_code="CAREER_PATH_INTERNAL_ERROR",
+            message="Unable to generate career path.",
+        )
+        return JSONResponse(
+            status_code=500,
+            content=error.model_dump(mode="json"),
+        )
+
+    logger.info(
+        "Career Path result application_id=%s status=%s delivery_status=%s phases=%d",
+        request.application_id,
+        output.status.value,
+        output.delivery_status.value,
+        len(output.internal_draft.phases) if output.internal_draft else 0,
+    )
+    return output
+
+
 # ── Error handlers ─────────────────────────────────────────────────
 
 
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+):
+    """Avoid echoing rejected request values, which may contain recruitment PII."""
+    logger.warning(
+        "Request validation failed path=%s error_count=%d",
+        request.url.path,
+        len(exc.errors()),
+    )
+    error = ApiErrorResponse(
+        error_code="REQUEST_VALIDATION_ERROR",
+        message="Request payload is invalid.",
+    )
+    return JSONResponse(
+        status_code=422,
+        content=error.model_dump(mode="json"),
+    )
+
+
 @app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
-    """Catch-all exception handler to prevent 500 errors without context."""
-    logger.error("Unhandled exception: %s", exc, exc_info=True)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Return a generic non-domain-specific error without leaking exception data."""
+    logger.error("Unhandled request failure path=%s", request.url.path)
+    error = ApiErrorResponse(
+        error_code="INTERNAL_SERVER_ERROR",
+        message="The service could not complete the request.",
+    )
     return JSONResponse(
         status_code=500,
-        content={
-            "status": "failed",
-            "extraction_method": "ner_model",
-            "language_detected": "unknown",
-            "personal_info": {
-                "name": None,
-                "email": None,
-                "phone": None,
-                "location": None,
-            },
-            "skills": [],
-            "experience": [],
-            "education": [],
-            "certifications": [],
-            "confidence_scores": {"overall": 0.0, "per_field": {}},
-            "warnings": [f"internal_server_error: {str(exc)}"],
-            "processing_log": {
-                "extraction_method": "",
-                "ocr_used": False,
-                "fallback_reason": None,
-                "processing_time_ms": 0,
-                "text_extraction_method": "",
-            },
-        },
+        content=error.model_dump(mode="json"),
     )
 
 
