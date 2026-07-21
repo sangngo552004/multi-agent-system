@@ -1,11 +1,5 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import { ActivityPage } from "@/features/admin/activity/components/activity-page";
 
 export default function AdminActivityPage() {
-  return (
-    <RouteScaffold
-      portal="Admin"
-      title="Lịch sử hoạt động"
-      description="Route P1 dành cho các thao tác quản trị gần đây."
-    />
-  );
+  return <ActivityPage />;
 }

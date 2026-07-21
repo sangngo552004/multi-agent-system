@@ -1,11 +1,6 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import type { Metadata } from "next";
+import { ApplicationDetailPage } from "@/features/admin/applications/components/application-detail-page";
 
-export default function AdminApplicationDetailPage() {
-  return (
-    <RouteScaffold
-      portal="Admin"
-      title="Chi tiết hồ sơ"
-      description="Kết quả extraction, matching và Career Path."
-    />
-  );
-}
+export const metadata: Metadata = { title: "Chi tiết hồ sơ ứng tuyển" };
+
+export default async function AdminApplicationDetailRoute({ params }: { params: Promise<{ applicationId: string }> }) { const { applicationId } = await params; return <ApplicationDetailPage applicationId={applicationId} />; }

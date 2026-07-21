@@ -1,11 +1,8 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import type { Metadata } from "next";
+import { DashboardPage } from "@/features/admin/dashboard/components/dashboard-page";
+
+export const metadata: Metadata = { title: "Tổng quan" };
 
 export default function AdminDashboardPage() {
-  return (
-    <RouteScaffold
-      portal="Admin"
-      title="Tổng quan"
-      description="Tổng hợp hoạt động người dùng, việc làm và xử lý AI."
-    />
-  );
+  return <DashboardPage />;
 }

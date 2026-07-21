@@ -1,11 +1,5 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import { KnowledgePage } from "@/features/admin/knowledge/components/knowledge-page";
 
 export default function AdminKnowledgePage() {
-  return (
-    <RouteScaffold
-      portal="Admin"
-      title="Dữ liệu năng lực"
-      description="Quản lý Job Family, Career Level và Competency."
-    />
-  );
+  return <KnowledgePage />;
 }

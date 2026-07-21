@@ -1,11 +1,5 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import { redirect } from "next/navigation";
 
 export default function AdminPage() {
-  return (
-    <RouteScaffold
-      portal="Admin"
-      title="Admin Portal"
-      description="Route gốc của khu vực quản trị."
-    />
-  );
+  redirect("/admin/dashboard");
 }

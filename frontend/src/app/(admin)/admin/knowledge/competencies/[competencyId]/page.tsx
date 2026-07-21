@@ -1,11 +1,6 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import { CompetencyDetailPage } from "@/features/admin/knowledge/components/competency-detail-page";
 
-export default function AdminCompetencyDetailPage() {
-  return (
-    <RouteScaffold
-      portal="Admin"
-      title="Chi tiết năng lực"
-      description="Thông tin và mô tả Competency Level 1–5."
-    />
-  );
+export default async function AdminCompetencyDetailRoute({ params }: { params: Promise<{ competencyId: string }> }) {
+  const { competencyId } = await params;
+  return <CompetencyDetailPage competencyId={competencyId} />;
 }

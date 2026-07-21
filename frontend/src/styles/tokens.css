@@ -1,0 +1,19 @@
+:root {
+  color-scheme: light;
+  --canvas: #f6f7f3;
+  --surface: #ffffff;
+  --surface-soft: #eef2ed;
+  --ink: #16211b;
+  --muted: #667169;
+  --faint: #929b95;
+  --border: #dce3dd;
+  --border-strong: #c5cec7;
+  --brand: #174d3c;
+  --brand-hover: #103d2f;
+  --accent: #e76545;
+  --signal: #d8f05f;
+  --info: #3b74c5;
+  --success: #2f7d53;
+  --warning: #b4711b;
+  --danger: #c4473c;
+}

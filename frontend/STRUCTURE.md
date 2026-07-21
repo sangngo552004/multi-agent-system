@@ -96,7 +96,7 @@ Thành viên cần thông báo nhóm trước khi thay đổi các điểm trên
 
 ## 6. Route và placeholder
 
-Các `page.tsx` hiện dùng `RouteScaffold`. Đây chỉ là marker để xác nhận route build được.
+Các route Admin đã dùng page composition từ feature tương ứng. `RouteScaffold` hiện chỉ còn là placeholder cho các route HR và Candidate chưa triển khai.
 
 Khi bắt đầu feature:
 
@@ -123,14 +123,13 @@ Feature query/hook → service contract → mock adapter
 
 Mock data phải có một nguồn mutable duy nhất. Mutation phải cập nhật các màn hình liên quan, không sao chép dữ liệu riêng cho từng page.
 
-## 9. Những gì chưa làm trong scaffold
+## 9. Trạng thái phát triển
 
-- Chưa cài thư viện của Admin Phase 1.
-- Chưa làm design tokens hoặc light-mode design system.
-- Chưa làm portal shell/sidebar/topbar.
-- Chưa tạo mock database/seed data.
-- Chưa làm authentication hoặc route guard.
-- Chưa triển khai bất kỳ chức năng Admin, HR hoặc Candidate nào.
-- Chưa chọn/cài testing framework.
+Admin Phase 1–5 đã hoàn thành: design system, responsive shell, mock database/service, Dashboard, User Management, Job Management, Application/AI Monitoring, Knowledge Management, Activity và Reports cơ bản.
 
-Các phần trên thuộc các phase phát triển sau, không thuộc project initialization.
+Những phần chưa triển khai:
+
+- Authentication và route guard.
+- Feature thực tế cho HR và Candidate.
+- HTTP adapter kết nối backend.
+- Automated test framework; hiện dự án được kiểm tra bằng lint, production build và demo flow.
