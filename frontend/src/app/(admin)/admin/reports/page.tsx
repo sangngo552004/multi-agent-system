@@ -1,11 +1,5 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import { ReportsPage } from "@/features/admin/reports/components/reports-page";
 
 export default function AdminReportsPage() {
-  return (
-    <RouteScaffold
-      portal="Admin"
-      title="Báo cáo"
-      description="Route P1 dành cho thống kê quản trị cơ bản."
-    />
-  );
+  return <ReportsPage />;
 }

@@ -1,11 +1,9 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import type { Metadata } from "next";
+import { UserDetailPage } from "@/features/admin/users/components/user-detail-page";
 
-export default function AdminUserDetailPage() {
-  return (
-    <RouteScaffold
-      portal="Admin"
-      title="Chi tiết người dùng"
-      description="Thông tin, trạng thái và hoạt động của một tài khoản."
-    />
-  );
+export const metadata: Metadata = { title: "Chi tiết người dùng" };
+
+export default async function AdminUserDetailPage({ params }: { params: Promise<{ userId: string }> }) {
+  const { userId } = await params;
+  return <UserDetailPage userId={userId} />;
 }

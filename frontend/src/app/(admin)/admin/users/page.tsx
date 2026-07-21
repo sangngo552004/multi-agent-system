@@ -1,11 +1,14 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { UsersTableSkeleton } from "@/features/admin/users/components/users-table-skeleton";
+import { UsersPage } from "@/features/admin/users/components/users-page";
+
+export const metadata: Metadata = { title: "Người dùng" };
 
 export default function AdminUsersPage() {
   return (
-    <RouteScaffold
-      portal="Admin"
-      title="Người dùng"
-      description="Quản lý Candidate, HR và tài khoản quản trị."
-    />
+    <Suspense fallback={<div className="overflow-hidden rounded-[12px] border border-border bg-surface"><UsersTableSkeleton /></div>}>
+      <UsersPage />
+    </Suspense>
   );
 }
