@@ -3,17 +3,17 @@ import { ArrowUpRight } from "lucide-react";
 
 const portals = [
   { href: "/candidate/dashboard", title: "Ứng viên", description: "Tìm việc, quản lý hồ sơ và xây dựng lộ trình nghề nghiệp.", tag: "Scaffold" },
-  { href: "/hr/dashboard", title: "HR / Nhà tuyển dụng", description: "Quản lý tin tuyển dụng và quy trình chọn ứng viên.", tag: "Scaffold" },
-  { href: "/admin/dashboard", title: "Quản trị viên", description: "Theo dõi vận hành, kiểm duyệt dữ liệu và giám sát quy trình AI.", tag: "Phase 1–5" },
+  { href: "/hr/dashboard", title: "HR nội bộ", description: "Theo dõi nhu cầu tuyển dụng, hồ sơ và cấu hình đối sánh của các vị trí được phân công.", tag: "Phase 1–2" },
+  { href: "/admin/dashboard", title: "Quản trị viên", description: "Quản lý quyền truy cập, kho năng lực và vận hành quy trình AI.", tag: "Phase 1–5" },
 ] as const;
 
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center gap-10 px-6 py-16">
       <header className="max-w-2xl space-y-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-brand">Multi-Agent Career Platform</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-brand">Hệ thống tuyển dụng nội bộ · Multi-Agent AI</p>
         <h1 className="text-4xl font-semibold tracking-[-0.045em] text-ink sm:text-5xl">Chọn không gian làm việc.</h1>
-        <p className="text-sm leading-6 text-muted">Bản demo dùng chung cho ba vai trò. Không gian quản trị đã hoàn thiện năm giai đoạn với dữ liệu mô phỏng và các luồng quản lý chính.</p>
+        <p className="text-sm leading-6 text-muted">Bản demo dùng chung cho ba vai trò. Admin và HR có không gian làm việc riêng, cùng đọc một nguồn dữ liệu mô phỏng theo đúng phạm vi trách nhiệm.</p>
       </header>
       <section className="grid overflow-hidden rounded-[14px] border border-border bg-surface md:grid-cols-3" aria-label="Các không gian làm việc">
         {portals.map((portal) => (

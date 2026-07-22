@@ -1,11 +1,5 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import { redirect } from "next/navigation";
 
 export default function HrPage() {
-  return (
-    <RouteScaffold
-      portal="HR"
-      title="HR Portal"
-      description="Route gốc dành cho HR và nhà tuyển dụng."
-    />
-  );
+  redirect("/hr/dashboard");
 }

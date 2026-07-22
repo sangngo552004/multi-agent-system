@@ -38,21 +38,33 @@ export function Button({
   size = "md",
   ...props
 }: ButtonProps) {
-  const Component = asChild ? Slot.Slot : "button";
+  const classes = cn(
+    "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[9px] border font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
+    variantClasses[variant],
+    sizeClasses[size],
+    className,
+  );
+
+  if (asChild) {
+    return (
+      <Slot.Slot
+        className={classes}
+        aria-disabled={disabled || loading || undefined}
+        {...props}
+      >
+        {children}
+      </Slot.Slot>
+    );
+  }
 
   return (
-    <Component
-      className={cn(
-        "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[9px] border font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50",
-        variantClasses[variant],
-        sizeClasses[size],
-        className,
-      )}
+    <button
+      className={classes}
       disabled={disabled || loading}
       {...props}
     >
       {loading ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : null}
       {children}
-    </Component>
+    </button>
   );
 }

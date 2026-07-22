@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { UserFilters, UserStatusInput, VerificationInput } from "@/features/admin/users/users.types";
+import type { UserFilters, UserStatusInput } from "@/features/admin/users/users.types";
 import { adminService } from "@/services/admin.service";
 import { adminQueryKeys } from "@/services/query-keys";
 
@@ -41,14 +41,6 @@ export function useUpdateUserStatus() {
   const invalidate = useInvalidateAdminData();
   return useMutation({
     mutationFn: (input: UserStatusInput) => adminService.updateUserStatus(input),
-    onSuccess: (user) => invalidate(user.id),
-  });
-}
-
-export function useUpdateHrVerification() {
-  const invalidate = useInvalidateAdminData();
-  return useMutation({
-    mutationFn: (input: VerificationInput) => adminService.updateHrVerification(input),
     onSuccess: (user) => invalidate(user.id),
   });
 }

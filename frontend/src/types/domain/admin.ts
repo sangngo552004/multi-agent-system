@@ -1,130 +1,36 @@
-export type UserRole = "ADMIN" | "HR" | "CANDIDATE";
-export type UserStatus = "ACTIVE" | "BLOCKED";
-export type HrVerificationStatus =
-  | "NOT_REQUIRED"
-  | "PENDING"
-  | "VERIFIED"
-  | "CHANGES_REQUESTED"
-  | "REJECTED";
+import type {
+  RecruitmentApplication,
+  RecruitmentJob,
+  SystemUser,
+} from "@/types/domain/recruitment";
 
-export type AdminUser = {
-  id: string;
-  fullName: string;
-  email: string;
-  role: UserRole;
-  status: UserStatus;
-  verificationStatus: HrVerificationStatus;
-  companyName?: string;
-  companyEmail?: string;
-  companyWebsite?: string;
-  verificationNote?: string;
-  createdAt: string;
-  lastActiveAt: string;
-  jobsCount: number;
-  applicationsCount: number;
-  blockReason?: string;
-};
+export type {
+  AiErrorCode,
+  AiProcessingStatus,
+  CandidateEducation,
+  CandidateExperience,
+  CareerPathPhase,
+  EmploymentType,
+  JobCompetencyRequirement,
+  JobStatus,
+  RecruitmentStatus,
+  UserRole,
+  UserStatus,
+} from "@/types/domain/recruitment";
 
-export type JobStatus = "PENDING" | "PUBLISHED" | "HIDDEN" | "CLOSED";
-export type JobModerationState = "AWAITING" | "APPROVED" | "REJECTED";
-export type EmploymentType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
-
-export type JobCompetencyRequirement = {
-  competencyId: string;
-  name: string;
-  requiredLevel: number;
-  weight: number;
-  mandatory: boolean;
-};
-
-export type AdminJob = {
-  id: string;
-  title: string;
-  companyName: string;
-  ownerId: string;
-  status: JobStatus;
-  moderationState: JobModerationState;
-  location: string;
-  employmentType: EmploymentType;
-  description: string;
-  requirements: string[];
-  benefits: string[];
-  jobFamilyId?: string;
-  jobFamilyName?: string;
-  careerLevelId?: string;
-  careerLevelName?: string;
-  competencies: JobCompetencyRequirement[];
-  createdAt: string;
-  expiresAt: string;
-  reviewedAt?: string;
-  rejectionReason?: string;
-};
-
-export type AiProcessingStatus = "WAITING" | "PROCESSING" | "COMPLETED" | "FAILED";
-export type RecruitmentStatus = "PENDING" | "REVIEWING" | "SHORTLISTED" | "REJECTED" | "HIRED";
-export type AiErrorCode = "AI_TIMEOUT" | "INVALID_FILE";
-
-export type CandidateExperience = {
-  company: string;
-  role: string;
-  period: string;
-  summary: string;
-};
-
-export type CandidateEducation = {
-  school: string;
-  program: string;
-  period: string;
-};
-
-export type CareerPathPhase = {
-  title: string;
-  duration: string;
-  objective: string;
-  activities: string[];
-};
-
-export type AdminApplication = {
-  id: string;
-  candidateId: string;
-  jobId: string;
-  recruitmentStatus: RecruitmentStatus;
-  aiStatus: AiProcessingStatus;
-  submittedAt: string;
-  matchScore?: number;
-  aiConfidence: number;
-  needsReview: boolean;
-  extractionMethod: "TEXT_LAYER" | "OCR";
-  errorCode?: AiErrorCode;
-  errorMessage?: string;
-  canRetry: boolean;
-  personalSummary: string;
-  skillGroups: Array<{ group: string; skills: string[] }>;
-  experiences: CandidateExperience[];
-  education: CandidateEducation[];
-  languages: string[];
-  extractionWarnings: string[];
-  scoreBreakdown?: {
-    hardSkills: number;
-    softSkills: number;
-    experience: number;
-  };
-  matchedSkills: string[];
-  missingSkills: string[];
-  aiRecommendation?: string;
-  growthAreas: string[];
-  careerPath: CareerPathPhase[];
-};
+export type AdminUser = SystemUser;
+export type AdminJob = RecruitmentJob;
+export type AdminApplication = RecruitmentApplication;
 
 export type ActivityKind =
   | "USER_STATUS_CHANGED"
-  | "HR_VERIFICATION_CHANGED"
+  | "STAFF_PROFILE_SYNCED"
   | "JOB_STATUS_CHANGED"
-  | "JOB_MODERATION_CHANGED"
   | "AI_RETRY_COMPLETED"
   | "KNOWLEDGE_CHANGED"
-  | "JOB_SUBMITTED"
+  | "JOB_UPDATED"
   | "AI_PROCESSING_FAILED"
+  | "APPLICATION_STATUS_CHANGED"
   | "APPLICATION_SUBMITTED";
 
 export type ActivityEntry = {

@@ -13,12 +13,12 @@ import { UsersTableSkeleton } from "@/features/admin/users/components/users-tabl
 import { useUsers } from "@/features/admin/users/users.queries";
 import type { UserFilters } from "@/features/admin/users/users.types";
 import { useDebounce } from "@/hooks/use-debounce";
-import type { HrVerificationStatus, UserRole, UserStatus } from "@/types/domain/admin";
+import type { UserRole, UserStatus } from "@/types/domain/admin";
 
 const roleOptions = [
   { value: "ALL", label: "Tất cả vai trò" },
   { value: "ADMIN", label: "Quản trị viên" },
-  { value: "HR", label: "Nhà tuyển dụng" },
+  { value: "HR", label: "Nhân sự tuyển dụng" },
   { value: "CANDIDATE", label: "Ứng viên" },
 ];
 const statusOptions = [
@@ -26,25 +26,14 @@ const statusOptions = [
   { value: "ACTIVE", label: "Đang hoạt động" },
   { value: "BLOCKED", label: "Đã khóa" },
 ];
-const verificationOptions = [
-  { value: "ALL", label: "Mọi xác minh HR" },
-  { value: "PENDING", label: "Chờ xác minh" },
-  { value: "VERIFIED", label: "Đã xác minh" },
-  { value: "CHANGES_REQUESTED", label: "Cần bổ sung" },
-  { value: "REJECTED", label: "Đã từ chối" },
-];
-
 export function UsersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [role, setRole] = useState<UserRole | "ALL">((searchParams.get("role") as UserRole) ?? "ALL");
   const [status, setStatus] = useState<UserStatus | "ALL">((searchParams.get("status") as UserStatus) ?? "ALL");
-  const [verificationStatus, setVerificationStatus] = useState<HrVerificationStatus | "ALL">(
-    (searchParams.get("verification") as HrVerificationStatus) ?? "ALL",
-  );
   const debouncedSearch = useDebounce(search);
-  const filters = useMemo<UserFilters>(() => ({ search: debouncedSearch, role, status, verificationStatus }), [debouncedSearch, role, status, verificationStatus]);
+  const filters = useMemo<UserFilters>(() => ({ search: debouncedSearch, role, status }), [debouncedSearch, role, status]);
   const users = useUsers(filters);
 
   useEffect(() => {
@@ -52,21 +41,19 @@ export function UsersPage() {
     if (debouncedSearch) params.set("search", debouncedSearch);
     if (role !== "ALL") params.set("role", role);
     if (status !== "ALL") params.set("status", status);
-    if (verificationStatus !== "ALL") params.set("verification", verificationStatus);
     const query = params.toString();
     router.replace(query ? `/admin/users?${query}` : "/admin/users", { scroll: false });
-  }, [debouncedSearch, role, router, status, verificationStatus]);
+  }, [debouncedSearch, role, router, status]);
 
   const clearFilters = () => {
     setSearch("");
     setRole("ALL");
     setStatus("ALL");
-    setVerificationStatus("ALL");
   };
 
   return (
     <div className="space-y-7">
-      <PageHeader eyebrow="Quản trị tài khoản" title="Người dùng" description="Tìm kiếm tài khoản, kiểm soát trạng thái và xác minh nhà tuyển dụng từ một nơi." />
+      <PageHeader eyebrow="Quản trị truy cập" title="Tài khoản" description="Theo dõi tài khoản nội bộ và ứng viên, kiểm soát trạng thái truy cập của hệ thống." />
       <section className="overflow-hidden rounded-[12px] border border-border bg-surface">
         <div className="border-b border-border p-4 sm:p-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -75,7 +62,6 @@ export function UsersPage() {
               <span className="mr-1 hidden items-center gap-2 text-xs font-medium text-muted sm:flex"><SlidersHorizontal className="size-4" /> Bộ lọc</span>
               <Select label="Vai trò" value={role} onValueChange={(value) => setRole(value as UserRole | "ALL")} options={roleOptions} />
               <Select label="Trạng thái tài khoản" value={status} onValueChange={(value) => setStatus(value as UserStatus | "ALL")} options={statusOptions} />
-              <Select label="Xác minh HR" value={verificationStatus} onValueChange={(value) => setVerificationStatus(value as HrVerificationStatus | "ALL")} options={verificationOptions} />
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3">

@@ -1,9 +1,8 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { SortableHeader } from "@/components/data-display/data-table";
-import { roleMap, userStatusMap, verificationStatusMap } from "@/config/status";
+import { roleMap, userStatusMap } from "@/config/status";
 import { formatDate, formatRelativeTime, getInitials } from "@/lib/format";
 import type { AdminUser } from "@/types/domain/admin";
 
@@ -37,12 +36,11 @@ export const userTableColumns: ColumnDef<AdminUser>[] = [
     },
   },
   {
-    accessorKey: "verificationStatus",
-    header: "Xác minh nhà tuyển dụng",
+    accessorKey: "departmentName",
+    header: "Đơn vị công tác",
     cell: ({ row }) => {
-      if (row.original.role !== "HR") return <span className="text-xs text-faint">—</span>;
-      const verification = verificationStatusMap[row.original.verificationStatus];
-      return <Badge tone={verification.tone}>{verification.label}</Badge>;
+      if (row.original.role === "CANDIDATE") return <span className="text-xs text-faint">Ứng viên bên ngoài</span>;
+      return <span className="text-sm text-muted">{row.original.departmentName ?? "Chưa cập nhật"}</span>;
     },
   },
   {

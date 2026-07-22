@@ -12,7 +12,7 @@ export function JobContentPreview({ job }: { job: JobDetail }) {
       </div>
       <article className="px-5 py-7 sm:px-8 sm:py-9">
         <header className="border-b border-border pb-7">
-          <p className="text-sm font-semibold text-brand">{job.companyName}</p>
+          <p className="text-sm font-semibold text-brand">{job.departmentName}</p>
           <h2 id="candidate-preview-title" className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-ink sm:text-[32px]">{job.title}</h2>
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted">
             <span className="inline-flex items-center gap-2"><MapPin className="size-4" /> {job.location}</span>

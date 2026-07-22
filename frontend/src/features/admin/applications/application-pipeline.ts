@@ -1,7 +1,7 @@
 import type { AiPipelineStep } from "@/features/admin/applications/applications.types";
 import type { AdminApplication } from "@/types/domain/admin";
 
-export function buildAiPipeline(application: AdminApplication): AiPipelineStep[] {
+export function buildAiPipeline(application: Pick<AdminApplication, "aiStatus" | "errorCode" | "errorMessage">): AiPipelineStep[] {
   const base: AiPipelineStep[] = [
     { id: "received", label: "Tiếp nhận CV", status: "COMPLETED", message: "Tệp đã được lưu và kiểm tra định dạng." },
     { id: "extraction", label: "Trích xuất", status: "PENDING", message: "Đọc thông tin hồ sơ và kinh nghiệm." },

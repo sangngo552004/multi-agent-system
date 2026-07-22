@@ -5,7 +5,7 @@ export default function RegisterPage() {
     <RouteScaffold
       portal="Auth"
       title="Đăng ký"
-      description="Khởi tạo tài khoản Candidate hoặc HR."
+      description="Khởi tạo tài khoản ứng viên. Tài khoản HR và Admin do tổ chức cấp."
     />
   );
 }

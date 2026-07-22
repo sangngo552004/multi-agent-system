@@ -1,11 +1,9 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import type { Metadata } from "next";
+import { HrEditJobFormPage } from "@/features/hr/jobs/components/job-form-page";
 
-export default function HrEditJobPage() {
-  return (
-    <RouteScaffold
-      portal="HR"
-      title="Chỉnh sửa việc làm"
-      description="Cập nhật nội dung và cấu hình matching của Job."
-    />
-  );
+export const metadata: Metadata = { title: "Chỉnh sửa tin tuyển dụng" };
+
+export default async function HrEditJobPage({ params }: { params: Promise<{ jobId: string }> }) {
+  const { jobId } = await params;
+  return <HrEditJobFormPage jobId={jobId} />;
 }

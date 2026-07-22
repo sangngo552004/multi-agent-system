@@ -20,7 +20,7 @@ export function ReportsPage() {
   if (report.isError) return <ErrorState title="Không thể tạo báo cáo" description={report.error.message} onRetry={() => report.refetch()} />;
 
   return <div className="space-y-7">
-    <PageHeader eyebrow="Tổng hợp vận hành" title="Báo cáo cơ bản" description="Một góc nhìn gọn về người dùng, tin tuyển dụng, hồ sơ và tình trạng xử lý AI trong dữ liệu demo." actions={<Select label="Khoảng báo cáo" value={String(range)} onValueChange={(value) => setRange(Number(value) as DashboardRange)} options={[{ value: "7", label: "7 ngày gần đây" }, { value: "30", label: "30 ngày gần đây" }]} />} />
+    <PageHeader eyebrow="Tổng hợp vận hành" title="Báo cáo tuyển dụng" description="Theo dõi tài khoản, nhu cầu tuyển dụng, hồ sơ ứng viên và tình trạng xử lý AI trong toàn tổ chức." actions={<Select label="Khoảng báo cáo" value={String(range)} onValueChange={(value) => setRange(Number(value) as DashboardRange)} options={[{ value: "7", label: "7 ngày gần đây" }, { value: "30", label: "30 ngày gần đây" }]} />} />
     {!report.data.hasData ? <EmptyState title="Chưa có dữ liệu báo cáo" description="Chuyển kịch bản demo về Bình thường để xem số liệu mẫu." /> : <>
       <OperationalPulse metrics={report.data.metrics} />
       <ReportNotes range={range} data={report.data} />

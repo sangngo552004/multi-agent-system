@@ -37,7 +37,7 @@ export function JobMatchingPanel({ job }: { job: JobDetail }) {
           <div className="mt-4 flex items-center gap-3 rounded-[9px] border border-dashed border-warning/35 bg-warning/5 p-4 text-xs leading-5 text-[#ffd99b]"><CircleDashed className="size-5 shrink-0" />HR chưa thêm năng lực yêu cầu cho vị trí này.</div>
         )}
         {job.readinessIssues.length ? (
-          <div className="mt-4 rounded-[9px] bg-white/[0.045] p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#ffd99b]">Cần hoàn thiện trước khi duyệt</p><ul className="mt-2 space-y-1 text-xs text-[#b8c7be]">{job.readinessIssues.map((issue) => <li key={issue}>· {issue}</li>)}</ul></div>
+          <div className="mt-4 rounded-[9px] bg-white/[0.045] p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#ffd99b]">Cần HR hoàn thiện để AI đối sánh</p><ul className="mt-2 space-y-1 text-xs text-[#b8c7be]">{job.readinessIssues.map((issue) => <li key={issue}>· {issue}</li>)}</ul></div>
         ) : null}
       </div>
     </section>

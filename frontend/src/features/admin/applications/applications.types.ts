@@ -3,25 +3,32 @@ import type {
   AdminJob,
   AdminUser,
   AiProcessingStatus,
-  RecruitmentStatus,
 } from "@/types/domain/admin";
 
-export type ScoreBand = "ALL" | "HIGH" | "MEDIUM" | "LOW" | "UNSCORED";
 export type ApplicationDateRange = "ALL" | "7" | "30";
 
 export type ApplicationFilters = {
   search?: string;
-  recruitmentStatus?: RecruitmentStatus | "ALL";
   aiStatus?: AiProcessingStatus | "ALL";
-  scoreBand?: ScoreBand;
   dateRange?: ApplicationDateRange;
 };
 
-export type ApplicationListItem = AdminApplication & {
+export type ApplicationListItem = Pick<AdminApplication,
+  | "id"
+  | "candidateId"
+  | "jobId"
+  | "aiStatus"
+  | "submittedAt"
+  | "aiConfidence"
+  | "needsReview"
+  | "extractionMethod"
+  | "errorCode"
+  | "errorMessage"
+  | "canRetry"
+> & {
   candidateName: string;
-  candidateEmail: string;
   jobTitle: string;
-  companyName: string;
+  departmentName: string;
 };
 
 export type AiPipelineStep = {
@@ -32,7 +39,8 @@ export type AiPipelineStep = {
 };
 
 export type ApplicationDetail = ApplicationListItem & {
-  candidate: Pick<AdminUser, "id" | "fullName" | "email">;
-  job: Pick<AdminJob, "id" | "title" | "companyName">;
+  candidate: Pick<AdminUser, "id" | "fullName">;
+  job: Pick<AdminJob, "id" | "title" | "departmentName">;
   pipeline: AiPipelineStep[];
+  warningCount: number;
 };

@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { ArrowLeft, BriefcaseBusiness, MapPin } from "lucide-react";
 import { ErrorState } from "@/components/data-display/error-state";
-import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { jobStatusMap } from "@/config/status";
-import { JobActionBar } from "@/features/admin/jobs/components/job-action-bar";
 import { JobContentPreview } from "@/features/admin/jobs/components/job-content-preview";
 import { JobDetailSkeleton } from "@/features/admin/jobs/components/job-detail-skeleton";
 import { JobMatchingPanel } from "@/features/admin/jobs/components/job-matching-panel";
@@ -26,7 +24,7 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
       <Link href="/admin/jobs" className="inline-flex items-center gap-2 text-xs font-semibold text-muted transition-colors hover:text-brand"><ArrowLeft className="size-4" /> Quay lại danh sách</Link>
       <header className="flex flex-col gap-5 border-b border-border pb-7 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="flex flex-wrap items-center gap-2"><p className="admin-kicker text-brand">{job.companyName}</p>{job.moderationState === "REJECTED" ? <Badge tone="danger">Đã trả về HR</Badge> : null}</div>
+          <p className="admin-kicker text-brand">{job.departmentName}</p>
           <h1 className="mt-2 text-[30px] font-semibold leading-tight tracking-[-0.04em] text-ink sm:text-[38px]">{job.title}</h1>
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted"><span className="inline-flex items-center gap-2"><MapPin className="size-4" />{job.location}</span><span className="inline-flex items-center gap-2"><BriefcaseBusiness className="size-4" />{employmentTypeLabels[job.employmentType]}</span></div>
         </div>
@@ -40,7 +38,7 @@ export function JobDetailPage({ jobId }: { jobId: string }) {
         </div>
         <JobSummaryRail job={job} />
       </div>
-      <JobActionBar job={job} />
+      <p className="rounded-[10px] border border-border bg-surface-soft/55 px-4 py-3 text-xs leading-5 text-muted">Trạng thái và nội dung tin do HR phụ trách quản lý. Admin chỉ theo dõi dữ liệu và hỗ trợ khi cấu hình AI chưa hoàn chỉnh.</p>
     </div>
   );
 }
