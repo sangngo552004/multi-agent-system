@@ -61,12 +61,12 @@ export function UserStatusDialog({ user }: { user: AdminUser }) {
       <Dialog open={open} onOpenChange={(nextOpen) => !mutation.isPending && setOpen(nextOpen)}>
         <DialogContent
           title={willBlock ? "Khóa tài khoản?" : "Mở lại tài khoản?"}
-          description={willBlock ? `Sau khi khóa, ${user.fullName} không thể đăng nhập hoặc tiếp tục sử dụng nền tảng.` : `${user.fullName} sẽ có thể đăng nhập và sử dụng lại các chức năng theo vai trò.`}
+          description={willBlock ? `Sau khi khóa, ${user.fullName} không thể đăng nhập hoặc tiếp tục sử dụng hệ thống.` : `${user.fullName} sẽ có thể đăng nhập và sử dụng lại các chức năng theo vai trò.`}
         >
           <form onSubmit={onSubmit} className="mt-6 space-y-5">
             <div>
               <label htmlFor="status-reason" className="mb-2 block text-xs font-semibold text-ink">Lý do thực hiện</label>
-              <Textarea id="status-reason" placeholder={willBlock ? "Ví dụ: Tài khoản có hoạt động không phù hợp..." : "Ví dụ: Đã kiểm tra và khắc phục vấn đề..."} {...form.register("reason")} />
+              <Textarea id="status-reason" placeholder={willBlock ? "Ví dụ: Nhân sự đã chuyển đơn vị hoặc cần tạm dừng quyền truy cập..." : "Ví dụ: Đã xác nhận nhu cầu khôi phục quyền truy cập..."} {...form.register("reason")} />
               {form.formState.errors.reason ? <p className="mt-1.5 text-xs text-danger">{form.formState.errors.reason.message}</p> : null}
             </div>
             <div className="flex justify-end gap-2 border-t border-border pt-4">

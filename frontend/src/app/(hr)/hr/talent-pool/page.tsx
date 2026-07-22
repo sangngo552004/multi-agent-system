@@ -1,11 +1,6 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import type { Metadata } from "next";
+import { HrTalentPoolPage } from "@/features/hr/talent-pool/components/talent-pool-page";
 
-export default function HrTalentPoolPage() {
-  return (
-    <RouteScaffold
-      portal="HR"
-      title="Talent Pool"
-      description="Route mở rộng dành cho kho ứng viên tiềm năng."
-    />
-  );
-}
+export const metadata: Metadata = { title: "Kho ứng viên tiềm năng" };
+
+export default function HrTalentPoolRoute() { return <HrTalentPoolPage />; }

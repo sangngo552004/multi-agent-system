@@ -1,11 +1,6 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import type { Metadata } from "next";
+import { HrApplicationsPage } from "@/features/hr/applications/components/applications-page";
 
-export default function HrApplicationsPage() {
-  return (
-    <RouteScaffold
-      portal="HR"
-      title="Ứng viên"
-      description="Theo dõi các Application thuộc Job của HR."
-    />
-  );
-}
+export const metadata: Metadata = { title: "Hồ sơ ứng viên" };
+
+export default function HrApplicationsRoute() { return <HrApplicationsPage />; }

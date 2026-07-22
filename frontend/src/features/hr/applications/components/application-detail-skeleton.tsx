@@ -1,0 +1,3 @@
+import { Skeleton } from "@/components/ui/skeleton";
+
+export function HrApplicationDetailSkeleton() { return <div className="space-y-7"><Skeleton className="h-5 w-32" /><div className="flex items-end justify-between border-b border-border pb-7"><div className="space-y-3"><Skeleton className="h-5 w-52" /><Skeleton className="h-10 w-80" /><Skeleton className="h-5 w-64" /></div><Skeleton className="h-10 w-44" /></div><div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_340px]"><div className="space-y-6"><Skeleton className="h-[440px]" /><Skeleton className="h-[420px]" /></div><div className="space-y-4"><Skeleton className="h-48" /><Skeleton className="h-64" /><Skeleton className="h-48" /></div></div></div>; }

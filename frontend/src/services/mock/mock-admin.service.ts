@@ -2,18 +2,17 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import type { DashboardData, DashboardRange } from "@/features/admin/dashboard/dashboard.types";
 import type { ApplicationFilters } from "@/features/admin/applications/applications.types";
-import type { JobActionInput, JobFilters } from "@/features/admin/jobs/jobs.types";
+import type { JobFilters } from "@/features/admin/jobs/jobs.types";
 import type { CareerLevelInput, CompetencyInput, JobFamilyInput, ToggleKnowledgeInput } from "@/features/admin/knowledge/knowledge.types";
 import type {
   UserFilters,
   UserStatusInput,
-  VerificationInput,
 } from "@/features/admin/users/users.types";
 import { CURRENT_ADMIN_ID } from "@/lib/constants";
 import { mockDatabase } from "@/mocks/mock-database";
 import { getMockScenario } from "@/mocks/mock-scenarios";
 import type { AdminService } from "@/services/contracts/admin-service";
-import { mockJobService } from "@/services/mock/mock-job.service";
+import { getReadinessIssues, mockJobService } from "@/services/mock/mock-job.service";
 import { mockApplicationService } from "@/services/mock/mock-application.service";
 import { mockKnowledgeService } from "@/services/mock/mock-knowledge.service";
 import type { CompetencyLevel } from "@/types/domain/admin";
@@ -109,9 +108,9 @@ class MockAdminService implements AdminService {
       };
     });
 
-    const pendingHr = users.filter((user) => user.verificationStatus === "PENDING").length;
-    const pendingJobs = jobs.filter(
-      (job) => job.status === "PENDING" && job.moderationState === "AWAITING",
+    const blockedUsers = users.filter((user) => user.status === "BLOCKED").length;
+    const incompleteJobs = jobs.filter(
+      (job) => job.status !== "CLOSED" && getReadinessIssues(job).length > 0,
     ).length;
     const failedAi = applications.filter((item) => item.aiStatus === "FAILED").length;
     const failedAiInRange = applicationsInRange.filter((item) => item.aiStatus === "FAILED").length;
@@ -124,15 +123,15 @@ class MockAdminService implements AdminService {
       generatedAt: new Date().toISOString(),
       hasData: true,
       metrics: [
-        { id: "users", label: "Tổng người dùng", value: users.length, change: "+4 tháng này", href: "/admin/users" },
-        { id: "pending-hr", label: "HR chờ xác minh", value: pendingHr, change: "Cần xử lý", href: "/admin/users?role=HR&verification=PENDING", emphasis: pendingHr > 0 },
-        { id: "jobs", label: "Tin đang hiển thị", value: jobs.filter((job) => job.status === "PUBLISHED").length, change: `${pendingJobs} chờ duyệt`, href: "/admin/jobs?status=PENDING&moderation=AWAITING" },
+        { id: "users", label: "Tổng tài khoản", value: users.length, change: "+4 tháng này", href: "/admin/users" },
+        { id: "blocked-users", label: "Tài khoản bị khóa", value: blockedUsers, change: "Cần rà soát", href: "/admin/users?status=BLOCKED", emphasis: blockedUsers > 0 },
+        { id: "jobs", label: "Vị trí đang tuyển", value: jobs.filter((job) => job.status === "OPEN").length, change: `${incompleteJobs} thiếu cấu hình AI`, href: "/admin/jobs?readiness=INCOMPLETE" },
         { id: "applications", label: `Ứng tuyển / ${range} ngày`, value: applicationsInRange.length, change: "Theo ngày nộp", href: "/admin/applications" },
         { id: "ai-rate", label: "AI hoàn thành", value: aiCompletionRate, suffix: "%", change: `${failedAiInRange} hồ sơ lỗi`, href: "/admin/applications?aiStatus=FAILED" },
       ],
       attention: [
-        { id: "hr", label: "Xác minh nhà tuyển dụng", description: "Hồ sơ doanh nghiệp đang chờ quyết định", count: pendingHr, href: "/admin/users?role=HR&verification=PENDING", tone: "warning" },
-        { id: "jobs", label: "Duyệt tin tuyển dụng", description: "Tin mới chưa được hiển thị công khai", count: pendingJobs, href: "/admin/jobs?status=PENDING&moderation=AWAITING", tone: "info" },
+        { id: "accounts", label: "Rà soát quyền truy cập", description: "Tài khoản đang bị khóa cần kiểm tra hoặc hỗ trợ", count: blockedUsers, href: "/admin/users?status=BLOCKED", tone: "warning" },
+        { id: "jobs", label: "Hoàn thiện cấu hình đối sánh", description: "Tin tuyển dụng đang thiếu dữ liệu để AI đánh giá", count: incompleteJobs, href: "/admin/jobs?readiness=INCOMPLETE", tone: "info" },
         { id: "ai", label: "Xử lý AI thất bại", description: "Hồ sơ cần kiểm tra hoặc chạy lại", count: failedAi, href: "/admin/applications?aiStatus=FAILED", tone: "danger" },
       ],
       aiStatuses: statusOrder.map((status) => ({
@@ -154,11 +153,7 @@ class MockAdminService implements AdminService {
       const matchesQuery = !query || normalize(`${user.fullName} ${user.email}`).includes(query);
       const matchesRole = !filters.role || filters.role === "ALL" || user.role === filters.role;
       const matchesStatus = !filters.status || filters.status === "ALL" || user.status === filters.status;
-      const matchesVerification =
-        !filters.verificationStatus ||
-        filters.verificationStatus === "ALL" ||
-        user.verificationStatus === filters.verificationStatus;
-      return matchesQuery && matchesRole && matchesStatus && matchesVerification;
+      return matchesQuery && matchesRole && matchesStatus;
     });
     return users;
   }
@@ -199,37 +194,12 @@ class MockAdminService implements AdminService {
     return updated;
   }
 
-  async updateHrVerification(input: VerificationInput): Promise<AdminUser> {
-    await delay(MUTATION_DELAY);
-    const current = mockDatabase.findUser(input.userId);
-    if (!current) throw new MockApiError("Không tìm thấy người dùng.", "USER_NOT_FOUND");
-    if (current.role !== "HR") throw new MockApiError("Chỉ tài khoản HR có hồ sơ xác minh.");
-    const updated = mockDatabase.updateUser(input.userId, {
-      verificationStatus: input.decision,
-      verificationNote: input.note,
-    });
-    if (!updated) throw new MockApiError("Không thể cập nhật hồ sơ xác minh.");
-    const actionLabels = {
-      VERIFIED: "đã xác minh nhà tuyển dụng",
-      CHANGES_REQUESTED: "đã yêu cầu bổ sung hồ sơ",
-      REJECTED: "đã từ chối hồ sơ xác minh",
-    } as const;
-    mockDatabase.addActivity(
-      createActivity("HR_VERIFICATION_CHANGED", `${actionLabels[input.decision]} · ${input.note}`, updated),
-    );
-    return updated;
-  }
-
   getJobs(filters: JobFilters = {}) {
     return mockJobService.getJobs(filters);
   }
 
   getJob(jobId: string) {
     return mockJobService.getJob(jobId);
-  }
-
-  updateJob(input: JobActionInput) {
-    return mockJobService.updateJob(input);
   }
 
   getApplications(filters: ApplicationFilters = {}) {

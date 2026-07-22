@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     default: "CareerOS Demo",
     template: "%s · CareerOS",
   },
-  description: "Bản demo nền tảng tuyển dụng và định hướng nghề nghiệp đa tác tử.",
+  description: "Bản demo hệ thống tuyển dụng nội bộ và định hướng nghề nghiệp ứng dụng đa tác tử.",
   icons: { icon: "/icon.svg" },
 };
 

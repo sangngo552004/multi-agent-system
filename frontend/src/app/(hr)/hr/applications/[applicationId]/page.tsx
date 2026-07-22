@@ -1,11 +1,6 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import type { Metadata } from "next";
+import { HrApplicationDetailPage } from "@/features/hr/applications/components/application-detail-page";
 
-export default function HrApplicationDetailPage() {
-  return (
-    <RouteScaffold
-      portal="HR"
-      title="Chi tiết ứng viên"
-      description="Hồ sơ, kết quả matching và quyết định tuyển dụng."
-    />
-  );
-}
+export const metadata: Metadata = { title: "Chi tiết hồ sơ ứng viên" };
+
+export default async function HrApplicationDetailRoute({ params }: { params: Promise<{ applicationId: string }> }) { const { applicationId } = await params; return <HrApplicationDetailPage applicationId={applicationId} />; }

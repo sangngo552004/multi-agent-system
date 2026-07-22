@@ -1,12 +1,12 @@
-# Multi-Agent Career Platform — Frontend
+# Hệ thống tuyển dụng nội bộ ứng dụng Multi-Agent AI — Frontend
 
 Frontend Next.js App Router dùng chung cho ba không gian:
 
 - Candidate: `/candidate/*`
-- HR/Nhà tuyển dụng: `/hr/*`
+- HR nội bộ: `/hr/*`
 - Admin: `/admin/*`
 
-Toàn bộ 5 phase của Admin MVP đã được triển khai bằng mock data: Dashboard, người dùng/xác minh HR, kiểm duyệt tin tuyển dụng, theo dõi hồ sơ và AI, Kho năng lực, Nhật ký hoạt động và Báo cáo cơ bản. Các route HR và Candidate hiện vẫn là placeholder để các thành viên khác phát triển song song.
+Toàn bộ 5 phase của Admin MVP đã được triển khai bằng mock data theo mô hình một tổ chức: Dashboard, quản lý tài khoản, giám sát cấu hình tuyển dụng, vận hành AI, Kho năng lực, Nhật ký hoạt động và Báo cáo cơ bản. Các route HR và Candidate hiện vẫn là placeholder để các thành viên khác phát triển song song.
 
 ## Chạy dự án
 
@@ -30,9 +30,9 @@ Frontend chưa gọi backend. Feature sử dụng luồng `TanStack Query → ad
 
 Các luồng chính đã hoạt động:
 
-- Quản lý tài khoản, xác minh HR, khóa/mở tài khoản có lý do.
-- Duyệt, trả về HR, ẩn hoặc hiển thị lại tin tuyển dụng.
-- Theo dõi riêng trạng thái tuyển dụng và xử lý AI của hồ sơ.
+- Quản lý tài khoản nội bộ và ứng viên, khóa/mở quyền truy cập có lý do.
+- Theo dõi tin do HR quản lý và phát hiện cấu hình AI chưa hoàn chỉnh.
+- Theo dõi kỹ thuật xử lý hồ sơ mà không hiển thị nội dung CV hay điểm chuyên môn.
 - Xem Extraction, Matching, Career Path và chạy lại case AI có thể retry.
 - Thêm/sửa/ngưng sử dụng nhóm nghề, cấp bậc và năng lực.
 - Chỉnh sửa thang năng lực 5 cấp độ với xem trước trực tiếp.

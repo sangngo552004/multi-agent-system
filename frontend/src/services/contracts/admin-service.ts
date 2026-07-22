@@ -5,7 +5,6 @@ import type {
   ApplicationListItem,
 } from "@/features/admin/applications/applications.types";
 import type {
-  JobActionInput,
   JobDetail,
   JobFilters,
   JobListResult,
@@ -21,7 +20,6 @@ import type {
 import type {
   UserFilters,
   UserStatusInput,
-  VerificationInput,
 } from "@/features/admin/users/users.types";
 import type { ActivityEntry, AdminUser } from "@/types/domain/admin";
 import type { CompetencyLevel } from "@/types/domain/admin";
@@ -32,10 +30,8 @@ export interface AdminService {
   getUser(userId: string): Promise<AdminUser>;
   getUserActivity(userId: string): Promise<ActivityEntry[]>;
   updateUserStatus(input: UserStatusInput): Promise<AdminUser>;
-  updateHrVerification(input: VerificationInput): Promise<AdminUser>;
   getJobs(filters?: JobFilters): Promise<JobListResult>;
   getJob(jobId: string): Promise<JobDetail>;
-  updateJob(input: JobActionInput): Promise<JobDetail>;
   getApplications(filters?: ApplicationFilters): Promise<ApplicationListItem[]>;
   getApplication(applicationId: string): Promise<ApplicationDetail>;
   retryApplication(applicationId: string): Promise<ApplicationDetail>;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CircleAlert, FileClock, ShieldCheck } from "lucide-react";
+import { ArrowRight, CircleAlert, FileClock, UserRound } from "lucide-react";
 import type { AttentionItem } from "@/features/admin/dashboard/dashboard.types";
 import { cn } from "@/lib/cn";
 
@@ -9,7 +9,7 @@ const toneClasses = {
   info: "bg-info/10 text-info",
 };
 
-const icons = [ShieldCheck, FileClock, CircleAlert];
+const icons = [UserRound, FileClock, CircleAlert];
 
 export function AttentionQueue({ items }: { items: AttentionItem[] }) {
   return (

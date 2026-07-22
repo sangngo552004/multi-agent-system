@@ -15,7 +15,7 @@ export function KnowledgePage() {
   if (knowledge.isError) return <ErrorState description={knowledge.error.message} onRetry={() => knowledge.refetch()} />;
 
   return <div className="space-y-7">
-    <PageHeader eyebrow="Cấu hình nền tảng" title="Kho năng lực" description="Quản lý các nhóm nghề, cấp bậc và năng lực dùng chung cho tin tuyển dụng và kết quả đối sánh." />
+    <PageHeader eyebrow="Cấu hình tổ chức" title="Kho năng lực" description="Quản lý các nhóm nghề, cấp bậc và năng lực dùng chung cho nhu cầu tuyển dụng trong tổ chức." />
     <KnowledgeSummary data={knowledge.data} />
     <Tabs defaultValue="families">
       <TabsList className="overflow-x-auto"><TabsTrigger value="families">Nhóm nghề</TabsTrigger><TabsTrigger value="levels">Cấp bậc nghề nghiệp</TabsTrigger><TabsTrigger value="competencies">Năng lực</TabsTrigger></TabsList>

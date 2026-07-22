@@ -1,11 +1,8 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import type { Metadata } from "next";
+import { HrNewJobFormPage } from "@/features/hr/jobs/components/job-form-page";
+
+export const metadata: Metadata = { title: "Tạo tin tuyển dụng" };
 
 export default function HrNewJobPage() {
-  return (
-    <RouteScaffold
-      portal="HR"
-      title="Tạo việc làm"
-      description="Khởi tạo một Job và cấu hình yêu cầu tuyển dụng."
-    />
-  );
+  return <HrNewJobFormPage />;
 }

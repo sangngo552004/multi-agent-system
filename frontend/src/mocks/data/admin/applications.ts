@@ -14,7 +14,7 @@ const recruitmentStatuses: RecruitmentStatus[] = [
 ];
 
 function getAiStatus(index: number): AiProcessingStatus {
-  if (index === 4 || index === 11) return "FAILED";
+  if (index === 4 || index === 11 || index === 25) return "FAILED";
   if (index === 2 || index === 16) return "PROCESSING";
   if (index === 6 || index === 20) return "WAITING";
   return "COMPLETED";
@@ -35,7 +35,7 @@ export const applicationSeeds: AdminApplication[] = Array.from({ length: 32 }, (
     submittedAt: new Date(Date.now() - (index % 29) * 86_400_000 - (index % 9) * 3_600_000).toISOString(),
     matchScore,
     aiConfidence: lowConfidence ? 0.68 : 0.89 + (index % 5) * 0.015,
-    needsReview: aiStatus === "FAILED" || lowConfidence || (matchScore !== undefined && matchScore < 65),
+    needsReview: aiStatus === "FAILED" || lowConfidence,
     extractionMethod: index % 5 === 0 ? "OCR" : "TEXT_LAYER",
     errorCode: aiStatus === "FAILED" ? (invalidFile ? "INVALID_FILE" : "AI_TIMEOUT") : undefined,
     errorMessage: aiStatus === "FAILED"

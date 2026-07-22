@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Activity, ArrowUpRight, Bot, BriefcaseBusiness, Database, FileUser, ShieldCheck, UserRound } from "lucide-react";
+import { Activity, ArrowUpRight, Bot, BriefcaseBusiness, Database, FileUser, RefreshCw, UserRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/data-display/empty-state";
 import { ErrorState } from "@/components/data-display/error-state";
@@ -18,13 +18,13 @@ const pageLoadedAt = Date.now();
 
 const kindMeta: Record<ActivityKind, { label: string; group: Exclude<ActivityGroup, "ALL">; tone: string; icon: typeof Activity }> = {
   USER_STATUS_CHANGED: { label: "Tài khoản", group: "ADMIN", tone: "bg-danger/8 text-danger", icon: UserRound },
-  HR_VERIFICATION_CHANGED: { label: "Xác minh HR", group: "ADMIN", tone: "bg-info/8 text-info", icon: ShieldCheck },
+  STAFF_PROFILE_SYNCED: { label: "Hồ sơ nhân sự", group: "ADMIN", tone: "bg-info/8 text-info", icon: RefreshCw },
   JOB_STATUS_CHANGED: { label: "Tin tuyển dụng", group: "CONTENT", tone: "bg-warning/10 text-warning", icon: BriefcaseBusiness },
-  JOB_MODERATION_CHANGED: { label: "Kiểm duyệt tin", group: "CONTENT", tone: "bg-warning/10 text-warning", icon: BriefcaseBusiness },
   AI_RETRY_COMPLETED: { label: "Chạy lại AI", group: "AI", tone: "bg-brand/8 text-brand", icon: Bot },
   KNOWLEDGE_CHANGED: { label: "Kho năng lực", group: "ADMIN", tone: "bg-success/8 text-success", icon: Database },
-  JOB_SUBMITTED: { label: "Tin mới", group: "CONTENT", tone: "bg-warning/10 text-warning", icon: BriefcaseBusiness },
+  JOB_UPDATED: { label: "Cập nhật tin", group: "CONTENT", tone: "bg-warning/10 text-warning", icon: BriefcaseBusiness },
   AI_PROCESSING_FAILED: { label: "Lỗi xử lý AI", group: "AI", tone: "bg-danger/8 text-danger", icon: Bot },
+  APPLICATION_STATUS_CHANGED: { label: "Cập nhật hồ sơ", group: "APPLICATION", tone: "bg-info/8 text-info", icon: FileUser },
   APPLICATION_SUBMITTED: { label: "Hồ sơ mới", group: "APPLICATION", tone: "bg-info/8 text-info", icon: FileUser },
 };
 
@@ -48,7 +48,7 @@ export function ActivityPage() {
   const aiCount = (activities.data ?? []).filter((item) => kindMeta[item.kind].group === "AI").length;
 
   return <div className="space-y-7">
-    <PageHeader eyebrow="Dấu vết hệ thống" title="Nhật ký hoạt động" description="Theo dõi các thay đổi quan trọng do admin, nhà tuyển dụng và hệ thống AI tạo ra." />
+    <PageHeader eyebrow="Dấu vết hệ thống" title="Nhật ký hoạt động" description="Theo dõi các thay đổi quan trọng do Admin, HR nội bộ và hệ thống AI tạo ra." />
     <section className="grid overflow-hidden rounded-[12px] border border-border bg-surface sm:grid-cols-3"><Metric label="Tổng hoạt động" value={activities.data?.length ?? 0} /><Metric label="Trong 24 giờ" value={todayCount} /><Metric label="Liên quan đến AI" value={aiCount} /></section>
     <section className="overflow-hidden rounded-[12px] border border-border bg-surface">
       <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"><SearchInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm người thực hiện, nội dung hoặc đối tượng..." className="w-full sm:max-w-md" /><Select label="Loại hoạt động" value={group} onValueChange={(value) => setGroup(value as ActivityGroup)} options={groupOptions} /></div>

@@ -19,7 +19,7 @@ export function DashboardHeader({
     <PageHeader
       eyebrow="Trung tâm vận hành"
       title="Chào buổi sáng, Admin."
-      description="Những việc đáng chú ý của nền tảng được gom tại đây để bạn xử lý nhanh."
+      description="Những việc đáng chú ý của hệ thống tuyển dụng nội bộ được gom tại đây để bạn xử lý nhanh."
       actions={
         <div className="flex flex-wrap items-center gap-2">
           {generatedAt ? (

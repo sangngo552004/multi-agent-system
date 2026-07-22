@@ -9,8 +9,8 @@ export const employmentTypeLabels: Record<EmploymentType, string> = {
 
 export const jobStatusTabs: Array<{ value: JobStatus | "ALL"; label: string }> = [
   { value: "ALL", label: "Tất cả" },
-  { value: "PENDING", label: "Chờ duyệt" },
-  { value: "PUBLISHED", label: "Đang hiển thị" },
-  { value: "HIDDEN", label: "Đã ẩn" },
+  { value: "DRAFT", label: "Bản nháp" },
+  { value: "OPEN", label: "Đang tuyển" },
+  { value: "PAUSED", label: "Tạm dừng" },
   { value: "CLOSED", label: "Đã đóng" },
 ];

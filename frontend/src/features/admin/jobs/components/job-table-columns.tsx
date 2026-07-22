@@ -1,7 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpRight, CircleCheck, CircleDashed } from "lucide-react";
 import { SortableHeader } from "@/components/data-display/data-table";
-import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { jobStatusMap } from "@/config/status";
 import type { JobListItem } from "@/features/admin/jobs/jobs.types";
@@ -13,17 +12,17 @@ export const jobTableColumns: ColumnDef<JobListItem>[] = [
     header: ({ column }) => <SortableHeader label="Tin tuyển dụng" column={column} />,
     cell: ({ row }) => (
       <div className="relative pl-3">
-        {row.original.status === "PENDING" && row.original.moderationState === "AWAITING" ? (
+        {!row.original.matchingReady && row.original.status !== "CLOSED" ? (
           <span className="absolute bottom-0 left-0 top-0 w-[3px] rounded-full bg-accent" aria-hidden />
         ) : null}
         <p className="font-semibold text-ink">{row.original.title}</p>
-        <p className="mt-1 text-xs text-muted">{row.original.companyName}</p>
+        <p className="mt-1 text-xs text-muted">{row.original.departmentName}</p>
       </div>
     ),
   },
   {
     accessorKey: "ownerName",
-    header: ({ column }) => <SortableHeader label="Nhà tuyển dụng" column={column} />,
+    header: ({ column }) => <SortableHeader label="HR phụ trách" column={column} />,
     cell: ({ row }) => <span className="text-sm text-muted">{row.original.ownerName}</span>,
   },
   {
@@ -47,9 +46,6 @@ export const jobTableColumns: ColumnDef<JobListItem>[] = [
     header: ({ column }) => <SortableHeader label="Trạng thái" column={column} />,
     cell: ({ row }) => {
       const status = jobStatusMap[row.original.status];
-      if (row.original.moderationState === "REJECTED") {
-        return <Badge tone="danger">Đã trả về HR</Badge>;
-      }
       return <StatusDot label={status.label} tone={status.tone} />;
     },
   },

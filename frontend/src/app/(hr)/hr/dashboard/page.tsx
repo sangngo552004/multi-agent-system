@@ -1,11 +1,8 @@
-import { RouteScaffold } from "@/components/scaffold/route-scaffold";
+import type { Metadata } from "next";
+import { HrDashboardPage } from "@/features/hr/dashboard/components/dashboard-page";
 
-export default function HrDashboardPage() {
-  return (
-    <RouteScaffold
-      portal="HR"
-      title="Tổng quan tuyển dụng"
-      description="Theo dõi Job, ứng viên và các công việc cần xử lý."
-    />
-  );
+export const metadata: Metadata = { title: "Tổng quan tuyển dụng" };
+
+export default function HrDashboardRoute() {
+  return <HrDashboardPage />;
 }

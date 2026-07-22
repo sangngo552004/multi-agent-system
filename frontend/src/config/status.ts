@@ -10,27 +10,19 @@ export const userStatusMap = {
 
 export const roleMap = {
   ADMIN: "Quản trị viên",
-  HR: "Nhà tuyển dụng",
+  HR: "Nhân sự tuyển dụng",
   CANDIDATE: "Ứng viên",
 } as const;
 
-export const verificationStatusMap = {
-  NOT_REQUIRED: { label: "Không áp dụng", tone: "neutral" },
-  PENDING: { label: "Chờ xác minh", tone: "warning" },
-  VERIFIED: { label: "Đã xác minh", tone: "success" },
-  CHANGES_REQUESTED: { label: "Cần bổ sung", tone: "info" },
-  REJECTED: { label: "Đã từ chối", tone: "danger" },
-} as const satisfies Record<string, StatusPresentation>;
-
 export const jobStatusMap = {
-  PENDING: { label: "Chờ duyệt", tone: "warning" },
-  PUBLISHED: { label: "Đang hiển thị", tone: "success" },
-  HIDDEN: { label: "Đã ẩn", tone: "danger" },
+  DRAFT: { label: "Bản nháp", tone: "neutral" },
+  OPEN: { label: "Đang tuyển", tone: "success" },
+  PAUSED: { label: "Tạm dừng", tone: "warning" },
   CLOSED: { label: "Đã đóng", tone: "neutral" },
 } as const satisfies Record<string, StatusPresentation>;
 
 export const recruitmentStatusMap = {
-  PENDING: { label: "Mới nộp", tone: "neutral" },
+  PENDING: { label: "Mới nhận", tone: "neutral" },
   REVIEWING: { label: "Đang xem xét", tone: "info" },
   SHORTLISTED: { label: "Danh sách ngắn", tone: "warning" },
   REJECTED: { label: "Không phù hợp", tone: "danger" },

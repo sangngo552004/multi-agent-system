@@ -24,11 +24,20 @@ function toListItem(application: AdminApplication): ApplicationListItem {
   const job = snapshot.jobs.find((item) => item.id === application.jobId);
   if (!candidate || !job) throw new Error("Dữ liệu hồ sơ không còn liên kết hợp lệ.");
   return {
-    ...application,
+    id: application.id,
+    candidateId: application.candidateId,
+    jobId: application.jobId,
+    aiStatus: application.aiStatus,
+    submittedAt: application.submittedAt,
+    aiConfidence: application.aiConfidence,
+    needsReview: application.needsReview,
+    extractionMethod: application.extractionMethod,
+    errorCode: application.errorCode,
+    errorMessage: application.errorMessage,
+    canRetry: application.canRetry,
     candidateName: candidate.fullName,
-    candidateEmail: candidate.email,
     jobTitle: job.title,
-    companyName: job.companyName,
+    departmentName: job.departmentName,
   };
 }
 
@@ -40,9 +49,10 @@ function toDetail(application: AdminApplication): ApplicationDetail {
   if (!candidate || !job) throw new Error("Dữ liệu hồ sơ không còn liên kết hợp lệ.");
   return {
     ...item,
-    candidate: { id: candidate.id, fullName: candidate.fullName, email: candidate.email },
-    job: { id: job.id, title: job.title, companyName: job.companyName },
+    candidate: { id: candidate.id, fullName: candidate.fullName },
+    job: { id: job.id, title: job.title, departmentName: job.departmentName },
     pipeline: buildAiPipeline(application),
+    warningCount: application.extractionWarnings.length,
   };
 }
 
@@ -55,15 +65,9 @@ class MockApplicationService {
 
     return mockDatabase.snapshot().applications.map(toListItem).filter((item) => {
       const matchesSearch = !query || normalize(`${item.id} ${item.candidateName} ${item.jobTitle}`).includes(query);
-      const matchesRecruitment = !filters.recruitmentStatus || filters.recruitmentStatus === "ALL" || item.recruitmentStatus === filters.recruitmentStatus;
       const matchesAi = !filters.aiStatus || filters.aiStatus === "ALL" || item.aiStatus === filters.aiStatus;
       const matchesDate = !filters.dateRange || filters.dateRange === "ALL" || new Date(item.submittedAt).getTime() >= now - Number(filters.dateRange) * 86_400_000;
-      const matchesScore = !filters.scoreBand || filters.scoreBand === "ALL"
-        || (filters.scoreBand === "UNSCORED" && item.matchScore === undefined)
-        || (filters.scoreBand === "HIGH" && (item.matchScore ?? -1) >= 80)
-        || (filters.scoreBand === "MEDIUM" && (item.matchScore ?? -1) >= 65 && (item.matchScore ?? -1) < 80)
-        || (filters.scoreBand === "LOW" && item.matchScore !== undefined && item.matchScore < 65);
-      return matchesSearch && matchesRecruitment && matchesAi && matchesDate && matchesScore;
+      return matchesSearch && matchesAi && matchesDate;
     });
   }
 
@@ -107,6 +111,19 @@ class MockApplicationService {
       createdAt: new Date().toISOString(),
     };
     mockDatabase.addActivity(activity);
+    const sourceJob = mockDatabase.findJob(updated.jobId);
+    const owner = sourceJob ? mockDatabase.findUser(sourceJob.ownerId) : undefined;
+    if (sourceJob && owner?.role === "HR") {
+      mockDatabase.addHrNotification({
+        id: `hr-notification-resolved-${Date.now()}`,
+        hrId: sourceJob.ownerId,
+        kind: "ADMIN_RESOLVED",
+        title: "Lỗi AI đã được xử lý",
+        description: `Kết quả đối sánh cho ${updated.id.toUpperCase()} đã sẵn sàng để kiểm tra.`,
+        href: `/hr/applications/${updated.id}`,
+        createdAt: new Date().toISOString(),
+      });
+    }
     return toDetail(updated);
   }
 }

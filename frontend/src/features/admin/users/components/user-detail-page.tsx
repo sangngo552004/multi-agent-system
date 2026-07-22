@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { roleMap, userStatusMap } from "@/config/status";
-import { HrVerificationPanel } from "@/features/admin/users/components/hr-verification-panel";
+import { StaffProfilePanel } from "@/features/admin/users/components/staff-profile-panel";
 import { UserActivityList } from "@/features/admin/users/components/user-activity-list";
 import { UserDetailSkeleton } from "@/features/admin/users/components/user-detail-skeleton";
 import { UserStatusDialog } from "@/features/admin/users/components/user-status-dialog";
@@ -52,7 +52,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
               <TabsContent value="activity"><UserActivityList userId={user.id} /></TabsContent>
             </Tabs>
           </section>
-          {user.role === "HR" ? <HrVerificationPanel user={user} /> : null}
+          {user.role !== "CANDIDATE" ? <StaffProfilePanel user={user} /> : null}
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-24">
