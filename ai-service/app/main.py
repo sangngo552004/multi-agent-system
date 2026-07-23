@@ -229,6 +229,7 @@ async def process_application(
         "hr_preferences": hr_preferences,
         "cv_data": None,
         "match_result": None,
+        "career_path_result": None,
         "needs_human_review": False,
     }
 
@@ -242,6 +243,7 @@ async def process_application(
             "needs_human_review": final_state["needs_human_review"],
             "match_result": final_state["match_result"],
             "cv_data": final_state["cv_data"],
+            "career_path_result": final_state.get("career_path_result"),
         }
     except Exception as e:
         logger.error(f"Graph execution failed: {e}")
@@ -259,7 +261,7 @@ async def process_application(
         500: {
             "model": ApiErrorResponse,
             "description": "Unexpected Career Path service failure",
-        }
+        },
     },
     summary="Generate a decision-gated candidate career path",
     description=(

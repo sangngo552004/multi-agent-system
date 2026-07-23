@@ -25,7 +25,7 @@ def test_vector_matcher_fallback_without_llm():
     # If API key is not set, this will return vector matching results with 0 for background/bonus
     from unittest.mock import patch
 
-    with patch.object(matching_agent, "model", None):
+    with patch.object(matching_agent, "client", None):
         result = matching_agent.evaluate(request)
 
     assert result.hard_skill_score > 0

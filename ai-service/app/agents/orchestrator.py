@@ -1,13 +1,31 @@
 """LangGraph Orchestrator for the Multi-Agent HR Pipeline."""
 
 import logging
+from datetime import datetime, timezone
 from typing import TypedDict
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 
+from app.agents.career_path_agent.snapshot_adapter import (
+    build_candidate_snapshot,
+    build_job_snapshot,
+    build_matching_snapshot,
+)
 from app.agents.matcher_agent.agent import matching_agent
-from app.core.schemas import CVExtractionResponse, MatchingOutput, MatchRequest
+from app.agents.matcher_agent.kb_loader import get_competency_level_description
+from app.core.schemas import (
+    CareerPathOutput,
+    CareerPathRequest,
+    CVExtractionResponse,
+    DecisionOutcome,
+    DecisionSnapshot,
+    DecisionSource,
+    JobConfiguration,
+    MatchingOutput,
+    MatchRequest,
+    PlanningPolicy,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,42 +44,127 @@ class AgentState(TypedDict):
     # Matcher Output
     match_result: MatchingOutput | None
 
+    # Career Path Output
+    career_path_result: CareerPathOutput | None
+
     # Flags
     needs_human_review: bool
+
+
+# --- Helper Adapters ---
+
+
+def build_career_path_request_from_state(state: AgentState) -> CareerPathRequest | None:
+    """Build a CareerPathRequest from Orchestrator AgentState using snapshot adapters."""
+    cv_data = state.get("cv_data")
+    match_result = state.get("match_result")
+    if not cv_data or not match_result:
+        logger.warning("Missing cv_data or match_result for career path adapter.")
+        return None
+
+    # Candidate Snapshot
+    candidate_snapshot = build_candidate_snapshot(cv_data)
+
+    # Matching Snapshot
+    matching_snapshot = build_matching_snapshot(match_result)
+
+    # Target Role Snapshot from job_data
+    job_data = state.get("job_data", {})
+    title = (
+        job_data.get("title", "Target Position")
+        if isinstance(job_data, dict)
+        else "Target Position"
+    )
+
+    job_config = None
+    if isinstance(job_data, dict) and "required_competencies" in job_data:
+        try:
+            clean_job_data = dict(job_data)
+            clean_job_data.setdefault("job_id", "default_job")
+            clean_job_data.setdefault("job_family", "Engineering")
+            clean_job_data.setdefault("career_level", "Mid")
+            job_config = JobConfiguration(**clean_job_data)
+        except Exception as e:
+            logger.warning("Could not parse JobConfiguration from job_data: %s", e)
+
+    if not job_config:
+        job_config = JobConfiguration(
+            job_id=job_data.get("job_id", "default_job")
+            if isinstance(job_data, dict)
+            else "default_job",
+            job_family=job_data.get("job_family", "Engineering")
+            if isinstance(job_data, dict)
+            else "Engineering",
+            career_level=job_data.get("career_level", "Mid")
+            if isinstance(job_data, dict)
+            else "Mid",
+            required_competencies=[],
+        )
+
+    level_descs: dict[str, str] = {}
+    for comp in job_config.required_competencies:
+        desc = get_competency_level_description(comp.competency_id, comp.required_level)
+        if desc:
+            level_descs[comp.competency_id] = desc
+
+    target_role_snapshot = build_job_snapshot(
+        job=job_config,
+        level_descriptions=level_descs,
+        title=title,
+    )
+
+    # Decision Snapshot based on match result
+    outcome = (
+        DecisionOutcome.REJECTED
+        if match_result.status == "REJECTED"
+        else DecisionOutcome.PENDING_REVIEW
+    )
+
+    reason_code = (
+        "REJECTED" if outcome == DecisionOutcome.REJECTED else "DEVELOPMENT_REQUIRED"
+    )
+
+    decision = DecisionSnapshot(
+        decision_id=f"dec_{state['application_id']}",
+        outcome=outcome,
+        is_final=True,
+        source=DecisionSource.AUTO_POLICY,
+        reason_codes=[reason_code],
+        related_competency_ids=[],
+        policy_version="policy-1.0",
+        decided_at=datetime.now(timezone.utc),
+    )
+
+    policy = PlanningPolicy(
+        version="policy-1.0",
+        applicable_reason_codes=["REJECTED", "DEVELOPMENT_REQUIRED"],
+    )
+
+    return CareerPathRequest(
+        application_id=state["application_id"],
+        decision=decision,
+        candidate=candidate_snapshot,
+        job=target_role_snapshot,
+        matching=matching_snapshot,
+        policy=policy,
+    )
 
 
 # --- Nodes ---
 
 
-def extract_node(state: AgentState) -> dict:
-    """Agent 1: Extract CV data."""
-    logger.info(f"--- EXTRACT NODE: {state['application_id']} ---")
-
-    # We lazily import process_cv to avoid circular imports if any
-
-    # process_cv is async
-    try:
-        # Since we might be running inside an async context or event loop,
-        # normally LangGraph supports async nodes. Let's make this node async.
-        pass
-    except Exception as e:
-        logger.error(f"Error in extract node: {e}")
-
-    return {}
-
-
 async def async_extract_node(state: AgentState) -> dict:
     """Agent 1: Extract CV data (Async)."""
-    logger.info(f"--- EXTRACT NODE: {state['application_id']} ---")
+    logger.info("--- EXTRACT NODE: %s ---", state["application_id"])
     from app.agents.extractor_agent.agent import process_cv
 
     cv_data = await process_cv(state["file_content"], state["filename"])
     return {"cv_data": cv_data}
 
 
-def match_node(state: AgentState) -> dict:
-    """Agent 2: Match CV against JD."""
-    logger.info(f"--- MATCH NODE: {state['application_id']} ---")
+async def match_node(state: AgentState) -> dict:
+    """Agent 2: Match CV against JD (Async)."""
+    logger.info("--- MATCH NODE: %s ---", state["application_id"])
 
     request = MatchRequest(
         application_id=state["application_id"],
@@ -70,18 +173,28 @@ def match_node(state: AgentState) -> dict:
         hr_preferences=state["hr_preferences"],
     )
 
-    result = matching_agent.evaluate(request)
+    result = await matching_agent.evaluate_async(request)
 
     needs_review = result.is_high_potential or result.overall_score >= 50.0
 
     return {"match_result": result, "needs_human_review": needs_review}
 
 
-def career_path_node(state: AgentState) -> dict:
-    """Agent 3: Career Path Planner (Placeholder)."""
-    logger.info(f"--- CAREER PATH NODE: {state['application_id']} ---")
-    # To be implemented by another agent.
-    return {}
+async def career_path_node(state: AgentState) -> dict:
+    """Agent 3: Career Path Planner Node (Async)."""
+    logger.info("--- CAREER PATH NODE: %s ---", state["application_id"])
+    from app.agents.career_path_agent.agent import career_path_agent
+
+    request = build_career_path_request_from_state(state)
+    if not request:
+        logger.warning(
+            "Could not build CareerPathRequest for application: %s",
+            state["application_id"],
+        )
+        return {"career_path_result": None}
+
+    output = await career_path_agent.generate(request)
+    return {"career_path_result": output}
 
 
 # --- Conditional Edges ---
@@ -89,12 +202,11 @@ def career_path_node(state: AgentState) -> dict:
 
 def check_score(state: AgentState) -> str:
     """Decide next step based on matching score."""
-    if state["needs_human_review"]:
-        logger.info("Routing: Pause for Human Review.")
-        return "human_review"
+    if state.get("needs_human_review"):
+        logger.info("Routing: Flagged for HR review -> Generating draft career path.")
     else:
-        logger.info("Routing: Auto-reject -> Career Path Planner.")
-        return "career_path"
+        logger.info("Routing: Direct -> Career Path Planner.")
+    return "career_path"
 
 
 # --- Graph Definition ---
@@ -117,7 +229,6 @@ def build_graph():
         "matcher",
         check_score,
         {
-            "human_review": END,  # Pause graph, wait for HR
             "career_path": "career_path",
         },
     )
