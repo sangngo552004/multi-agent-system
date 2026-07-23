@@ -3,8 +3,8 @@
 import json
 import logging
 
-import google.generativeai as genai
-from google.generativeai.types import GenerationConfig
+from google import genai
+from google.genai import types
 
 from app.agents.matcher_agent.kb_loader import get_competency_level_description
 from app.agents.matcher_agent.scoring_engine import scoring_engine
@@ -38,15 +38,12 @@ Bạn sẽ nhận được:
 class MatchingAgent:
     def __init__(self):
         if settings.GOOGLE_API_KEY:
-            genai.configure(api_key=settings.GOOGLE_API_KEY)
-            self.model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash", system_instruction=SYSTEM_INSTRUCTION
-            )
+            self.client = genai.Client(api_key=settings.GOOGLE_API_KEY)
         else:
-            self.model = None
+            self.client = None
 
-    def evaluate(self, request: MatchRequest) -> MatchingOutput:
-        """Run the competency-based matching process."""
+    async def evaluate_async(self, request: MatchRequest) -> MatchingOutput:
+        """Run the competency-based matching process asynchronously."""
         # 1. Fallback & Parse Job Config
         job_config = request.job_configuration
         if not job_config:
@@ -66,7 +63,7 @@ class MatchingAgent:
             cv_skills, job_skills
         )
 
-        if not self.model:
+        if not self.client:
             logger.warning("GOOGLE_API_KEY not set. Returning vector-only results.")
             return MatchingOutput(
                 status="ERROR",
@@ -127,13 +124,17 @@ class MatchingAgent:
         )
 
         try:
-            # Call LLM to extract evidence
-            response = self.model.generate_content(
-                prompt,
-                generation_config=GenerationConfig(
-                    response_mime_type="application/json",
-                    response_schema=MatchingOutput.model_json_schema(),
-                ),
+            # Call LLM asynchronously to extract evidence
+            config = types.GenerateContentConfig(
+                system_instruction=SYSTEM_INSTRUCTION,
+                response_mime_type="application/json",
+                response_schema=MatchingOutput,
+            )
+            model_name = getattr(settings, "LLM_MODEL_NAME", "gemini-1.5-flash")
+            response = await self.client.aio.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=config,
             )
 
             result_json = json.loads(response.text)
@@ -183,6 +184,23 @@ class MatchingAgent:
                 matched_criteria=matched,
                 missing_criteria=missing,
             )
+
+    def evaluate(self, request: MatchRequest) -> MatchingOutput:
+        """Synchronous wrapper for evaluate_async."""
+        import asyncio
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            import nest_asyncio
+
+            nest_asyncio.apply()
+            return loop.run_until_complete(self.evaluate_async(request))
+        else:
+            return asyncio.run(self.evaluate_async(request))
 
     def _build_prompt(
         self,

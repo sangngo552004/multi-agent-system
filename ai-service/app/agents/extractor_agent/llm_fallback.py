@@ -115,37 +115,36 @@ async def _retry_async(func, *args, max_retries=2, base_delay=1.0):
 
 
 class GeminiProvider:
-    """Google Gemini API provider."""
+    """Google Gemini API provider using google.genai SDK."""
 
     def __init__(self):
-        self._model = None
+        self._client = None
 
-    def _get_model(self):
-        if self._model is None:
-            import google.generativeai as genai
+    def _get_client(self):
+        if self._client is None:
+            from google import genai
 
-            genai.configure(api_key=settings.GOOGLE_API_KEY)
-            self._model = genai.GenerativeModel(settings.LLM_MODEL_NAME)
-        return self._model
+            self._client = genai.Client(api_key=settings.GOOGLE_API_KEY)
+        return self._client
 
     async def extract_cv_data(self, text: str) -> Optional[dict]:
-        """Extract CV data using Gemini API."""
-        model = self._get_model()
+        """Extract CV data using Gemini API asynchronously."""
+        if not settings.GOOGLE_API_KEY:
+            logger.warning("GOOGLE_API_KEY not configured for LLM fallback")
+            return None
+
+        client = self._get_client()
         prompt = CV_EXTRACTION_PROMPT.format(cv_text=text[:8000])
 
         try:
-            from google.generativeai.types import GenerationConfig
+            from google.genai import types
 
-            loop = asyncio.get_event_loop()
+            config = types.GenerateContentConfig(response_mime_type="application/json")
             response = await asyncio.wait_for(
-                loop.run_in_executor(
-                    None,
-                    lambda: model.generate_content(
-                        prompt,
-                        generation_config=GenerationConfig(
-                            response_mime_type="application/json"
-                        ),
-                    ),
+                client.aio.models.generate_content(
+                    model=settings.LLM_MODEL_NAME,
+                    contents=prompt,
+                    config=config,
                 ),
                 timeout=settings.LLM_TIMEOUT_SECONDS,
             )
@@ -225,7 +224,7 @@ async def llm_extract_cv(
     """
     if not settings.GOOGLE_API_KEY:
         logger.warning(
-            "LLM fallback requested but no API key configured. " "Reason: %s",
+            "LLM fallback requested but no API key configured. Reason: %s",
             fallback_reason,
         )
         return None
