@@ -262,10 +262,13 @@ async def career_path_node(state: AgentState) -> dict:
 def check_score(state: AgentState) -> str:
     """Decide next step based on matching score."""
     if state.get("needs_human_review"):
-        logger.info("Routing: Flagged for HR review -> Generating draft career path.")
+        logger.info(
+            "Routing: Passed (needs human review) -> Ending flow without Career Path."
+        )
+        return "end"
     else:
-        logger.info("Routing: Direct -> Career Path Planner.")
-    return "career_path"
+        logger.info("Routing: Failed -> Generating draft career path for upskilling.")
+        return "career_path"
 
 
 # --- Checkpointer Lifecycle Management ---
@@ -334,6 +337,7 @@ def build_graph(checkpointer=None):
         check_score,
         {
             "career_path": "career_path",
+            "end": END,
         },
     )
 
