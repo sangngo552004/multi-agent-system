@@ -29,12 +29,18 @@ mvnw.cmd
 # AI Service: Python
 # =========================
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 venv/
 env/
+.temp_env/
 .env
 .pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ruff_cache/
 *.log
 
 # =========================

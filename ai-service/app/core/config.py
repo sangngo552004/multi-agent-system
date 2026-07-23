@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     CHECKPOINTER_TYPE: str = "memory"  # "memory" or "postgres"
     DATABASE_URL: str = "postgresql://postgres:password123@localhost:5432/tttn"
 
+    # --- Observability / Tracing ---
+    LANGCHAIN_TRACING_V2: bool = False
+    LANGCHAIN_API_KEY: str = ""
+    LANGCHAIN_PROJECT: str = "tttn-multi-agent-pipeline"
+    ENABLE_METRICS_LOGGING: bool = True
+
     # --- OCR ---
     TESSERACT_LANG: str = "eng+vie"
 

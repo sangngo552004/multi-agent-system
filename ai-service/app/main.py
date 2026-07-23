@@ -120,6 +120,17 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    import time
+
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time_ms = int((time.perf_counter() - start_time) * 1000)
+    response.headers["X-Process-Time-Ms"] = str(process_time_ms)
+    return response
+
+
 # ── Endpoints ──────────────────────────────────────────────────────
 
 
@@ -137,6 +148,7 @@ def health_check():
     return {
         "status": status,
         "model_loaded": model_loaded,
+        "checkpointer_type": settings.CHECKPOINTER_TYPE,
         "service": "ai-service",
         "version": "1.0.0",
     }
@@ -154,6 +166,9 @@ def model_health():
         "llm_fallback_configured": bool(settings.GOOGLE_API_KEY),
         "llm_model": settings.LLM_MODEL_NAME,
         "rabbitmq_enabled": settings.RABBITMQ_ENABLED,
+        "checkpointer_type": settings.CHECKPOINTER_TYPE,
+        "tracing_enabled": settings.LANGCHAIN_TRACING_V2,
+        "metrics_logging_enabled": settings.ENABLE_METRICS_LOGGING,
     }
 
 
@@ -259,6 +274,7 @@ async def process_application(
             "match_result": final_state["match_result"],
             "cv_data": final_state["cv_data"],
             "career_path_result": final_state.get("career_path_result"),
+            "telemetry": final_state.get("telemetry"),
         }
     except Exception as e:
         logger.error(f"Graph execution failed: {e}")

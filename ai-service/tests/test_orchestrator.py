@@ -119,6 +119,8 @@ async def test_orchestrator_full_flow(
     assert final_state["cv_data"] == mock_cv
     assert final_state["match_result"] == mock_match
     assert final_state["career_path_result"] == mock_career_output
+    assert "telemetry" in final_state
+    assert "total_pipeline_ms" in final_state["telemetry"]
     assert mock_extract_process.called
     assert mock_matcher_eval.called
     assert mock_career_generate.called
