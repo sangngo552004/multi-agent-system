@@ -49,9 +49,12 @@ def _run_consumer():
                 "Connecting to RabbitMQ at %s...",
                 settings.RABBITMQ_URL,
             )
-            connection = pika.BlockingConnection(
-                pika.URLParameters(settings.RABBITMQ_URL)
-            )
+            # Set heartbeat to 600s (10 minutes) to prevent connection drops during long AI processing
+            url = settings.RABBITMQ_URL
+            if "heartbeat=" not in url:
+                url += "&heartbeat=600" if "?" in url else "?heartbeat=600"
+
+            connection = pika.BlockingConnection(pika.URLParameters(url))
             channel = connection.channel()
 
             # Declare queues (idempotent)

@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # --- LLM Fallback ---
     GOOGLE_API_KEY: str = ""
-    LLM_MODEL_NAME: str = "gemini-3.5-flash"
+    LLM_MODEL_NAME: str = "gemini-1.5-flash"
     LLM_DAILY_RATE_LIMIT: int = 100
     LLM_TIMEOUT_SECONDS: int = 30
     LLM_MAX_RETRIES: int = 2
