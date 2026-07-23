@@ -14,6 +14,7 @@ from app.agents.career_path_agent.snapshot_adapter import (
 )
 from app.agents.matcher_agent.agent import matching_agent
 from app.agents.matcher_agent.kb_loader import get_competency_level_description
+from app.core.config import settings
 from app.core.schemas import (
     CareerPathOutput,
     CareerPathRequest,
@@ -28,6 +29,10 @@ from app.core.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Global checkpointer objects
+_postgres_pool = None
+_postgres_checkpointer = None
 
 
 # Define the State for LangGraph
@@ -209,10 +214,55 @@ def check_score(state: AgentState) -> str:
     return "career_path"
 
 
+# --- Checkpointer Lifecycle Management ---
+
+
+async def init_checkpointer():
+    """Initialize Postgres Checkpointer if enabled in settings."""
+    global _postgres_pool, _postgres_checkpointer
+    if settings.CHECKPOINTER_TYPE.lower() == "postgres":
+        try:
+            from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+            from psycopg_pool import AsyncConnectionPool
+
+            logger.info(
+                "Initializing AsyncPostgresSaver checkpointer with DATABASE_URL..."
+            )
+            _postgres_pool = AsyncConnectionPool(
+                conninfo=settings.DATABASE_URL,
+                max_size=20,
+                kwargs={"autocommit": True},
+            )
+            await _postgres_pool.open()
+            _postgres_checkpointer = AsyncPostgresSaver(_postgres_pool)
+            await _postgres_checkpointer.setup()
+            logger.info("AsyncPostgresSaver tables initialized successfully.")
+            return _postgres_checkpointer
+        except Exception as e:
+            logger.error(
+                "Failed to initialize AsyncPostgresSaver: %s. Falling back to MemorySaver.",
+                e,
+            )
+            _postgres_checkpointer = None
+            return MemorySaver()
+    return MemorySaver()
+
+
+async def close_checkpointer():
+    """Close Postgres connection pool on application shutdown."""
+    global _postgres_pool, _postgres_checkpointer
+    if _postgres_pool:
+        logger.info("Closing AsyncPostgresSaver connection pool...")
+        await _postgres_pool.close()
+        _postgres_pool = None
+        _postgres_checkpointer = None
+
+
 # --- Graph Definition ---
 
 
-def build_graph():
+def build_graph(checkpointer=None):
+    """Compile graph with specified or active checkpointer."""
     workflow = StateGraph(AgentState)
 
     # Add Nodes
@@ -235,10 +285,11 @@ def build_graph():
 
     workflow.add_edge("career_path", END)
 
-    # Memory saver for state persistence (useful for Human-in-the-loop)
-    memory = MemorySaver()
-    graph = workflow.compile(checkpointer=memory)
-    return graph
+    if checkpointer is None:
+        checkpointer = _postgres_checkpointer or MemorySaver()
+
+    return workflow.compile(checkpointer=checkpointer)
 
 
+# Default graph instance for backwards compatibility / local testing
 agent_graph = build_graph()

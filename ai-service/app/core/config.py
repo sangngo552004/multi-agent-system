@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     BACKEND_BASE_URL: str = "http://localhost:8080"
     KB_CACHE_TTL_SECONDS: int = 300  # 5 phút cache KB từ backend
 
+    # --- Checkpointer / State Persistence ---
+    CHECKPOINTER_TYPE: str = "memory"  # "memory" or "postgres"
+    DATABASE_URL: str = "postgresql://postgres:password123@localhost:5432/tttn"
+
     # --- OCR ---
     TESSERACT_LANG: str = "eng+vie"
 

@@ -75,10 +75,25 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error("Failed to start RabbitMQ consumer: %s", e)
 
+    # Initialize LangGraph Checkpointer (Memory or Postgres)
+    try:
+        from app.agents.orchestrator import init_checkpointer
+
+        await init_checkpointer()
+    except Exception as e:
+        logger.warning("Checkpointer initialization warning: %s", e)
+
     yield
 
     # Shutdown
     logger.info("Shutting down AI Service...")
+    try:
+        from app.agents.orchestrator import close_checkpointer
+
+        await close_checkpointer()
+    except Exception as e:
+        logger.warning("Error closing checkpointer pool: %s", e)
+
     if consumer_thread and consumer_thread.is_alive():
         logger.info("Stopping RabbitMQ consumer...")
 
@@ -207,7 +222,7 @@ async def process_application(
 ):
     import json
 
-    from app.agents.orchestrator import agent_graph
+    from app.agents.orchestrator import build_graph
 
     try:
         job_data = json.loads(job_data_json)
@@ -233,11 +248,11 @@ async def process_application(
         "needs_human_review": False,
     }
 
-    # Run the graph synchronously or await if we use ainvoke
-    # We will use ainvoke since the graph contains async nodes
-    config = {"configurable": {"thread_id": "1"}}
+    # Compile graph with active checkpointer (MemorySaver in dev, AsyncPostgresSaver in prod)
+    graph = build_graph()
+    config = {"configurable": {"thread_id": file.filename or "default_thread"}}
     try:
-        final_state = await agent_graph.ainvoke(initial_state, config)
+        final_state = await graph.ainvoke(initial_state, config)
         return {
             "application_id": final_state["application_id"],
             "needs_human_review": final_state["needs_human_review"],
