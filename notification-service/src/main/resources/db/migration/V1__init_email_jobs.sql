@@ -1,0 +1,11 @@
+CREATE TABLE email_jobs (
+    id VARCHAR(36) PRIMARY KEY,
+    batch_job_id VARCHAR(36) NOT NULL,
+    application_id VARCHAR(36) NOT NULL,
+    recipient VARCHAR(255) NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # --- LLM Fallback ---
     GOOGLE_API_KEY: str = ""
-    LLM_MODEL_NAME: str = "gemini-3.5-flash"
+    LLM_MODEL_NAME: str = "gemini-1.5-flash"
     LLM_DAILY_RATE_LIMIT: int = 100
     LLM_TIMEOUT_SECONDS: int = 30
     LLM_MAX_RETRIES: int = 2
@@ -55,6 +55,16 @@ class Settings(BaseSettings):
     # --- Backend API (for Knowledge Base & CompetencyLevel lookup) ---
     BACKEND_BASE_URL: str = "http://localhost:8080"
     KB_CACHE_TTL_SECONDS: int = 300  # 5 phút cache KB từ backend
+
+    # --- Checkpointer / State Persistence ---
+    CHECKPOINTER_TYPE: str = "memory"  # "memory" or "postgres"
+    DATABASE_URL: str = "postgresql://postgres:password123@localhost:5432/tttn"
+
+    # --- Observability / Tracing ---
+    LANGCHAIN_TRACING_V2: bool = False
+    LANGCHAIN_API_KEY: str = ""
+    LANGCHAIN_PROJECT: str = "tttn-multi-agent-pipeline"
+    ENABLE_METRICS_LOGGING: bool = True
 
     # --- OCR ---
     TESSERACT_LANG: str = "eng+vie"

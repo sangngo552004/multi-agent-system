@@ -1,6 +1,7 @@
 """LangGraph Orchestrator for the Multi-Agent HR Pipeline."""
 
 import logging
+import time
 from datetime import datetime, timezone
 from typing import TypedDict
 
@@ -14,6 +15,7 @@ from app.agents.career_path_agent.snapshot_adapter import (
 )
 from app.agents.matcher_agent.agent import matching_agent
 from app.agents.matcher_agent.kb_loader import get_competency_level_description
+from app.core.config import settings
 from app.core.schemas import (
     CareerPathOutput,
     CareerPathRequest,
@@ -28,6 +30,10 @@ from app.core.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Global checkpointer objects
+_postgres_pool = None
+_postgres_checkpointer = None
 
 
 # Define the State for LangGraph
@@ -49,6 +55,9 @@ class AgentState(TypedDict):
 
     # Flags
     needs_human_review: bool
+
+    # Telemetry Metrics
+    telemetry: dict | None
 
 
 # --- Helper Adapters ---
@@ -155,15 +164,30 @@ def build_career_path_request_from_state(state: AgentState) -> CareerPathRequest
 
 async def async_extract_node(state: AgentState) -> dict:
     """Agent 1: Extract CV data (Async)."""
+    start_time = time.perf_counter()
     logger.info("--- EXTRACT NODE: %s ---", state["application_id"])
     from app.agents.extractor_agent.agent import process_cv
 
     cv_data = await process_cv(state["file_content"], state["filename"])
-    return {"cv_data": cv_data}
+    elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+
+    telemetry = dict(state.get("telemetry") or {})
+    telemetry["extract_ms"] = elapsed_ms
+    if settings.ENABLE_METRICS_LOGGING:
+        logger.info(
+            "[TELEMETRY] App=%s Node=Extractor Duration=%dms Status=%s",
+            state["application_id"],
+            elapsed_ms,
+            cv_data.status.value if cv_data else "NONE",
+        )
+
+    # Free memory so checkpointer doesn't save heavy PDF bytes repeatedly
+    return {"cv_data": cv_data, "telemetry": telemetry, "file_content": b""}
 
 
 async def match_node(state: AgentState) -> dict:
     """Agent 2: Match CV against JD (Async)."""
+    start_time = time.perf_counter()
     logger.info("--- MATCH NODE: %s ---", state["application_id"])
 
     request = MatchRequest(
@@ -174,14 +198,31 @@ async def match_node(state: AgentState) -> dict:
     )
 
     result = await matching_agent.evaluate_async(request)
+    elapsed_ms = int((time.perf_counter() - start_time) * 1000)
 
     needs_review = result.is_high_potential or result.overall_score >= 50.0
 
-    return {"match_result": result, "needs_human_review": needs_review}
+    telemetry = dict(state.get("telemetry") or {})
+    telemetry["match_ms"] = elapsed_ms
+    if settings.ENABLE_METRICS_LOGGING:
+        logger.info(
+            "[TELEMETRY] App=%s Node=Matcher Duration=%dms Score=%.1f Review=%s",
+            state["application_id"],
+            elapsed_ms,
+            result.overall_score,
+            needs_review,
+        )
+
+    return {
+        "match_result": result,
+        "needs_human_review": needs_review,
+        "telemetry": telemetry,
+    }
 
 
 async def career_path_node(state: AgentState) -> dict:
     """Agent 3: Career Path Planner Node (Async)."""
+    start_time = time.perf_counter()
     logger.info("--- CAREER PATH NODE: %s ---", state["application_id"])
     from app.agents.career_path_agent.agent import career_path_agent
 
@@ -194,7 +235,25 @@ async def career_path_node(state: AgentState) -> dict:
         return {"career_path_result": None}
 
     output = await career_path_agent.generate(request)
-    return {"career_path_result": output}
+    elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+
+    telemetry = dict(state.get("telemetry") or {})
+    telemetry["career_path_ms"] = elapsed_ms
+    total_ms = (
+        telemetry.get("extract_ms", 0) + telemetry.get("match_ms", 0) + elapsed_ms
+    )
+    telemetry["total_pipeline_ms"] = total_ms
+
+    if settings.ENABLE_METRICS_LOGGING:
+        logger.info(
+            "[TELEMETRY] App=%s Node=CareerPath Duration=%dms TotalPipeline=%dms Status=%s",
+            state["application_id"],
+            elapsed_ms,
+            total_ms,
+            output.status.value if output else "NONE",
+        )
+
+    return {"career_path_result": output, "telemetry": telemetry}
 
 
 # --- Conditional Edges ---
@@ -203,16 +262,64 @@ async def career_path_node(state: AgentState) -> dict:
 def check_score(state: AgentState) -> str:
     """Decide next step based on matching score."""
     if state.get("needs_human_review"):
-        logger.info("Routing: Flagged for HR review -> Generating draft career path.")
+        logger.info(
+            "Routing: Passed (needs human review) -> Ending flow without Career Path."
+        )
+        return "end"
     else:
-        logger.info("Routing: Direct -> Career Path Planner.")
-    return "career_path"
+        logger.info("Routing: Failed -> Generating draft career path for upskilling.")
+        return "career_path"
+
+
+# --- Checkpointer Lifecycle Management ---
+
+
+async def init_checkpointer():
+    """Initialize Postgres Checkpointer if enabled in settings."""
+    global _postgres_pool, _postgres_checkpointer
+    if settings.CHECKPOINTER_TYPE.lower() == "postgres":
+        try:
+            from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+            from psycopg_pool import AsyncConnectionPool
+
+            logger.info(
+                "Initializing AsyncPostgresSaver checkpointer with DATABASE_URL..."
+            )
+            _postgres_pool = AsyncConnectionPool(
+                conninfo=settings.DATABASE_URL,
+                max_size=20,
+                kwargs={"autocommit": True},
+            )
+            await _postgres_pool.open()
+            _postgres_checkpointer = AsyncPostgresSaver(_postgres_pool)
+            await _postgres_checkpointer.setup()
+            logger.info("AsyncPostgresSaver tables initialized successfully.")
+            return _postgres_checkpointer
+        except Exception as e:
+            logger.error(
+                "Failed to initialize AsyncPostgresSaver: %s. Falling back to MemorySaver.",
+                e,
+            )
+            _postgres_checkpointer = None
+            return MemorySaver()
+    return MemorySaver()
+
+
+async def close_checkpointer():
+    """Close Postgres connection pool on application shutdown."""
+    global _postgres_pool, _postgres_checkpointer
+    if _postgres_pool:
+        logger.info("Closing AsyncPostgresSaver connection pool...")
+        await _postgres_pool.close()
+        _postgres_pool = None
+        _postgres_checkpointer = None
 
 
 # --- Graph Definition ---
 
 
-def build_graph():
+def build_graph(checkpointer=None):
+    """Compile graph with specified or active checkpointer."""
     workflow = StateGraph(AgentState)
 
     # Add Nodes
@@ -230,15 +337,17 @@ def build_graph():
         check_score,
         {
             "career_path": "career_path",
+            "end": END,
         },
     )
 
     workflow.add_edge("career_path", END)
 
-    # Memory saver for state persistence (useful for Human-in-the-loop)
-    memory = MemorySaver()
-    graph = workflow.compile(checkpointer=memory)
-    return graph
+    if checkpointer is None:
+        checkpointer = _postgres_checkpointer or MemorySaver()
+
+    return workflow.compile(checkpointer=checkpointer)
 
 
+# Default graph instance for backwards compatibility / local testing
 agent_graph = build_graph()

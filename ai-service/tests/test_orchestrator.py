@@ -80,8 +80,8 @@ async def test_orchestrator_full_flow(
 
     mock_match = MatchingOutput(
         status="EVALUATED",
-        overall_score=85.0,
-        hard_skill_score=90.0,
+        overall_score=45.0,
+        hard_skill_score=40.0,
     )
     mock_matcher_eval.return_value = mock_match
 
@@ -119,6 +119,8 @@ async def test_orchestrator_full_flow(
     assert final_state["cv_data"] == mock_cv
     assert final_state["match_result"] == mock_match
     assert final_state["career_path_result"] == mock_career_output
+    assert "telemetry" in final_state
+    assert "total_pipeline_ms" in final_state["telemetry"]
     assert mock_extract_process.called
     assert mock_matcher_eval.called
     assert mock_career_generate.called

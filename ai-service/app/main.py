@@ -75,10 +75,25 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error("Failed to start RabbitMQ consumer: %s", e)
 
+    # Initialize LangGraph Checkpointer (Memory or Postgres)
+    try:
+        from app.agents.orchestrator import init_checkpointer
+
+        await init_checkpointer()
+    except Exception as e:
+        logger.warning("Checkpointer initialization warning: %s", e)
+
     yield
 
     # Shutdown
     logger.info("Shutting down AI Service...")
+    try:
+        from app.agents.orchestrator import close_checkpointer
+
+        await close_checkpointer()
+    except Exception as e:
+        logger.warning("Error closing checkpointer pool: %s", e)
+
     if consumer_thread and consumer_thread.is_alive():
         logger.info("Stopping RabbitMQ consumer...")
 
@@ -105,6 +120,17 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    import time
+
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time_ms = int((time.perf_counter() - start_time) * 1000)
+    response.headers["X-Process-Time-Ms"] = str(process_time_ms)
+    return response
+
+
 # ── Endpoints ──────────────────────────────────────────────────────
 
 
@@ -122,6 +148,7 @@ def health_check():
     return {
         "status": status,
         "model_loaded": model_loaded,
+        "checkpointer_type": settings.CHECKPOINTER_TYPE,
         "service": "ai-service",
         "version": "1.0.0",
     }
@@ -139,6 +166,9 @@ def model_health():
         "llm_fallback_configured": bool(settings.GOOGLE_API_KEY),
         "llm_model": settings.LLM_MODEL_NAME,
         "rabbitmq_enabled": settings.RABBITMQ_ENABLED,
+        "checkpointer_type": settings.CHECKPOINTER_TYPE,
+        "tracing_enabled": settings.LANGCHAIN_TRACING_V2,
+        "metrics_logging_enabled": settings.ENABLE_METRICS_LOGGING,
     }
 
 
@@ -207,7 +237,7 @@ async def process_application(
 ):
     import json
 
-    from app.agents.orchestrator import agent_graph
+    from app.agents.orchestrator import build_graph
 
     try:
         job_data = json.loads(job_data_json)
@@ -233,17 +263,18 @@ async def process_application(
         "needs_human_review": False,
     }
 
-    # Run the graph synchronously or await if we use ainvoke
-    # We will use ainvoke since the graph contains async nodes
-    config = {"configurable": {"thread_id": "1"}}
+    # Compile graph with active checkpointer (MemorySaver in dev, AsyncPostgresSaver in prod)
+    graph = build_graph()
+    config = {"configurable": {"thread_id": file.filename or "default_thread"}}
     try:
-        final_state = await agent_graph.ainvoke(initial_state, config)
+        final_state = await graph.ainvoke(initial_state, config)
         return {
             "application_id": final_state["application_id"],
             "needs_human_review": final_state["needs_human_review"],
             "match_result": final_state["match_result"],
             "cv_data": final_state["cv_data"],
             "career_path_result": final_state.get("career_path_result"),
+            "telemetry": final_state.get("telemetry"),
         }
     except Exception as e:
         logger.error(f"Graph execution failed: {e}")

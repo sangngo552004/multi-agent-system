@@ -2,8 +2,10 @@ package com.tttn.backend_core.entity;
 
 public enum ApplicationStatus {
   PENDING,
-  REVIEWING,
+  PENDING_HR_REVIEW,
   SHORTLISTED,
+  PENDING_EMAIL_SEND,
   REJECTED,
-  HIRED
+  INVITED,
+  REJECTED_FINAL
 }
