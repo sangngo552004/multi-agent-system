@@ -80,8 +80,8 @@ async def test_orchestrator_full_flow(
 
     mock_match = MatchingOutput(
         status="EVALUATED",
-        overall_score=85.0,
-        hard_skill_score=90.0,
+        overall_score=45.0,
+        hard_skill_score=40.0,
     )
     mock_matcher_eval.return_value = mock_match
 
