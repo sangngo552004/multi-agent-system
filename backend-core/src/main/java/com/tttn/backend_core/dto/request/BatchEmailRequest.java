@@ -1,5 +1,6 @@
 package com.tttn.backend_core.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -14,10 +15,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BatchEmailRequest {
 
-  @NotEmpty(message = "Application IDs list cannot be empty")
+  @NotEmpty(message = "EMPTY_APPLICATION_IDS")
   private List<UUID> applicationIds;
 
-  @NotNull(message = "Action cannot be null")
-  @Pattern(regexp = "^(INVITE|REJECT)$", message = "Action must be INVITE or REJECT")
+  @NotNull(message = "INVALID_ACTION")
+  @Pattern(regexp = "^(INVITE|REJECT)$", message = "INVALID_ACTION")
   private String action;
+
+  @NotBlank(message = "SUBJECT_TEMPLATE_REQUIRED")
+  private String subjectTemplate;
+
+  @NotBlank(message = "BODY_TEMPLATE_REQUIRED")
+  private String bodyTemplate;
 }

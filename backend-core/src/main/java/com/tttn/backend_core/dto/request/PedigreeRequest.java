@@ -10,14 +10,14 @@ import lombok.Data;
 @Data
 public class PedigreeRequest {
 
-  @NotBlank(message = "Tên tổ chức không được để trống")
+  @NotBlank(message = "ORGANIZATION_NAME_REQUIRED")
   @Size(max = 255)
   private String name;
 
-  @NotNull(message = "Loại tổ chức không được để trống (UNIVERSITY, COMPANY, AGENCY)")
+  @NotNull(message = "ORGANIZATION_TYPE_REQUIRED")
   private PedigreeType type;
 
-  @NotNull(message = "Hạng không được để trống (INTERNATIONAL, TIER_1, TIER_2, TIER_3)")
+  @NotNull(message = "PEDIGREE_RANK_REQUIRED")
   private PedigreeRank rank;
 
   /** Domain áp dụng rule, ví dụ: "ENGINEERING", "SALES_MARKETING", "ALL". Mặc định "ALL". */
