@@ -21,7 +21,8 @@ public enum ErrorCode {
   WEAK_PASSWORD(1014, "Password is too weak", HttpStatus.BAD_REQUEST),
   TOO_MANY_REQUESTS(
       1015, "Too many requests. Please try again later.", HttpStatus.TOO_MANY_REQUESTS),
-  INVALID_TOKEN(1016, "Invalid or expired token", HttpStatus.BAD_REQUEST);
+  INVALID_TOKEN(1016, "Invalid or expired token", HttpStatus.BAD_REQUEST),
+  APPLICATION_NOT_FOUND(1017, "Application not found", HttpStatus.NOT_FOUND);
 
   private final int code;
   private final String message;
