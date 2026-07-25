@@ -2,6 +2,7 @@
 
 import io
 from datetime import datetime, timezone
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient

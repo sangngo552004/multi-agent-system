@@ -74,7 +74,7 @@ async def process_cv(
             llm_response.warnings.extend(warnings)
             llm_response.warnings.append("possible_scanned_file")
             return llm_response
-            
+
         elapsed_ms = int((time.time() - start_time) * 1000)
         return CVExtractionResponse(
             status=ExtractionStatus.FAILED,
@@ -118,7 +118,7 @@ async def process_cv(
 
     elapsed_ms = int((time.time() - start_time) * 1000)
     llm_response.processing_log.processing_time_ms = elapsed_ms
-    
+
     logger.info(
         "CV extraction complete: status=%s, method=%s, time=%dms",
         llm_response.status.value,

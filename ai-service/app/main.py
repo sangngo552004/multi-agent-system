@@ -15,7 +15,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.agents.career_path_agent.agent import career_path_agent
-
 from app.agents.matcher_agent import kb_loader
 from app.core.config import settings
 from app.core.schemas import (

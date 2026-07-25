@@ -16,14 +16,19 @@ from typing import Optional
 
 from app.core.config import settings
 from app.core.schemas import (
+    CategorizedSkills,
     ConfidenceScores,
     CVExtractionResponse,
     EducationItem,
     ExperienceItem,
     ExtractionMethod,
     ExtractionStatus,
+    LanguageProficiency,
     PersonalInfo,
     ProcessingLog,
+    ProfessionalMetadata,
+    ProjectItem,
+    SocialLinks,
 )
 
 logger = logging.getLogger(__name__)
@@ -324,13 +329,8 @@ def _parse_llm_json(text: str) -> Optional[dict]:
         return None
 
 
-from app.core.schemas import (
-    SocialLinks,
-    ProfessionalMetadata,
-    CategorizedSkills,
-    LanguageProficiency,
-    ProjectItem,
-)
+
+
 
 def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionResponse:
     """Convert raw LLM JSON output to CVExtractionResponse."""
@@ -340,7 +340,7 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
     cat_skills = data.get("categorized_skills", {})
     spoken = data.get("spoken_languages", [])
     keywords = data.get("normalized_keywords", [])
-    
+
     experience_raw = data.get("experience", [])
     education_raw = data.get("education", [])
     projects_raw = data.get("projects", [])
@@ -352,13 +352,13 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
         phone=personal.get("phone"),
         location=personal.get("location"),
     )
-    
+
     social_links = SocialLinks(
         linkedin=social.get("linkedin"),
         portfolio_or_website=social.get("portfolio_or_website"),
         other_links=social.get("other_links", [])
     )
-    
+
     professional_metadata = ProfessionalMetadata(
         primary_role=metadata.get("primary_role"),
         seniority_level=metadata.get("seniority_level"),
@@ -366,13 +366,13 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
         candidate_summary=metadata.get("candidate_summary"),
         industries=metadata.get("industries", [])
     )
-    
+
     categorized_skills = CategorizedSkills(
         industry_knowledge_and_hard_skills=cat_skills.get("industry_knowledge_and_hard_skills", []),
         tools_and_software=cat_skills.get("tools_and_software", []),
         soft_skills=cat_skills.get("soft_skills", [])
     )
-    
+
     spoken_languages = [
         LanguageProficiency(
             language=lang.get("language", ""),
@@ -410,7 +410,7 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
         for edu in education_raw
         if isinstance(edu, dict)
     ]
-    
+
     projects = [
         ProjectItem(
             name=proj.get("name"),

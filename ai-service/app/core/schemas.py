@@ -132,14 +132,14 @@ class CVExtractionResponse(BaseModel):
     categorized_skills: CategorizedSkills = Field(default_factory=CategorizedSkills)
     spoken_languages: list[LanguageProficiency] = Field(default_factory=list)
     normalized_keywords: list[str] = Field(default_factory=list)
-    
+
     # Backward compatibility fields
     skills: list[str] = Field(default_factory=list)
     experience: list[ExperienceItem] = Field(default_factory=list)
     education: list[EducationItem] = Field(default_factory=list)
     projects: list[ProjectItem] = Field(default_factory=list)
     certifications: list[str] = Field(default_factory=list)
-    
+
     confidence_scores: ConfidenceScores = Field(default_factory=ConfidenceScores)
     warnings: list[str] = Field(default_factory=list)
     processing_log: ProcessingLog = Field(default_factory=ProcessingLog)
