@@ -203,8 +203,8 @@ class GeminiProvider:
                 raise ValueError("Failed to parse JSON from LLM")
             return result
 
-        except asyncio.TimeoutError:
-            raise ValueError(f"Gemini API timeout after {settings.LLM_TIMEOUT_SECONDS}s")
+        except asyncio.TimeoutError as err:
+            raise ValueError(f"Gemini API timeout after {settings.LLM_TIMEOUT_SECONDS}s") from err
 
 
 # ── Rate Limiting ─────────────────────────────────────────────────────
@@ -321,7 +321,7 @@ def _parse_llm_json(text: str) -> Optional[dict]:
                 return json.loads(text[start:end])
             except json.JSONDecodeError:
                 pass
-        raise ValueError(f"Could not extract valid JSON. Error: {e}")
+        raise ValueError(f"Could not extract valid JSON. Error: {e}") from e
 
 
 
