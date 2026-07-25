@@ -39,10 +39,38 @@ class PersonalInfo(BaseModel):
 
 
 class ExperienceItem(BaseModel):
-    title: Optional[str] = None
+    # --- Core fields (populated by NER and/or LLM) ---
+    title: Optional[str] = None        # position / job title
     company: Optional[str] = None
+    duration: Optional[str] = None     # kept for backward compatibility
+    description: Optional[str] = None  # kept for backward compatibility
+
+    # --- Rich fields (populated by LLM enrichment) ---
+    position: Optional[str] = None          # explicit position label from LLM
+    employment_type: Optional[str] = None   # Full-time | Part-time | Internship | Contract | Freelance
+    start_date: Optional[str] = None        # e.g. "2022-01" or "Jan 2022"
+    end_date: Optional[str] = None          # e.g. "2024-03" or "Present"
+    location: Optional[str] = None
+    summary: Optional[str] = None           # 2-5 sentence synthesis by LLM
+    responsibilities: list[str] = Field(default_factory=list)
+    achievements: list[str] = Field(default_factory=list)
+    technologies: list[str] = Field(default_factory=list)
+    business_domain: Optional[str] = None   # e.g. "Fintech", "E-commerce"
+
+
+class ProjectItem(BaseModel):
+    """A project entry extracted from the CV."""
+
+    name: Optional[str] = None
+    summary: Optional[str] = None           # 2-5 sentence synthesis by LLM
+    description: Optional[str] = None       # original description from CV
+    role: Optional[str] = None
+    responsibilities: list[str] = Field(default_factory=list)
+    technologies: list[str] = Field(default_factory=list)
+    team_size: Optional[str] = None
     duration: Optional[str] = None
-    description: Optional[str] = None
+    achievements: list[str] = Field(default_factory=list)
+    url: Optional[str] = None               # GitHub / project URL
 
 
 class EducationItem(BaseModel):
@@ -77,6 +105,7 @@ class CVExtractionResponse(BaseModel):
     skills: list[str] = Field(default_factory=list)
     experience: list[ExperienceItem] = Field(default_factory=list)
     education: list[EducationItem] = Field(default_factory=list)
+    projects: list[ProjectItem] = Field(default_factory=list)
     certifications: list[str] = Field(default_factory=list)
     confidence_scores: ConfidenceScores = Field(default_factory=ConfidenceScores)
     warnings: list[str] = Field(default_factory=list)

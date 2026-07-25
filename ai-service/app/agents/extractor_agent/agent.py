@@ -17,6 +17,7 @@ from typing import Optional
 
 from app.agents.extractor_agent import (
     file_validator,
+    llm_enricher,
     llm_fallback,
     ner_extractor,
     text_extractor,
@@ -33,6 +34,7 @@ from app.core.schemas import (
     NEREntity,
     PersonalInfo,
     ProcessingLog,
+    ProjectItem,
     TextExtractionResult,
 )
 
@@ -190,6 +192,25 @@ async def process_cv(
                 else:
                     warnings.append("llm_fallback_failed")
 
+    # ── Step 5.5: LLM Enrichment — Experience, Projects, Skills & Education ──
+    logger.info("Step 5.5: Running LLM enrichment for Experience, Projects, Skills & Education")
+
+    enriched_experience: list[dict] = []
+    enriched_projects: list[dict] = []
+    enriched_skills: list[str] = []
+    enriched_education: list[dict] = []
+    try:
+        enriched_experience, enriched_projects, enriched_skills, enriched_education = (
+            await llm_enricher.enrich_experience_and_projects(text_result.text)
+        )
+    except Exception as enrich_err:
+        logger.warning("LLM enrichment step failed: %s", enrich_err)
+        warnings.append("llm_enrichment_failed")
+
+    if not enriched_experience and not enriched_projects and not enriched_skills:
+        if settings.ENABLE_LLM_ENRICHMENT and settings.GOOGLE_API_KEY:
+            warnings.append("llm_enrichment_no_data")
+
     # ── Step 6: Normalize output ──────────────────────────────────
     logger.info("Step 6: Normalizing output")
 
@@ -203,6 +224,10 @@ async def process_cv(
         detected_lang,
         elapsed_ms,
         warnings,
+        enriched_experience,
+        enriched_projects,
+        enriched_skills,
+        enriched_education,
     )
 
     logger.info(
@@ -276,6 +301,10 @@ def _normalize_output(
     detected_lang: DetectedLanguage,
     processing_time_ms: int = 0,
     extra_warnings: Optional[list[str]] = None,
+    enriched_experience: Optional[list[dict]] = None,
+    enriched_projects: Optional[list[dict]] = None,
+    enriched_skills: Optional[list[str]] = None,
+    enriched_education: Optional[list[dict]] = None,
 ) -> CVExtractionResponse:
     """Normalize NER entities into structured CV output."""
     warnings: list[str] = list(extra_warnings or [])
@@ -286,11 +315,35 @@ def _normalize_output(
 
     # Extract fields
     personal_info = _extract_personal_info(grouped, warnings, text_result)
-    skills = _extract_skills(grouped)
-    experience = _extract_experience(grouped)
-    education = _extract_education(grouped)
+    ner_skills = _extract_skills(grouped)
+    ner_experience = _extract_experience(grouped)
+    ner_education = _extract_education(grouped)
     confidence = _calculate_confidence(entities, grouped)
-    status = _determine_status(personal_info, skills, experience, entities, warnings)
+    status = _determine_status(personal_info, ner_skills, ner_experience, entities, warnings)
+
+    # Merge NER basic experience with LLM enriched experience
+    experience = _merge_experience(ner_experience, enriched_experience or [])
+
+    # Build projects list from LLM enrichment
+    projects = _build_projects(enriched_projects or [])
+
+    # Skills: NER primary, LLM enricher fallback when NER yields nothing
+    if ner_skills:
+        skills = ner_skills
+    elif enriched_skills:
+        skills = enriched_skills
+        logger.info("Skills sourced from LLM enricher (%d items).", len(skills))
+    else:
+        skills = []
+
+    # Education: NER primary, LLM enricher fallback when NER yields nothing
+    if ner_education:
+        education = ner_education
+    elif enriched_education:
+        education = _build_education(enriched_education)
+        logger.info("Education sourced from LLM enricher (%d items).", len(education))
+    else:
+        education = []
 
     # Add confidence warnings
     _add_confidence_warnings(entities, warnings)
@@ -310,6 +363,7 @@ def _normalize_output(
         skills=skills,
         experience=experience,
         education=education,
+        projects=projects,
         certifications=[],
         confidence_scores=confidence,
         warnings=warnings,
@@ -423,7 +477,7 @@ def _extract_skills(
 def _extract_experience(
     grouped: dict[str, list[NEREntity]],
 ) -> list[ExperienceItem]:
-    """Extract work experience entries."""
+    """Extract basic work experience entries from NER entities."""
     companies = grouped.get("company", [])
     titles = grouped.get("title", [])
     durations = grouped.get("duration", [])
@@ -448,6 +502,82 @@ def _extract_experience(
             experience.append(item)
 
     return experience
+
+
+def _merge_experience(
+    ner_experience: list[ExperienceItem],
+    llm_experience: list[dict],
+) -> list[ExperienceItem]:
+    """Merge NER basic experience with LLM-enriched experience.
+
+    Strategy:
+    - If LLM returned experience entries → use LLM as primary source.
+      Fill in NER ``title``/``company`` for any LLM entry that is missing them.
+    - If LLM returned nothing → fall back to NER-only entries (existing behavior).
+    """
+    if not llm_experience:
+        return ner_experience
+
+    merged: list[ExperienceItem] = []
+    for idx, llm_item in enumerate(llm_experience):
+        # Start with LLM-supplied data
+        exp = ExperienceItem(
+            company=llm_item.get("company"),
+            position=llm_item.get("position"),
+            employment_type=llm_item.get("employment_type"),
+            start_date=llm_item.get("start_date"),
+            end_date=llm_item.get("end_date"),
+            location=llm_item.get("location"),
+            summary=llm_item.get("summary"),
+            responsibilities=llm_item.get("responsibilities", []),
+            achievements=llm_item.get("achievements", []),
+            technologies=llm_item.get("technologies", []),
+            business_domain=llm_item.get("business_domain"),
+        )
+
+        # Backfill from NER if LLM missed company/title
+        if idx < len(ner_experience):
+            ner_item = ner_experience[idx]
+            if not exp.company and ner_item.company:
+                exp.company = ner_item.company
+            if not exp.position and ner_item.title:
+                exp.position = ner_item.title
+            # Carry over NER duration as fallback for start/end context
+            if not exp.start_date and not exp.end_date and ner_item.duration:
+                exp.duration = ner_item.duration
+
+        # Set title = position for backward compatibility
+        exp.title = exp.position or exp.title
+
+        merged.append(exp)
+
+    return merged
+
+
+def _build_projects(
+    llm_projects: list[dict],
+) -> list[ProjectItem]:
+    """Convert LLM project dicts to ProjectItem models."""
+    projects: list[ProjectItem] = []
+    for item in llm_projects:
+        if not isinstance(item, dict):
+            continue
+        project = ProjectItem(
+            name=item.get("name"),
+            summary=item.get("summary"),
+            description=item.get("description"),
+            role=item.get("role"),
+            responsibilities=item.get("responsibilities", []),
+            technologies=item.get("technologies", []),
+            team_size=item.get("team_size"),
+            duration=item.get("duration"),
+            achievements=item.get("achievements", []),
+            url=item.get("url"),
+        )
+        # Include even if most fields are null — at minimum there should be a name
+        if project.name or project.description or project.technologies:
+            projects.append(project)
+    return projects
 
 
 def _extract_education(
@@ -478,6 +608,24 @@ def _extract_education(
             education.append(item)
 
     return education
+
+
+def _build_education(
+    llm_education: list[dict],
+) -> list[EducationItem]:
+    """Convert LLM enricher education dicts to EducationItem models."""
+    result: list[EducationItem] = []
+    for item in llm_education:
+        if not isinstance(item, dict):
+            continue
+        edu = EducationItem(
+            degree=item.get("degree"),
+            institution=item.get("institution"),
+            year=item.get("year"),
+        )
+        if edu.degree or edu.institution or edu.year:
+            result.append(edu)
+    return result
 
 
 def _calculate_confidence(
