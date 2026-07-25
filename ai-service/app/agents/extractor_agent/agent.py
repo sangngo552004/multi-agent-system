@@ -14,7 +14,6 @@ import time
 
 from app.agents.extractor_agent import (
     file_validator,
-    llm_enricher,
     llm_fallback,
     text_extractor,
 )
@@ -115,34 +114,7 @@ async def process_cv(
     llm_response.processing_log.ocr_used = text_result.ocr_used
     llm_response.processing_log.text_extraction_method = text_result.method
 
-    # ── Step 5: LLM Enrichment ────────────────────────────────────
-    logger.info("Step 5: Running LLM enrichment for detailed info")
-    try:
-        enriched_experience, enriched_projects, enriched_skills, enriched_education = (
-            await llm_enricher.enrich_experience_and_projects(text_result.text)
-        )
-        
-        if enriched_experience:
-            from app.core.schemas import ExperienceItem
-            llm_response.experience = [
-                ExperienceItem(**exp) for exp in enriched_experience
-            ]
-        if enriched_projects:
-            from app.core.schemas import ProjectItem
-            llm_response.projects = [
-                ProjectItem(**proj) for proj in enriched_projects
-            ]
-        if enriched_skills:
-            llm_response.skills = enriched_skills
-        if enriched_education:
-            from app.core.schemas import EducationItem
-            llm_response.education = [
-                EducationItem(**edu) for edu in enriched_education
-            ]
-            
-    except Exception as enrich_err:
-        logger.warning("LLM enrichment step failed: %s", enrich_err)
-        llm_response.warnings.append("llm_enrichment_failed")
+
 
     elapsed_ms = int((time.time() - start_time) * 1000)
     llm_response.processing_log.processing_time_ms = elapsed_ms

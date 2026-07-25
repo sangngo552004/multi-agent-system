@@ -31,6 +31,31 @@ class DetectedLanguage(str, Enum):
 # ── Sub-models ─────────────────────────────────────────────────────────
 
 
+class SocialLinks(BaseModel):
+    linkedin: Optional[str] = None
+    portfolio_or_website: Optional[str] = None
+    other_links: list[str] = Field(default_factory=list)
+
+
+class ProfessionalMetadata(BaseModel):
+    primary_role: Optional[str] = None
+    seniority_level: Optional[str] = None
+    total_years_of_experience: float = 0.0
+    candidate_summary: Optional[str] = None
+    industries: list[str] = Field(default_factory=list)
+
+
+class CategorizedSkills(BaseModel):
+    industry_knowledge_and_hard_skills: list[str] = Field(default_factory=list)
+    tools_and_software: list[str] = Field(default_factory=list)
+    soft_skills: list[str] = Field(default_factory=list)
+
+
+class LanguageProficiency(BaseModel):
+    language: str
+    proficiency: Optional[str] = None
+
+
 class PersonalInfo(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
@@ -102,11 +127,19 @@ class CVExtractionResponse(BaseModel):
     extraction_method: ExtractionMethod = ExtractionMethod.LLM_FALLBACK
     language_detected: DetectedLanguage = DetectedLanguage.UNKNOWN
     personal_info: PersonalInfo = Field(default_factory=PersonalInfo)
+    social_links: SocialLinks = Field(default_factory=SocialLinks)
+    professional_metadata: ProfessionalMetadata = Field(default_factory=ProfessionalMetadata)
+    categorized_skills: CategorizedSkills = Field(default_factory=CategorizedSkills)
+    spoken_languages: list[LanguageProficiency] = Field(default_factory=list)
+    normalized_keywords: list[str] = Field(default_factory=list)
+    
+    # Backward compatibility fields
     skills: list[str] = Field(default_factory=list)
     experience: list[ExperienceItem] = Field(default_factory=list)
     education: list[EducationItem] = Field(default_factory=list)
     projects: list[ProjectItem] = Field(default_factory=list)
     certifications: list[str] = Field(default_factory=list)
+    
     confidence_scores: ConfidenceScores = Field(default_factory=ConfidenceScores)
     warnings: list[str] = Field(default_factory=list)
     processing_log: ProcessingLog = Field(default_factory=ProcessingLog)

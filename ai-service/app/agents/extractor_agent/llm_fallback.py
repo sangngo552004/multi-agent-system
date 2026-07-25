@@ -37,11 +37,10 @@ _last_reset_date: Optional[str] = None
 CV_EXTRACTION_PROMPT = """You are a CV/Resume parsing expert. Extract structured information from the following CV text.
 
 IMPORTANT RULES:
-- Extract ONLY what is explicitly stated in the text. Do NOT infer or guess.
-- If a field is not found, use null.
-- For skills, extract individual skill names as a flat list.
-- For experience, extract each position as a separate entry.
-- For education, extract each degree/certification as a separate entry.
+- Extract ONLY what is explicitly stated in the text. Do NOT infer or guess unless necessary for categorizing skills.
+- If a field is not found, use null or an empty array.
+- Categorize skills intelligently based on the profession (e.g., industry knowledge, tools/software, soft skills).
+- Normalize keywords to lowercase.
 - Respond ONLY with valid JSON, no markdown formatting.
 
 Return a JSON object with this exact structure:
@@ -52,13 +51,42 @@ Return a JSON object with this exact structure:
         "phone": "Phone number or null",
         "location": "Location/address or null"
     }},
-    "skills": ["skill1", "skill2"],
+    "social_links": {{
+        "linkedin": "url or null",
+        "portfolio_or_website": "url or null",
+        "other_links": ["url1", "url2"]
+    }},
+    "professional_metadata": {{
+        "primary_role": "Main profession/role",
+        "seniority_level": "Intern/Fresher/Junior/Mid-Level/Senior/Manager/Director",
+        "total_years_of_experience": 0.0,
+        "candidate_summary": "2-3 sentences summary",
+        "industries": ["industry1", "industry2"]
+    }},
+    "categorized_skills": {{
+        "industry_knowledge_and_hard_skills": ["skill1", "skill2"],
+        "tools_and_software": ["tool1", "tool2"],
+        "soft_skills": ["skill1", "skill2"]
+    }},
+    "spoken_languages": [
+        {{ "language": "name", "proficiency": "level or null" }}
+    ],
+    "normalized_keywords": ["keyword1", "keyword2"],
     "experience": [
         {{
             "title": "Job title or null",
             "company": "Company name or null",
             "duration": "Time period or null",
-            "description": "Brief description or null"
+            "description": "Brief description or null",
+            "employment_type": "Full-time/Part-time/Freelance or null",
+            "start_date": "YYYY-MM or null",
+            "end_date": "YYYY-MM or null",
+            "location": "Location or null",
+            "summary": "Short summary of role",
+            "responsibilities": ["resp1", "resp2"],
+            "achievements": ["ach1", "ach2"],
+            "technologies": ["tech1", "tech2"],
+            "business_domain": "domain or null"
         }}
     ],
     "education": [
@@ -66,6 +94,19 @@ Return a JSON object with this exact structure:
             "degree": "Degree name or null",
             "institution": "School/university name or null",
             "year": "Graduation year or null"
+        }}
+    ],
+    "projects": [
+        {{
+            "name": "Project name or null",
+            "summary": "Short summary",
+            "role": "Role in project",
+            "responsibilities": ["resp1", "resp2"],
+            "technologies": ["tech1", "tech2"],
+            "team_size": "size or null",
+            "duration": "duration or null",
+            "achievements": ["ach1", "ach2"],
+            "url": "Project url or null"
         }}
     ],
     "certifications": ["cert1", "cert2"]
@@ -283,12 +324,26 @@ def _parse_llm_json(text: str) -> Optional[dict]:
         return None
 
 
+from app.core.schemas import (
+    SocialLinks,
+    ProfessionalMetadata,
+    CategorizedSkills,
+    LanguageProficiency,
+    ProjectItem,
+)
+
 def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionResponse:
     """Convert raw LLM JSON output to CVExtractionResponse."""
     personal = data.get("personal_info", {})
-    skills = data.get("skills", [])
+    social = data.get("social_links", {})
+    metadata = data.get("professional_metadata", {})
+    cat_skills = data.get("categorized_skills", {})
+    spoken = data.get("spoken_languages", [])
+    keywords = data.get("normalized_keywords", [])
+    
     experience_raw = data.get("experience", [])
     education_raw = data.get("education", [])
+    projects_raw = data.get("projects", [])
     certifications = data.get("certifications", [])
 
     personal_info = PersonalInfo(
@@ -297,6 +352,34 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
         phone=personal.get("phone"),
         location=personal.get("location"),
     )
+    
+    social_links = SocialLinks(
+        linkedin=social.get("linkedin"),
+        portfolio_or_website=social.get("portfolio_or_website"),
+        other_links=social.get("other_links", [])
+    )
+    
+    professional_metadata = ProfessionalMetadata(
+        primary_role=metadata.get("primary_role"),
+        seniority_level=metadata.get("seniority_level"),
+        total_years_of_experience=float(metadata.get("total_years_of_experience", 0.0)),
+        candidate_summary=metadata.get("candidate_summary"),
+        industries=metadata.get("industries", [])
+    )
+    
+    categorized_skills = CategorizedSkills(
+        industry_knowledge_and_hard_skills=cat_skills.get("industry_knowledge_and_hard_skills", []),
+        tools_and_software=cat_skills.get("tools_and_software", []),
+        soft_skills=cat_skills.get("soft_skills", [])
+    )
+    
+    spoken_languages = [
+        LanguageProficiency(
+            language=lang.get("language", ""),
+            proficiency=lang.get("proficiency")
+        )
+        for lang in spoken if isinstance(lang, dict) and "language" in lang
+    ]
 
     experience = [
         ExperienceItem(
@@ -304,6 +387,15 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
             company=exp.get("company"),
             duration=exp.get("duration"),
             description=exp.get("description"),
+            employment_type=exp.get("employment_type"),
+            start_date=exp.get("start_date"),
+            end_date=exp.get("end_date"),
+            location=exp.get("location"),
+            summary=exp.get("summary"),
+            responsibilities=exp.get("responsibilities", []),
+            achievements=exp.get("achievements", []),
+            technologies=exp.get("technologies", []),
+            business_domain=exp.get("business_domain")
         )
         for exp in experience_raw
         if isinstance(exp, dict)
@@ -318,11 +410,33 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
         for edu in education_raw
         if isinstance(edu, dict)
     ]
+    
+    projects = [
+        ProjectItem(
+            name=proj.get("name"),
+            summary=proj.get("summary"),
+            role=proj.get("role"),
+            responsibilities=proj.get("responsibilities", []),
+            technologies=proj.get("technologies", []),
+            team_size=proj.get("team_size"),
+            duration=proj.get("duration"),
+            achievements=proj.get("achievements", []),
+            url=proj.get("url")
+        )
+        for proj in projects_raw
+        if isinstance(proj, dict)
+    ]
+
+    # Backward compatibility for flat skills array
+    flat_skills = []
+    flat_skills.extend(categorized_skills.industry_knowledge_and_hard_skills)
+    flat_skills.extend(categorized_skills.tools_and_software)
+    flat_skills.extend(categorized_skills.soft_skills)
 
     # Determine status
     has_name = bool(personal_info.name)
     has_contact = bool(personal_info.email or personal_info.phone)
-    has_skills = len(skills) > 0
+    has_skills = len(flat_skills) > 0
 
     if has_name and has_contact and has_skills:
         status = ExtractionStatus.SUCCESS
@@ -335,13 +449,19 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
         status=status,
         extraction_method=ExtractionMethod.LLM_FALLBACK,
         personal_info=personal_info,
-        skills=[s for s in skills if isinstance(s, str)],
+        social_links=social_links,
+        professional_metadata=professional_metadata,
+        categorized_skills=categorized_skills,
+        spoken_languages=spoken_languages,
+        normalized_keywords=keywords,
+        skills=list(set(flat_skills)),
         experience=experience,
         education=education,
+        projects=projects,
         certifications=[c for c in certifications if isinstance(c, str)],
-        confidence_scores=ConfidenceScores(overall=0.7),
+        confidence_scores=ConfidenceScores(overall=0.8),
         processing_log=ProcessingLog(
-            extraction_method="llm_fallback",
+            extraction_method="llm",
             fallback_reason=fallback_reason,
         ),
     )
