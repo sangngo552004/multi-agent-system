@@ -18,7 +18,7 @@ class ExtractionStatus(str, Enum):
 
 
 class ExtractionMethod(str, Enum):
-    NER_MODEL = "ner_model"
+    LLM = "llm"
     LLM_FALLBACK = "llm_fallback"
 
 
@@ -99,7 +99,7 @@ class CVExtractionResponse(BaseModel):
     """Standardized output for CV extraction."""
 
     status: ExtractionStatus = ExtractionStatus.FAILED
-    extraction_method: ExtractionMethod = ExtractionMethod.NER_MODEL
+    extraction_method: ExtractionMethod = ExtractionMethod.LLM_FALLBACK
     language_detected: DetectedLanguage = DetectedLanguage.UNKNOWN
     personal_info: PersonalInfo = Field(default_factory=PersonalInfo)
     skills: list[str] = Field(default_factory=list)
@@ -129,16 +129,7 @@ class ValidationResult(BaseModel):
     file_info: FileInfo = Field(default_factory=FileInfo)
 
 
-# ── NER entity ─────────────────────────────────────────────────────────
 
-
-class NEREntity(BaseModel):
-    text: str
-    label: str
-    score: float
-    start: int
-    end: int
-    low_confidence: bool = False
 
 
 # ── Text extraction result ─────────────────────────────────────────────

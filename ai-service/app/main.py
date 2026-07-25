@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.agents.career_path_agent.agent import career_path_agent
-from app.agents.extractor_agent import ner_extractor
+
 from app.agents.matcher_agent import kb_loader
 from app.core.config import settings
 from app.core.schemas import (
@@ -48,13 +48,8 @@ async def lifespan(app: FastAPI):
     _setup_logging()
     logger.info("Starting AI Service...")
 
-    # Load NER model (one-time, blocking)
-    try:
-        ner_extractor.load_model()
-        logger.info("NER model loaded successfully.")
-    except Exception as e:
-        logger.error("Failed to load NER model: %s", e)
-        # Service starts but model endpoints will fail gracefully
+    # LLM is used exclusively, so no local model loading is required.
+    logger.info("Using LLM exclusively. No local NER model to load.")
 
     # Eager-load Knowledge Base from backend
     # KB được cache vào memory ngay khi startup — không lazy-load mỗi request.
@@ -143,11 +138,10 @@ def read_root():
 @app.get("/health")
 def health_check():
     """Basic health check."""
-    model_loaded = ner_extractor.is_model_loaded()
-    status = "healthy" if model_loaded else "degraded"
+    status = "healthy"
     return {
         "status": status,
-        "model_loaded": model_loaded,
+        "model_loaded": True,
         "checkpointer_type": settings.CHECKPOINTER_TYPE,
         "service": "ai-service",
         "version": "1.0.0",
@@ -159,7 +153,7 @@ def model_health():
     """Detailed model health check."""
     return {
         "model_name": settings.NER_MODEL_NAME,
-        "model_loaded": ner_extractor.is_model_loaded(),
+        "model_loaded": True,
         "confidence_threshold": settings.CONFIDENCE_THRESHOLD,
         "max_file_size_mb": settings.MAX_FILE_SIZE_MB,
         "max_page_count": settings.MAX_PAGE_COUNT,

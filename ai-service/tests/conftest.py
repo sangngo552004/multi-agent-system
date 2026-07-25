@@ -10,10 +10,8 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def test_client():
     """FastAPI test client with mocked model."""
-    # Patch model loading before importing app
-    from unittest.mock import patch
-
-    with patch("app.agents.extractor_agent.ner_extractor.load_model"):
+    # No longer mock NER model as it is removed
+    with patch("app.main.logger"):
         from app.main import app
 
         yield TestClient(app)
@@ -291,7 +289,7 @@ def career_path_request(approved_python_resource):
         ),
         candidate=CareerPathCandidateSnapshot(
             status=ExtractionStatus.SUCCESS,
-            extraction_method=ExtractionMethod.NER_MODEL,
+            extraction_method=ExtractionMethod.LLM_FALLBACK,
             language_detected="vi",
             skills=["Python"],
         ),

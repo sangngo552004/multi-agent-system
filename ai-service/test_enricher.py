@@ -59,7 +59,7 @@ async def main():
     print("Calling Gemini Flash enricher...")
     print("-" * 60)
 
-    exp_list, proj_list = await enrich_experience_and_projects(SAMPLE_CV)
+    exp_list, proj_list, edu_list, skills_list = await enrich_experience_and_projects(SAMPLE_CV)
 
     print(f"\n=== EXPERIENCE ({len(exp_list)} entries) ===\n")
     for i, e in enumerate(exp_list):
