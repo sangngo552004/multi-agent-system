@@ -7,8 +7,17 @@ export const metadata: Metadata = {
   },
 };
 
+import { CandidateHeader } from "./components/candidate-header";
+
 export default function CandidateLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return children;
+  return (
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
+      <CandidateHeader />
+      <main className="flex-1">
+        {children}
+      </main>
+    </div>
+  );
 }

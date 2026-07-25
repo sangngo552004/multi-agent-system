@@ -196,20 +196,15 @@ class GeminiProvider:
             )
 
             if not response or not response.text:
-                logger.warning("Gemini returned empty response")
-                return None
+                raise ValueError("Gemini returned empty response")
 
-            return _parse_llm_json(response.text)
+            result = _parse_llm_json(response.text)
+            if not result:
+                raise ValueError("Failed to parse JSON from LLM")
+            return result
 
         except asyncio.TimeoutError:
-            logger.error(
-                "Gemini API timeout after %ds",
-                settings.LLM_TIMEOUT_SECONDS,
-            )
-            return None
-        except Exception as e:
-            logger.error("Gemini API error: %s", e)
-            return None
+            raise ValueError(f"Gemini API timeout after {settings.LLM_TIMEOUT_SECONDS}s")
 
 
 # ── Rate Limiting ─────────────────────────────────────────────────────
@@ -326,7 +321,7 @@ def _parse_llm_json(text: str) -> Optional[dict]:
                 return json.loads(text[start:end])
             except json.JSONDecodeError:
                 pass
-        return None
+        raise ValueError(f"Could not extract valid JSON. Error: {e}")
 
 
 
