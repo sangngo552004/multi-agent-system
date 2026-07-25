@@ -18,7 +18,7 @@ class ExtractionStatus(str, Enum):
 
 
 class ExtractionMethod(str, Enum):
-    NER_MODEL = "ner_model"
+    LLM = "llm"
     LLM_FALLBACK = "llm_fallback"
 
 
@@ -31,6 +31,31 @@ class DetectedLanguage(str, Enum):
 # ── Sub-models ─────────────────────────────────────────────────────────
 
 
+class SocialLinks(BaseModel):
+    linkedin: Optional[str] = None
+    portfolio_or_website: Optional[str] = None
+    other_links: list[str] = Field(default_factory=list)
+
+
+class ProfessionalMetadata(BaseModel):
+    primary_role: Optional[str] = None
+    seniority_level: Optional[str] = None
+    total_years_of_experience: float = 0.0
+    candidate_summary: Optional[str] = None
+    industries: list[str] = Field(default_factory=list)
+
+
+class CategorizedSkills(BaseModel):
+    industry_knowledge_and_hard_skills: list[str] = Field(default_factory=list)
+    tools_and_software: list[str] = Field(default_factory=list)
+    soft_skills: list[str] = Field(default_factory=list)
+
+
+class LanguageProficiency(BaseModel):
+    language: str
+    proficiency: Optional[str] = None
+
+
 class PersonalInfo(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
@@ -39,10 +64,38 @@ class PersonalInfo(BaseModel):
 
 
 class ExperienceItem(BaseModel):
-    title: Optional[str] = None
+    # --- Core fields (populated by NER and/or LLM) ---
+    title: Optional[str] = None        # position / job title
     company: Optional[str] = None
+    duration: Optional[str] = None     # kept for backward compatibility
+    description: Optional[str] = None  # kept for backward compatibility
+
+    # --- Rich fields (populated by LLM enrichment) ---
+    position: Optional[str] = None          # explicit position label from LLM
+    employment_type: Optional[str] = None   # Full-time | Part-time | Internship | Contract | Freelance
+    start_date: Optional[str] = None        # e.g. "2022-01" or "Jan 2022"
+    end_date: Optional[str] = None          # e.g. "2024-03" or "Present"
+    location: Optional[str] = None
+    summary: Optional[str] = None           # 2-5 sentence synthesis by LLM
+    responsibilities: list[str] = Field(default_factory=list)
+    achievements: list[str] = Field(default_factory=list)
+    technologies: list[str] = Field(default_factory=list)
+    business_domain: Optional[str] = None   # e.g. "Fintech", "E-commerce"
+
+
+class ProjectItem(BaseModel):
+    """A project entry extracted from the CV."""
+
+    name: Optional[str] = None
+    summary: Optional[str] = None           # 2-5 sentence synthesis by LLM
+    description: Optional[str] = None       # original description from CV
+    role: Optional[str] = None
+    responsibilities: list[str] = Field(default_factory=list)
+    technologies: list[str] = Field(default_factory=list)
+    team_size: Optional[str] = None
     duration: Optional[str] = None
-    description: Optional[str] = None
+    achievements: list[str] = Field(default_factory=list)
+    url: Optional[str] = None               # GitHub / project URL
 
 
 class EducationItem(BaseModel):
@@ -71,13 +124,22 @@ class CVExtractionResponse(BaseModel):
     """Standardized output for CV extraction."""
 
     status: ExtractionStatus = ExtractionStatus.FAILED
-    extraction_method: ExtractionMethod = ExtractionMethod.NER_MODEL
+    extraction_method: ExtractionMethod = ExtractionMethod.LLM_FALLBACK
     language_detected: DetectedLanguage = DetectedLanguage.UNKNOWN
     personal_info: PersonalInfo = Field(default_factory=PersonalInfo)
+    social_links: SocialLinks = Field(default_factory=SocialLinks)
+    professional_metadata: ProfessionalMetadata = Field(default_factory=ProfessionalMetadata)
+    categorized_skills: CategorizedSkills = Field(default_factory=CategorizedSkills)
+    spoken_languages: list[LanguageProficiency] = Field(default_factory=list)
+    normalized_keywords: list[str] = Field(default_factory=list)
+
+    # Backward compatibility fields
     skills: list[str] = Field(default_factory=list)
     experience: list[ExperienceItem] = Field(default_factory=list)
     education: list[EducationItem] = Field(default_factory=list)
+    projects: list[ProjectItem] = Field(default_factory=list)
     certifications: list[str] = Field(default_factory=list)
+
     confidence_scores: ConfidenceScores = Field(default_factory=ConfidenceScores)
     warnings: list[str] = Field(default_factory=list)
     processing_log: ProcessingLog = Field(default_factory=ProcessingLog)
@@ -100,16 +162,7 @@ class ValidationResult(BaseModel):
     file_info: FileInfo = Field(default_factory=FileInfo)
 
 
-# ── NER entity ─────────────────────────────────────────────────────────
 
-
-class NEREntity(BaseModel):
-    text: str
-    label: str
-    score: float
-    start: int
-    end: int
-    low_confidence: bool = False
 
 
 # ── Text extraction result ─────────────────────────────────────────────

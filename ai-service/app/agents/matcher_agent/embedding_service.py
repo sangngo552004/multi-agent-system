@@ -3,7 +3,8 @@
 import logging
 from typing import List
 
-from sentence_transformers import SentenceTransformer
+# SentenceTransformer is imported lazily inside load_model() to avoid
+# numpy DLL-load issues at startup on Windows systems with AppControl policies.
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ class EmbeddingService:
     def load_model(self):
         """Loads the embedding model into memory."""
         if self.model is None:
+            from sentence_transformers import SentenceTransformer  # noqa: PLC0415
             logger.info(f"Loading embedding model: {MODEL_NAME}")
             self.model = SentenceTransformer(MODEL_NAME)
             logger.info("Embedding model loaded successfully.")

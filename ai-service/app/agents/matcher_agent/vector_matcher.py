@@ -1,6 +1,7 @@
 """Service for matching vectors (local equivalent of pgvector for 1-1 matching)."""
 
-from scipy.spatial.distance import cosine
+# scipy is imported lazily inside calculate_similarity to avoid DLL-load issues
+# during startup caused by Windows Application Control policies.
 
 from app.agents.matcher_agent.embedding_service import embedding_service
 from app.core.schemas import MatchedCriterion, MissingCriterion
@@ -14,6 +15,8 @@ class VectorMatcher:
         """Calculate cosine similarity between two vectors."""
         if not vec1 or not vec2:
             return 0.0
+        # Lazy import to avoid DLL-load issues at startup
+        from scipy.spatial.distance import cosine  # noqa: PLC0415
         # Cosine distance returns 0 for identical, 1 for orthogonal, 2 for opposite.
         # Cosine similarity = 1 - cosine_distance
         distance = cosine(vec1, vec2)
