@@ -42,5 +42,19 @@
     "auth": {
       "titleTemplate": "%s | Auth · CareerOS"
     }
+  },
+  "Errors": {
+    "UNKNOWN_ERROR": "An unknown error occurred. Please try again later.",
+    "JOB_NOT_FOUND": "Job campaign not found.",
+    "TITLE_REQUIRED": "Title is required.",
+    "LOCATION_REQUIRED": "Location is required.",
+    "COMPETENCY_NOT_FOUND": "Selected competency is invalid or deleted.",
+    "COMPETENCY_ID_REQUIRED": "Competency ID is required.",
+    "WEIGHT_REQUIRED": "Competency weight is required.",
+    "LEVEL_REQUIRED": "Required level is missing.",
+    "RULE_IDS_REQUIRED": "Institutional rules list is required.",
+    "JOB_NOT_DRAFT": "Action allowed only when job is in DRAFT state.",
+    "CANNOT_DELETE_PUBLISHED_JOB": "Cannot delete a published campaign.",
+    "CANNOT_UPDATE_PUBLISHED_JOB_WITH_APPLICANTS": "Campaign already has applicants. Please use Duplicate to change criteria for a new round."
   }
 }

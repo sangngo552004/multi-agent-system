@@ -10,8 +10,9 @@ export const hrJobFormSchema = z.object({
   openingsCount: z.number().int().min(1, "Số lượng tuyển tối thiểu là 1.").max(100, "Số lượng tuyển quá lớn."),
   expiresAt: z.string().min(1, "Hãy chọn hạn nhận hồ sơ."),
   description: requiredText("Mô tả công việc", 20),
-  requirementsText: requiredText("Yêu cầu ứng viên", 10),
-  benefitsText: requiredText("Quyền lợi", 10),
+  requirementsText: z.array(z.string().trim().min(2, "Yêu cầu cần ít nhất 2 ký tự.")).min(1, "Hãy thêm ít nhất một yêu cầu."),
+  benefitsText: z.array(z.string().trim().min(2, "Quyền lợi cần ít nhất 2 ký tự.")).min(1, "Hãy thêm ít nhất một quyền lợi."),
+  ruleIds: z.array(z.string()).default([]),
   jobFamilyId: z.string(),
   careerLevelId: z.string(),
   competencies: z.array(z.object({

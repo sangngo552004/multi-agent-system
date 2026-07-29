@@ -42,5 +42,19 @@
     "auth": {
       "titleTemplate": "%s | Xác thực · CareerOS"
     }
+  },
+  "Errors": {
+    "UNKNOWN_ERROR": "Đã có lỗi xảy ra. Vui lòng thử lại sau.",
+    "JOB_NOT_FOUND": "Không tìm thấy chiến dịch tuyển dụng.",
+    "TITLE_REQUIRED": "Vui lòng nhập tiêu đề.",
+    "LOCATION_REQUIRED": "Vui lòng nhập địa điểm.",
+    "COMPETENCY_NOT_FOUND": "Kỹ năng bạn chọn không hợp lệ hoặc đã bị xoá.",
+    "COMPETENCY_ID_REQUIRED": "Thiếu mã kỹ năng.",
+    "WEIGHT_REQUIRED": "Thiếu trọng số kỹ năng.",
+    "LEVEL_REQUIRED": "Thiếu cấp độ yêu cầu.",
+    "RULE_IDS_REQUIRED": "Thiếu danh sách luật thưởng điểm.",
+    "JOB_NOT_DRAFT": "Chỉ có thể thao tác khi tin tuyển dụng ở trạng thái Nháp.",
+    "CANNOT_DELETE_PUBLISHED_JOB": "Không thể xoá chiến dịch đã xuất bản.",
+    "CANNOT_UPDATE_PUBLISHED_JOB_WITH_APPLICANTS": "Chiến dịch đã có ứng viên, vui lòng dùng tính năng Nhân Bản để sửa đổi tiêu chí cho đợt tuyển mới."
   }
 }
