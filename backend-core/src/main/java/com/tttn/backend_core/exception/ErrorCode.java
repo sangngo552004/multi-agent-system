@@ -29,7 +29,18 @@ public enum ErrorCode {
   BODY_TEMPLATE_REQUIRED(1021, "Body template is required", HttpStatus.BAD_REQUEST),
   ORGANIZATION_NAME_REQUIRED(1022, "Organization name is required", HttpStatus.BAD_REQUEST),
   ORGANIZATION_TYPE_REQUIRED(1023, "Organization type is required", HttpStatus.BAD_REQUEST),
-  PEDIGREE_RANK_REQUIRED(1024, "Pedigree rank is required", HttpStatus.BAD_REQUEST);
+  PEDIGREE_RANK_REQUIRED(1024, "Pedigree rank is required", HttpStatus.BAD_REQUEST),
+
+  // Job related errors
+  JOB_NOT_FOUND(2001, "Job not found", HttpStatus.NOT_FOUND),
+  HR_USER_NOT_FOUND(2002, "HR user not found", HttpStatus.NOT_FOUND),
+  TITLE_REQUIRED(2003, "Title is required", HttpStatus.BAD_REQUEST),
+  LOCATION_REQUIRED(2004, "Location is required", HttpStatus.BAD_REQUEST),
+  EMPLOYMENT_TYPE_REQUIRED(2005, "Employment type is required", HttpStatus.BAD_REQUEST),
+  DESCRIPTION_REQUIRED(2006, "Description is required", HttpStatus.BAD_REQUEST),
+  REQUIREMENTS_REQUIRED(2007, "Requirements are required", HttpStatus.BAD_REQUEST),
+  JOB_FAMILY_NOT_FOUND(2008, "Job family not found", HttpStatus.NOT_FOUND),
+  CAREER_LEVEL_NOT_FOUND(2009, "Career level not found", HttpStatus.NOT_FOUND);
 
   private final int code;
   private final String message;
