@@ -1,11 +1,14 @@
 package com.tttn.backend_core.controller;
 
+import com.tttn.backend_core.dto.request.AiParseRequest;
 import com.tttn.backend_core.dto.request.JobCompetencyRequest;
 import com.tttn.backend_core.dto.request.JobFilterRequest;
 import com.tttn.backend_core.dto.request.JobRequest;
 import com.tttn.backend_core.dto.request.JobRuleUpdateRequest;
+import com.tttn.backend_core.dto.response.JobParseResponse;
 import com.tttn.backend_core.dto.response.JobResponse;
 import com.tttn.backend_core.security.CustomUserPrincipal;
+import com.tttn.backend_core.service.AiParsingService;
 import com.tttn.backend_core.service.JobService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -24,10 +27,16 @@ import org.springframework.web.bind.annotation.*;
 public class JobController {
 
   private final JobService jobService;
+  private final AiParsingService aiParsingService;
 
   @GetMapping
   public ResponseEntity<Page<JobResponse>> getJobs(JobFilterRequest filter, Pageable pageable) {
     return ResponseEntity.ok(jobService.getJobs(filter, pageable));
+  }
+
+  @PostMapping("/parse")
+  public ResponseEntity<JobParseResponse> parseJd(@Valid @RequestBody AiParseRequest request) {
+    return ResponseEntity.ok(aiParsingService.parseJd(request));
   }
 
   @GetMapping("/{id}")
