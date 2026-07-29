@@ -117,7 +117,22 @@ export function DataTable<TData>({
   });
 
   if (!data.length) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+    return (
+      <EmptyState
+        title={emptyTitle}
+        description={emptyDescription}
+        action={
+          server && server.pageIndex > 0 ? (
+            <Button
+              variant="secondary"
+              onClick={() => server.onPageChange(server.pageIndex - 1)}
+            >
+              Về trang trước
+            </Button>
+          ) : undefined
+        }
+      />
+    );
   }
 
   return (

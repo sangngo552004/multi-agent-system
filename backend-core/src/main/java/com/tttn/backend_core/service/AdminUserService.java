@@ -53,6 +53,7 @@ public class AdminUserService {
   @Transactional(readOnly = true)
   public PageResponse<AdminUserResponse> findAll(
       String search, Role role, String status, int page, int size, String sort) {
+    validateStatusFilter(status);
     Page<User> users =
         userRepository.findAll(
             buildFilters(search, role, status),
@@ -135,6 +136,17 @@ public class AdminUserService {
       }
       return cb.and(predicates.toArray(Predicate[]::new));
     };
+  }
+
+  private void validateStatusFilter(String status) {
+    if (status == null
+        || status.isBlank()
+        || "ALL".equalsIgnoreCase(status)
+        || "ACTIVE".equalsIgnoreCase(status)
+        || "BLOCKED".equalsIgnoreCase(status)) {
+      return;
+    }
+    throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
   }
 
   private Sort parseSort(String value) {

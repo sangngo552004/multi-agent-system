@@ -82,7 +82,7 @@ public class SecurityConfig {
     configuration.setAllowedMethods(
         Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(
-        Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
+        Arrays.asList("Authorization", "Content-Type", "Idempotency-Key", "X-Requested-With"));
     configuration.setAllowCredentials(true);
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

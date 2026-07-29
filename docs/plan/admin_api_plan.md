@@ -1,6 +1,6 @@
 # Kế hoạch phát triển API cho Admin Dashboard
 
-> **Trạng thái 29/07/2026:** Phase 1 đến Phase 4 đã được triển khai và tích hợp vào frontend. Dashboard và Reports tiếp tục ở Phase 5.
+> **Trạng thái 29/07/2026:** Cả 5 phase đã được triển khai và tích hợp vào frontend. Toàn bộ Admin Dashboard hiện dùng API thật; production path không còn fallback sang mock.
 >
 > Phạm vi được xác định từ code frontend admin hiện tại, không lấy các ý tưởng cũ trong tài liệu thiết kế làm yêu cầu mặc định.
 >
@@ -18,32 +18,18 @@ Frontend admin hiện có 7 khu vực:
 6. Nhật ký: `/admin/activity`
 7. Báo cáo: `/admin/reports`
 
-`frontend/src/services/admin.service.ts` hiện trỏ hoàn toàn vào `mockAdminService`. Contract frontend có 18 thao tác đọc/ghi, nhưng chưa có `HttpAdminService`.
+Tại thời điểm khảo sát ban đầu, frontend còn dùng `mockAdminService` và backend chưa có boundary `/api/v1/admin/**`. Đây là baseline lịch sử dùng để giải thích lý do chia phase, không còn là trạng thái hiện tại.
 
-Backend hiện chỉ có:
+Trạng thái hiện tại sau 5 phase và đợt rà soát hoàn thiện:
 
-- Auth đăng ký, xác minh email và đăng nhập.
-- Hai action approve/reject Application phục vụ HR.
-- CRUD Pedigree và hai API đọc Competency Level.
-- JWT authentication cho mọi endpoint ngoài public.
+- `frontend/src/services/admin.service.ts` dùng HTTP cho toàn bộ 19 thao tác của `AdminService`; không còn fallback mock trong production composition.
+- HTTP implementation đã được tách theo Dashboard, User, Job, Knowledge, Application và Activity thay vì dồn vào một file lớn.
+- Backend có đủ 21 operation dưới `/api/v1/admin/**`, được bảo vệ bằng `ROLE_ADMIN`.
+- Bốn API vòng đời JWT gồm login, `me`, refresh và logout đã được tích hợp vào frontend.
+- User, Job, Application dùng filter và phân trang phía server; Knowledge dùng API ghi thật; Dashboard và Reports dùng aggregate API chung.
+- Activity log ghi mutation quản trị và sự kiện AI; retry AI dùng outbox/RabbitMQ và dữ liệu tiến trình được lưu bền vững.
 
-Backend chưa có:
-
-- Boundary `/api/v1/admin/**`.
-- Kiểm tra bắt buộc `ROLE_ADMIN`; hiện tại chỉ cần đăng nhập là gọi được các endpoint protected.
-- API danh sách/chi tiết user, job, application cho admin.
-- Trạng thái và metadata AI mà frontend admin đang hiển thị.
-- CRUD Job Family, Career Level, Competency tương ứng với giao diện admin.
-- Activity log.
-- API tổng hợp Dashboard/Reports.
-
-Ngoài ra, schema backend và model frontend còn lệch đáng kể. Vì vậy không thể chỉ viết controller để trả entity hiện có; cần migration, DTO/projection và service nghiệp vụ riêng.
-
-Kế hoạch này gồm:
-
-- 21 endpoint admin.
-- 4 endpoint quản lý vòng đời JWT dùng chung, trong đó `POST /api/auth/login` đã có nhưng chưa tích hợp frontend.
-- 5 phase triển khai.
+Kế hoạch này gồm 21 endpoint admin, 4 endpoint vòng đời JWT dùng chung và 5 phase triển khai đã hoàn thành.
 
 ## 2. Nguồn sự thật và phạm vi
 
@@ -84,7 +70,7 @@ Hai tài liệu frontend cũ từng đề cập xác minh HR, duyệt/từ chố
 
 Nếu cần các chức năng ở nhóm này, phải bổ sung UI/contract trước rồi mới mở rộng API; không ghép ngầm vào kế hoạch hiện tại.
 
-## 3. Các chênh lệch phải xử lý
+## 3. Các chênh lệch ban đầu đã được xử lý
 
 | Khu vực | Frontend cần | Backend hiện có | Hướng xử lý |
 |---|---|---|---|
@@ -186,7 +172,7 @@ method đã hoàn thành  -> HttpAdminService
 method chưa làm       -> MockAdminService, chỉ trong dev
 ```
 
-Sau Phase 5, production build không được phép fallback sang mock. Demo controls chỉ hiển thị khi cờ dev mock được bật rõ ràng.
+Sau Phase 5, production build không được phép fallback sang mock. Các demo control của khu vực Admin được gỡ khỏi đường chạy thật.
 
 ## 5. Danh mục API đầy đủ
 
@@ -194,10 +180,10 @@ Sau Phase 5, production build không được phép fallback sang mock. Demo con
 
 | ID | Method và path | Trạng thái | Frontend sử dụng |
 |---|---|---|---|
-| AUTH-01 | `POST /api/auth/login` | Đã có backend, chưa tích hợp UI | Trang login, điều hướng theo role |
-| AUTH-02 | `GET /api/auth/me` | Mới | Route guard, topbar, chống tự khóa |
-| AUTH-03 | `POST /api/auth/refresh` | Mới | Đổi refresh token lấy access token mới |
-| AUTH-04 | `POST /api/auth/logout` | Mới | Thu hồi refresh token và kết thúc trạng thái đăng nhập |
+| AUTH-01 | `POST /api/auth/login` | Đã triển khai và tích hợp | Trang login, điều hướng theo role |
+| AUTH-02 | `GET /api/auth/me` | Đã triển khai và tích hợp | Route guard, topbar, chống tự khóa |
+| AUTH-03 | `POST /api/auth/refresh` | Đã triển khai và tích hợp | Đổi refresh token lấy access token mới |
+| AUTH-04 | `POST /api/auth/logout` | Đã triển khai và tích hợp | Thu hồi refresh token và kết thúc trạng thái đăng nhập |
 
 `AUTH-02` trả tối thiểu:
 
@@ -553,7 +539,7 @@ Không lưu raw CV hoặc full AI payload vào activity log.
 
 ## 7. Kế hoạch triển khai 5 phase
 
-## Phase 1 — API foundation, JWT, User và Activity
+## Phase 1 — API foundation, JWT, User và Activity (đã hoàn thành 29/07/2026)
 
 **Độ khó:** thấp đến trung bình.
 
@@ -581,7 +567,7 @@ Không lưu raw CV hoặc full AI payload vào activity log.
 - Tạo API client dùng chung: base URL, auth, parse `ApiResponse`, normalize error.
 - Tạo `HttpAdminService`.
 - Refactor `DataTable` để hỗ trợ pagination/sort controlled mà vẫn giữ chế độ client cho màn hình chưa migrate.
-- Hiện demo sidebar/reset chỉ khi chạy mock mode.
+- Gỡ demo sidebar/reset khỏi HTTP production mode.
 - Không hard-code tên/avatar/ID admin.
 
 **Kiểm thử/exit criteria:**
@@ -593,7 +579,7 @@ Không lưu raw CV hoặc full AI payload vào activity log.
 - Logout hoặc JWT hết hạn đưa về login.
 - User list, detail và activity không còn đọc mock.
 
-## Phase 2 — Job monitoring
+## Phase 2 — Job monitoring (đã hoàn thành 29/07/2026)
 
 **Độ khó:** trung bình, chủ yếu là query join/count/readiness.
 
@@ -708,7 +694,7 @@ Không lưu raw CV hoặc full AI payload vào activity log.
 - AI timeout/failure trả message đã sanitize, không lộ stack trace.
 - Application không còn phụ thuộc mock.
 
-## Phase 5 — Dashboard, Reports và hardening toàn hệ thống
+## Phase 5 — Dashboard, Reports và hardening toàn hệ thống (đã hoàn thành 29/07/2026)
 
 **Độ khó:** cao do aggregate cross-domain, hiệu năng và kiểm thử end-to-end.
 
@@ -742,6 +728,20 @@ Không lưu raw CV hoặc full AI payload vào activity log.
 - Kiểm tra `401/403/404/409/500`, loading, empty và retry UI.
 - Không có API admin nào fallback mock trong production.
 - OpenAPI phản ánh đủ 21 admin endpoints và các API vòng đời JWT phụ thuộc.
+
+**Kết quả triển khai:**
+
+- `DSH-01` hỗ trợ đúng `rangeDays=7|30`; giá trị khác trả `400` với error code riêng.
+- Cửa sổ ngày được tính theo UTC, bao gồm ngày hiện tại: từ `00:00` của ngày đầu tiên đến trước `00:00` của ngày kế tiếp sau hôm nay.
+- AI status và application trend dùng aggregate projection tại database; các ngày không có hồ sơ được điền `0`, không load toàn bộ Application vào memory.
+- Quy tắc Job chưa sẵn sàng được tái sử dụng qua `AdminJobService`; recent activities chỉ lấy 6 bản ghi mới nhất.
+- Dashboard và Reports dùng chung `useDashboard(range)` và query key, với `staleTime=30s`; frontend map response domain sang toàn bộ model hiển thị.
+- `adminService` dùng HTTP cho toàn bộ method. Badge, scenario switcher, reset và nội dung demo đã được gỡ khỏi khu vực Admin.
+- Không bổ sung cache backend vì chưa có số liệu cho thấy cần thiết; các index từ V9, V10 và V13 đã bao phủ các filter thời gian/status đang dùng.
+- Bổ sung UTC JDBC convention, CORS cho `Idempotency-Key`, và nâng springdoc lên dòng 3.x tương thích Spring Boot 4.
+- Full backend suite: 23/23 test pass. Frontend lint: 0 error; production build pass.
+- Smoke PostgreSQL có dữ liệu và database sạch đều pass; database sạch chạy đủ V1→V13. API smoke pass cho 7/30 ngày và `400/401/403`.
+- `/v3/api-docs` phản ánh đủ 21 operation dưới `/api/v1/admin/**`.
 
 ## 8. Cấu trúc code đề xuất
 
@@ -798,19 +798,20 @@ Nguyên tắc clean code bắt buộc khi triển khai:
 
 ```text
 frontend/src/
-├── lib/http/
-│   ├── api-client.ts
-│   └── api-error.ts
 ├── services/http/
+│   ├── api-client.ts
+│   ├── http-admin.shared.ts
+│   ├── http-admin-activity.service.ts
 │   ├── http-admin-user.service.ts
 │   ├── http-admin-job.service.ts
 │   ├── http-admin-knowledge.service.ts
 │   ├── http-admin-application.service.ts
-│   └── http-admin-dashboard.service.ts
+│   ├── http-admin-dashboard.service.ts
+│   └── http-admin.service.ts
 └── services/admin.service.ts
 ```
 
-Có thể vẫn giữ interface `AdminService` làm facade, nhưng nên tách implementation theo module để file không phình lớn và dễ chuyển từng endpoint từ mock sang HTTP.
+`AdminService` được giữ làm facade; HTTP implementation đã tách theo module để mapper, DTO trung gian và endpoint của từng domain có một nơi chịu trách nhiệm rõ ràng.
 
 ## 9. Chiến lược kiểm thử
 
@@ -859,7 +860,7 @@ Backend đang dùng JWT đúng nghĩa:
 
 Kế hoạch không đề nghị chuyển sang Spring `HttpSession`. Từ “session” trước đó chỉ mô tả trạng thái “người dùng đang đăng nhập” và dễ gây hiểu nhầm, nên đã được thay bằng “vòng đời JWT”.
 
-Phần còn thiếu của JWT hiện tại:
+Tại thời điểm khảo sát ban đầu, vòng đời JWT còn thiếu các phần sau; các phần này đã được hoàn thiện ở Phase 1:
 
 1. Frontend login vẫn là scaffold, chưa giữ và gửi access token.
 2. Backend phát refresh token nhưng chưa có API refresh.
@@ -978,10 +979,56 @@ Thêm trực tiếp vào `users` ở MVP phù hợp với cấu trúc codebase h
 4. Code backend phải bám các package `controller`, `dto/request`, `dto/response`, `service`, `repository`, `entity`, `exception`, `security`, `config` đang có.
 5. Khi triển khai phải tuân thủ các quy tắc clean code tại mục 8.1.
 
-### 11.2. Đề xuất còn cần xác nhận
+### 11.2. Quyết định đã áp dụng khi triển khai
 
 1. Giữ JWT stateless; access token dùng Bearer, refresh token dùng cookie HttpOnly và được rotate/revoke trong Redis.
 2. Retry AI chạy bất đồng bộ qua RabbitMQ; Backend Core lưu trạng thái, frontend poll Application detail.
 3. Bốn field Staff Profile được thêm nullable trực tiếp vào `users` trong MVP.
 
-Nếu ba đề xuất này phù hợp, kế hoạch không còn điểm mơ hồ ảnh hưởng đến việc bắt đầu Phase 1. Contract event AI chi tiết chỉ cần chốt trước Phase 4.
+Ba quyết định này đã được áp dụng trong Phase 1 đến Phase 4. Sau khi Phase 5 hoàn thành, kế hoạch không còn điểm mơ hồ ảnh hưởng đến phạm vi API Admin hiện tại.
+
+## 12. Rà soát hoàn thiện giao diện Admin sau 5 phase
+
+Đợt rà soát ngày 29/07/2026 đối chiếu trực tiếp route, component, React Query hook, `AdminService`, HTTP adapter và backend service. Kết luận: 7 khu vực trên giao diện hiện tại đã có đủ API để vận hành; không cần mở thêm quyền quản trị hoặc thêm endpoint ngoài scope frontend.
+
+| Khu vực | Chức năng hiện có | Kết quả rà soát |
+|---|---|---|
+| Dashboard | Aggregate 7/30 ngày, hàng đợi chú ý, AI status, xu hướng, hoạt động gần đây | Đầy đủ; lời chào dùng identity thật, refetch khi quay lại cửa sổ và link metric Job mở đúng danh sách `OPEN` |
+| Tài khoản | Search/filter/sort/page, detail, staff profile, activity, khóa/mở | Đầy đủ; JWT hết hạn đưa về login, logout luôn dọn identity và toàn bộ cache quản trị |
+| Tin tuyển dụng | Status tab, family/level/readiness filter, detail read-only | Đầy đủ; sửa `aiCompletedCount`/`aiFailedCount` để đếm theo `aiStatus`, filter vẫn thấy taxonomy đã tạm ngưng dùng bởi dữ liệu lịch sử |
+| Xử lý hồ sơ | Search/filter/sort/page, pipeline, diagnostics, retry | Đầy đủ; retry giữ nguyên idempotency key khi request cần thử lại, polling được khởi động lại khi quay về tab |
+| Kho năng lực | CRUD thông tin, bật/tắt, usage count, competency detail | Đầy đủ theo action đang có trên frontend; mutation làm mới Knowledge, Job, Dashboard và Activity liên quan |
+| Nhật ký | Search, nhóm hoạt động, thời gian, phân trang, link đối tượng | Đầy đủ; hỗ trợ deep-link theo `targetType/targetId` và xem toàn bộ nhật ký từ trang chi tiết User |
+| Báo cáo | Tổng hợp 7/30 ngày dùng chung Dashboard query | Đầy đủ theo scope hiện tại; không tạo request hoặc API báo cáo trùng lặp |
+
+Các cải thiện dùng chung đã áp dụng:
+
+- Query parameter từ URL được allow-list trước khi gửi API; page/sort/enum/UUID không hợp lệ tự quay về giá trị an toàn.
+- Trang rỗng ở page lớn hơn 0 có đường quay lại page trước, tránh mắc kẹt khi dữ liệu vừa thay đổi.
+- Backend từ chối filter Admin không hợp lệ bằng error code `INVALID_ADMIN_FILTER`.
+- Mutation có activity hoặc ảnh hưởng số liệu tổng hợp invalidate đúng Dashboard/Activity.
+- Icon chuông không còn hiển thị chấm “chưa đọc” giả vì scope hiện không có unread/notification API.
+- HTTP Admin adapter được tách thành các module nhỏ theo domain.
+- Khoảng 7/30 ngày của Application list dùng cùng quy ước ngày UTC bao gồm ngày hiện tại như Dashboard.
+
+### 12.1. Phần không bổ sung vì không có trên frontend
+
+- Không xác minh HR.
+- Không cho Admin sửa, duyệt, từ chối hoặc ẩn Job.
+- Không cho Admin xem raw CV, nội dung trích xuất hoặc đánh giá chuyên môn.
+- Không thêm export CSV/PDF.
+- Không thêm notification/unread API; icon chuông chỉ là lối tắt sang Activity.
+- Không thêm API Pedigree hoặc Institutional Rule khi chưa có màn hình Admin tương ứng.
+
+### 12.2. Kết quả kiểm tra sau rà soát
+
+- Backend: `mvn test` pass 23/23 test.
+- Frontend: `npm run lint` có 0 error; 5 warning còn lại đều thuộc khu vực Candidate và có trước đợt rà soát.
+- Frontend: `npm run build` pass với Next.js 16.2.10.
+- Smoke PostgreSQL: login Admin, Job detail/count, Activity date filter và filter-option đều trả response hợp lệ; filter sai trả `400` với code `1044`.
+- OpenAPI sau thay đổi vẫn phản ánh đủ 21 operation dưới `/api/v1/admin/**`.
+- Không thay đổi cấu trúc package backend và không thêm generic abstraction ngoài nhu cầu hiện tại.
+
+### 12.3. Rủi ro chất lượng còn lại, không phải thiếu chức năng
+
+Frontend chưa có test runner cho unit/component/E2E, nên các luồng giao diện hiện được bảo vệ bởi type-check trong production build, lint, backend test và smoke test API. Nếu dự án tiếp tục phát triển, ưu tiên tiếp theo nên là bổ sung Playwright cho các hành trình Admin quan trọng và contract test sinh từ OpenAPI; việc này không yêu cầu thêm chức năng hay endpoint mới.

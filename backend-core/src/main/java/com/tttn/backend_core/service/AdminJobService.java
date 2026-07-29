@@ -48,18 +48,21 @@ public class AdminJobService {
   @Transactional(readOnly = true)
   public JobFilterOptionsResponse getFilterOptions() {
     List<JobFilterOptionsResponse.JobFamilyOption> families =
-        jobFamilyRepository.findByIsActiveTrueOrderByNameAsc().stream()
+        jobFamilyRepository.findAllByOrderByNameAsc().stream()
             .map(
                 item ->
                     new JobFilterOptionsResponse.JobFamilyOption(
-                        item.getId(), item.getName(), "ACTIVE"))
+                        item.getId(), item.getName(), knowledgeStatus(item.getIsActive())))
             .toList();
     List<JobFilterOptionsResponse.CareerLevelOption> levels =
-        careerLevelRepository.findByIsActiveTrueOrderByRankValueAsc().stream()
+        careerLevelRepository.findAllByOrderByRankValueAsc().stream()
             .map(
                 item ->
                     new JobFilterOptionsResponse.CareerLevelOption(
-                        item.getId(), item.getName(), item.getRankValue(), "ACTIVE"))
+                        item.getId(),
+                        item.getName(),
+                        item.getRankValue(),
+                        knowledgeStatus(item.getIsActive())))
             .toList();
     return new JobFilterOptionsResponse(families, levels);
   }
@@ -74,6 +77,7 @@ public class AdminJobService {
       int page,
       int size,
       String sort) {
+    validateReadinessFilter(readiness);
     Specification<Job> filters =
         buildFilters(search, status, jobFamilyId, careerLevelId, readiness);
     Page<Job> result =
@@ -118,6 +122,7 @@ public class AdminJobService {
             .findAdminJobById(id)
             .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
     long applications = applicationCounts(List.of(id)).getOrDefault(id, 0L);
+    Map<AiProcessingStatus, Long> aiCounts = aiStatusCounts(id);
     User owner = job.getHr();
     return new AdminJobDetailResponse(
         toResponse(job, applications),
@@ -128,9 +133,21 @@ public class AdminJobService {
             owner.getDepartmentName(),
             owner.getEmployeeCode(),
             owner.getJobTitle()),
-        applicationRepository.countByJob_IdAndFitScoreIsNotNull(id),
-        0,
+        aiCounts.getOrDefault(AiProcessingStatus.COMPLETED, 0L),
+        aiCounts.getOrDefault(AiProcessingStatus.FAILED, 0L),
         readinessIssues(job));
+  }
+
+  @Transactional(readOnly = true)
+  public long countJobsByStatus(JobStatus status) {
+    return jobRepository.count((root, query, cb) -> cb.equal(root.get("status"), status));
+  }
+
+  @Transactional(readOnly = true)
+  public long countIncompleteNonClosedJobs() {
+    Specification<Job> nonClosed =
+        (root, query, cb) -> cb.notEqual(root.get("status"), JobStatus.CLOSED);
+    return jobRepository.count(buildFilters(null, null, null, null, "INCOMPLETE").and(nonClosed));
   }
 
   private Specification<Job> buildFilters(
@@ -213,6 +230,29 @@ public class AdminJobService {
         .countByJobIds(ids)
         .forEach(row -> counts.put((UUID) row[0], (Long) row[1]));
     return counts;
+  }
+
+  private void validateReadinessFilter(String readiness) {
+    if (readiness == null
+        || readiness.isBlank()
+        || "ALL".equalsIgnoreCase(readiness)
+        || "READY".equalsIgnoreCase(readiness)
+        || "INCOMPLETE".equalsIgnoreCase(readiness)) {
+      return;
+    }
+    throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
+  }
+
+  private Map<AiProcessingStatus, Long> aiStatusCounts(UUID jobId) {
+    EnumMap<AiProcessingStatus, Long> counts = new EnumMap<>(AiProcessingStatus.class);
+    applicationRepository
+        .countByAiStatusForJob(jobId)
+        .forEach(item -> counts.put(item.getStatus(), item.getTotal()));
+    return counts;
+  }
+
+  private String knowledgeStatus(Boolean active) {
+    return Boolean.TRUE.equals(active) ? "ACTIVE" : "INACTIVE";
   }
 
   private AdminJobResponse toResponse(Job job, long applications) {

@@ -14,6 +14,7 @@ export function RetryAiPanel({
   application: ApplicationDetail;
 }) {
   const [open, setOpen] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const retry = useRetryApplication();
 
   if (
@@ -52,12 +53,14 @@ export function RetryAiPanel({
   }
 
   const startRetry = async () => {
+    if (!idempotencyKey) return;
     try {
       const accepted = await retry.mutateAsync({
         applicationId: application.id,
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey,
       });
       setOpen(false);
+      setIdempotencyKey(null);
       toast.success("Đã xếp hàng xử lý lại", {
         description: `Lượt chạy ${accepted.runId.slice(0, 8).toUpperCase()}`,
       });
@@ -67,6 +70,11 @@ export function RetryAiPanel({
           error instanceof Error ? error.message : "Vui lòng thử lại.",
       });
     }
+  };
+
+  const openDialog = () => {
+    setIdempotencyKey(crypto.randomUUID());
+    setOpen(true);
   };
 
   return (
@@ -80,7 +88,7 @@ export function RetryAiPanel({
           Lỗi tạm thời không làm thay đổi trạng thái tuyển dụng. Bạn có thể
           khởi động lại quy trình từ đầu.
         </p>
-        <Button size="sm" className="mt-4" onClick={() => setOpen(true)}>
+        <Button size="sm" className="mt-4" onClick={openDialog}>
           <RefreshCw className="size-4" />
           Chạy lại AI
         </Button>

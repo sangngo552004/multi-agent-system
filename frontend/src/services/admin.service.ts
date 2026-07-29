@@ -1,10 +1,8 @@
 import type { AdminService } from "@/services/contracts/admin-service";
 import { httpAdminService } from "@/services/http/http-admin.service";
-import { mockAdminService } from "@/services/mock/mock-admin.service";
 
-// The dashboard remains mocked until Phase 5. Phase 1-4 modules use the real backend.
 export const adminService: AdminService = {
-  getDashboard: (range) => mockAdminService.getDashboard(range),
+  getDashboard: (range) => httpAdminService.getDashboard(range),
   getUsers: (filters) => httpAdminService.getUsers(filters),
   getUser: (userId) => httpAdminService.getUser(userId),
   getUserActivity: (userId) => httpAdminService.getUserActivity(userId),

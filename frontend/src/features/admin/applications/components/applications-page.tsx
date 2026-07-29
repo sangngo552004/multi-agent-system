@@ -18,6 +18,11 @@ import type {
 } from "@/features/admin/applications/applications.types";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { AiProcessingStatus } from "@/types/domain/admin";
+import {
+  readEnumParam,
+  readPageIndex,
+  readSorting,
+} from "@/features/admin/admin-search-params";
 
 const aiOptions = [
   { value: "ALL", label: "Mọi trạng thái AI" },
@@ -31,27 +36,46 @@ const dateOptions = [
   { value: "7", label: "7 ngày gần đây" },
   { value: "30", label: "30 ngày gần đây" },
 ];
+const aiStatuses = [
+  "ALL",
+  "WAITING",
+  "PROCESSING",
+  "COMPLETED",
+  "FAILED",
+] as const;
+const applicationDateRanges = ["ALL", "7", "30"] as const;
+const applicationSortFields = [
+  "id",
+  "jobTitle",
+  "aiStatus",
+  "aiConfidence",
+  "submittedAt",
+] as const;
 
 export function ApplicationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
-  const [aiStatus, setAiStatus] = useState<AiProcessingStatus | "ALL">(
-    (searchParams.get("aiStatus") as AiProcessingStatus) ?? "ALL",
+  const [aiStatus, setAiStatus] = useState<AiProcessingStatus | "ALL">(() =>
+    readEnumParam(searchParams.get("aiStatus"), aiStatuses, "ALL"),
   );
-  const [dateRange, setDateRange] = useState<ApplicationDateRange>(
-    (searchParams.get("date") as ApplicationDateRange) ?? "ALL",
+  const [dateRange, setDateRange] = useState<ApplicationDateRange>(() =>
+    readEnumParam(
+      searchParams.get("date"),
+      applicationDateRanges,
+      "ALL",
+    ),
   );
-  const [page, setPage] = useState(() => {
-    const value = Number(searchParams.get("page") ?? "1");
-    return Number.isFinite(value) && value > 0 ? value - 1 : 0;
-  });
-  const [sorting, setSorting] = useState<SortingState>([
-    {
-      id: searchParams.get("sort")?.split(",")[0] || "submittedAt",
-      desc: searchParams.get("sort")?.split(",")[1] !== "asc",
-    },
-  ]);
+  const [page, setPage] = useState(() =>
+    readPageIndex(searchParams.get("page")),
+  );
+  const [sorting, setSorting] = useState<SortingState>(() =>
+    readSorting(
+      searchParams.get("sort"),
+      applicationSortFields,
+      "submittedAt",
+    ),
+  );
   const debouncedSearch = useDebounce(search);
   const filters = useMemo<ApplicationFilters>(
     () => ({

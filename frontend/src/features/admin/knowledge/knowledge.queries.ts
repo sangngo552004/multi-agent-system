@@ -41,6 +41,8 @@ function useKnowledgeMutation<TInput, TOutput>(
           queryKey: adminQueryKeys.jobFilterOptions,
         }),
         queryClient.invalidateQueries({ queryKey: ["admin", "jobs"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "activities"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] }),
       ]);
     },
   });
@@ -70,6 +72,8 @@ export function useSaveCompetency() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: adminQueryKeys.knowledge }),
         queryClient.invalidateQueries({ queryKey: ["admin", "jobs"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "activities"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] }),
       ]);
     },
   });
@@ -91,6 +95,10 @@ export function useSaveCompetencyLevels(id: string) {
       await queryClient.invalidateQueries({
         queryKey: adminQueryKeys.knowledge,
       });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin", "activities"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] }),
+      ]);
     },
   });
 }

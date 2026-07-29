@@ -13,7 +13,8 @@ import {
   RefreshCw,
   UserRound,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/data-display/empty-state";
 import { ErrorState } from "@/components/data-display/error-state";
 import { PageHeader } from "@/components/layout/page-header";
@@ -22,7 +23,16 @@ import { SearchInput } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useActivities } from "@/features/admin/activity/activity.queries";
-import type { ActivityGroup } from "@/features/admin/activity/activity.types";
+import type {
+  ActivityDateRange,
+  ActivityFilters,
+  ActivityGroup,
+} from "@/features/admin/activity/activity.types";
+import {
+  readEnumParam,
+  readIdFilter,
+  readPageIndex,
+} from "@/features/admin/admin-search-params";
 import { useDebounce } from "@/hooks/use-debounce";
 import { formatDate, formatRelativeTime } from "@/lib/format";
 import type { ActivityEntry, ActivityKind } from "@/types/domain/admin";
@@ -123,17 +133,98 @@ const groupOptions = [
   { value: "APPLICATION", label: "Hồ sơ ứng tuyển" },
   { value: "AI", label: "Xử lý AI" },
 ];
+const dateOptions = [
+  { value: "ALL", label: "Mọi thời điểm" },
+  { value: "24H", label: "24 giờ gần đây" },
+  { value: "7D", label: "7 ngày gần đây" },
+  { value: "30D", label: "30 ngày gần đây" },
+];
+const activityGroups = [
+  "ALL",
+  "ADMIN",
+  "CONTENT",
+  "APPLICATION",
+  "AI",
+] as const;
+const activityDateRanges = ["ALL", "24H", "7D", "30D"] as const;
+const activityTargetTypes = [
+  "USER",
+  "JOB",
+  "APPLICATION",
+  "KNOWLEDGE",
+] as const;
 
 export function ActivityPage() {
-  const [search, setSearch] = useState("");
-  const [group, setGroup] = useState<ActivityGroup>("ALL");
-  const [page, setPage] = useState(0);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  const [group, setGroup] = useState<ActivityGroup>(() =>
+    readEnumParam(searchParams.get("group"), activityGroups, "ALL"),
+  );
+  const [dateRange, setDateRange] = useState<ActivityDateRange>(() =>
+    readEnumParam(searchParams.get("period"), activityDateRanges, "ALL"),
+  );
+  const [page, setPage] = useState(() =>
+    readPageIndex(searchParams.get("page")),
+  );
+  const [targetScope, setTargetScope] = useState<
+    Pick<ActivityFilters, "targetType" | "targetId">
+  >(() => {
+    const requestedType = searchParams.get("targetType");
+    const requestedId = readIdFilter(searchParams.get("targetId"));
+    const targetType = activityTargetTypes.find(
+      (candidate) => candidate === requestedType,
+    );
+    return targetType && requestedId !== "ALL"
+      ? { targetType, targetId: requestedId }
+      : {};
+  });
   const debouncedSearch = useDebounce(search);
-  const filters = useMemo(
-    () => ({ search: debouncedSearch, group, page, size: 20 }),
-    [debouncedSearch, group, page],
+  const hasTargetScope = Boolean(
+    targetScope.targetType && targetScope.targetId,
+  );
+  const from = useMemo(() => activityRangeStart(dateRange), [dateRange]);
+  const filters = useMemo<ActivityFilters>(
+    () => ({
+      search: debouncedSearch,
+      group,
+      targetType: targetScope.targetType,
+      targetId: targetScope.targetId,
+      from,
+      page,
+      size: 20,
+    }),
+    [debouncedSearch, from, group, page, targetScope],
   );
   const activities = useActivities(filters);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (group !== "ALL") params.set("group", group);
+    if (dateRange !== "ALL") params.set("period", dateRange);
+    if (targetScope.targetType && targetScope.targetId) {
+      params.set("targetType", targetScope.targetType);
+      params.set("targetId", targetScope.targetId);
+    }
+    if (page > 0) params.set("page", String(page + 1));
+    const query = params.toString();
+    router.replace(query ? `/admin/activity?${query}` : "/admin/activity", {
+      scroll: false,
+    });
+  }, [
+    dateRange,
+    debouncedSearch,
+    group,
+    page,
+    router,
+    targetScope,
+  ]);
+
+  const clearTargetScope = () => {
+    setTargetScope({});
+    setPage(0);
+  };
 
   const result = activities.data;
   return (
@@ -149,6 +240,20 @@ export function ActivityPage() {
         <Metric label="Liên quan đến AI" value={result?.summary.aiRelated ?? 0} />
       </section>
       <section className="overflow-hidden rounded-[12px] border border-border bg-surface">
+        {hasTargetScope ? (
+          <div className="flex flex-col gap-2 border-b border-info/20 bg-info/[0.04] px-4 py-3 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <p className="text-muted">
+              Đang giới hạn nhật ký theo một đối tượng cụ thể.
+            </p>
+            <button
+              type="button"
+              onClick={clearTargetScope}
+              className="w-fit font-semibold text-brand hover:underline"
+            >
+              Xem toàn bộ nhật ký
+            </button>
+          </div>
+        ) : null}
         <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <SearchInput
             value={search}
@@ -159,15 +264,26 @@ export function ActivityPage() {
             placeholder="Tìm người thực hiện, nội dung hoặc đối tượng..."
             className="w-full sm:max-w-md"
           />
-          <Select
-            label="Loại hoạt động"
-            value={group}
-            onValueChange={(value) => {
-              setGroup(value as ActivityGroup);
-              setPage(0);
-            }}
-            options={groupOptions}
-          />
+          <div className="flex flex-wrap gap-2">
+            <Select
+              label="Loại hoạt động"
+              value={group}
+              onValueChange={(value) => {
+                setGroup(value as ActivityGroup);
+                setPage(0);
+              }}
+              options={groupOptions}
+            />
+            <Select
+              label="Thời gian"
+              value={dateRange}
+              onValueChange={(value) => {
+                setDateRange(value as ActivityDateRange);
+                setPage(0);
+              }}
+              options={dateOptions}
+            />
+          </div>
         </div>
         {activities.isPending ? <ActivitySkeleton /> : null}
         {activities.isError ? (
@@ -189,6 +305,16 @@ export function ActivityPage() {
           <EmptyState
             title="Không có hoạt động phù hợp"
             description="Thử từ khóa khác hoặc chọn lại loại hoạt động."
+            action={
+              result.page > 0 ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => setPage(result.page - 1)}
+                >
+                  Về trang trước
+                </Button>
+              ) : undefined
+            }
           />
         ) : null}
         {result && result.totalPages > 1 ? (
@@ -221,6 +347,15 @@ export function ActivityPage() {
       </section>
     </div>
   );
+}
+
+function activityRangeStart(range: ActivityDateRange) {
+  if (range === "ALL") return undefined;
+  const start = new Date();
+  if (range === "24H") start.setHours(start.getHours() - 24);
+  if (range === "7D") start.setDate(start.getDate() - 7);
+  if (range === "30D") start.setDate(start.getDate() - 30);
+  return start.toISOString().slice(0, 19);
 }
 
 function Metric({ label, value }: { label: string; value: number }) {

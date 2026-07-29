@@ -1,5 +1,9 @@
 import { Icon } from "./Icon";
-import type { PersonalInfo, ProfessionalMetadata, SocialLinks } from "@/types/cv-analysis";
+import type {
+  PersonalInfo,
+  ProfessionalMetadata,
+  SocialLinks,
+} from "@/types/domain/cv-analysis";
 
 export interface CandidateCardProps {
   personal: PersonalInfo;

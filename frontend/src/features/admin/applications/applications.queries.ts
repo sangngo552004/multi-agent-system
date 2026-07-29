@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ApplicationFilters } from "@/features/admin/applications/applications.types";
 import { adminService } from "@/services/admin.service";
@@ -19,7 +19,7 @@ export function useApplications(filters: ApplicationFilters) {
 
 export function useApplication(applicationId: string) {
   const pollingStartedAt = useRef<number | null>(null);
-  return useQuery({
+  const query = useQuery({
     queryKey: adminQueryKeys.application(applicationId),
     queryFn: () => adminService.getApplication(applicationId),
     refetchInterval: (query) => {
@@ -37,6 +37,22 @@ export function useApplication(applicationId: string) {
         : false;
     },
   });
+  const aiStatus = query.data?.aiStatus;
+  const refetch = query.refetch;
+
+  useEffect(() => {
+    const resumePolling = () => {
+      const active = aiStatus === "WAITING" || aiStatus === "PROCESSING";
+      if (document.visibilityState !== "visible" || !active) return;
+      pollingStartedAt.current = null;
+      void refetch();
+    };
+    document.addEventListener("visibilitychange", resumePolling);
+    return () =>
+      document.removeEventListener("visibilitychange", resumePolling);
+  }, [aiStatus, refetch]);
+
+  return query;
 }
 
 export function useRetryApplication() {
@@ -59,6 +75,9 @@ export function useRetryApplication() {
         }),
         queryClient.invalidateQueries({
           queryKey: ["admin", "activities"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["admin", "dashboard"],
         }),
       ]);
     },

@@ -16,6 +16,12 @@ import type { JobFilters } from "@/features/admin/jobs/jobs.types";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { JobStatus } from "@/types/domain/admin";
 import type { SortingState } from "@tanstack/react-table";
+import {
+  readEnumParam,
+  readIdFilter,
+  readPageIndex,
+  readSorting,
+} from "@/features/admin/admin-search-params";
 
 const emptyCounts: Record<JobStatus, number> = { DRAFT: 0, OPEN: 0, PAUSED: 0, CLOSED: 0 };
 const readinessOptions = [
@@ -23,25 +29,34 @@ const readinessOptions = [
   { value: "READY", label: "Sẵn sàng cho AI" },
   { value: "INCOMPLETE", label: "Thiếu cấu hình" },
 ];
+const jobStatuses = ["ALL", "DRAFT", "OPEN", "PAUSED", "CLOSED"] as const;
+const readinessValues = ["ALL", "READY", "INCOMPLETE"] as const;
+const jobSortFields = ["title", "status", "createdAt"] as const;
 
 export function JobsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
-  const [status, setStatus] = useState<JobStatus | "ALL">((searchParams.get("status") as JobStatus) ?? "ALL");
-  const [jobFamilyId, setJobFamilyId] = useState(searchParams.get("family") ?? "ALL");
-  const [careerLevelId, setCareerLevelId] = useState(searchParams.get("level") ?? "ALL");
-  const [readiness, setReadiness] = useState<NonNullable<JobFilters["readiness"]>>((searchParams.get("readiness") as NonNullable<JobFilters["readiness"]>) ?? "ALL");
-  const [page, setPage] = useState(() => {
-    const value = Number(searchParams.get("page") ?? "1");
-    return Number.isFinite(value) && value > 0 ? value - 1 : 0;
-  });
-  const [sorting, setSorting] = useState<SortingState>([
-    {
-      id: searchParams.get("sort")?.split(",")[0] || "createdAt",
-      desc: searchParams.get("sort")?.split(",")[1] !== "asc",
-    },
-  ]);
+  const [status, setStatus] = useState<JobStatus | "ALL">(() =>
+    readEnumParam(searchParams.get("status"), jobStatuses, "ALL"),
+  );
+  const [jobFamilyId, setJobFamilyId] = useState(() =>
+    readIdFilter(searchParams.get("family")),
+  );
+  const [careerLevelId, setCareerLevelId] = useState(() =>
+    readIdFilter(searchParams.get("level")),
+  );
+  const [readiness, setReadiness] = useState<
+    NonNullable<JobFilters["readiness"]>
+  >(() =>
+    readEnumParam(searchParams.get("readiness"), readinessValues, "ALL"),
+  );
+  const [page, setPage] = useState(() =>
+    readPageIndex(searchParams.get("page")),
+  );
+  const [sorting, setSorting] = useState<SortingState>(() =>
+    readSorting(searchParams.get("sort"), jobSortFields, "createdAt"),
+  );
   const debouncedSearch = useDebounce(search);
   const filters = useMemo<JobFilters>(
     () => ({

@@ -5,6 +5,7 @@ import com.tttn.backend_core.dto.response.ActivityResponse;
 import com.tttn.backend_core.entity.*;
 import com.tttn.backend_core.repository.ActivityLogRepository;
 import jakarta.persistence.criteria.Predicate;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,14 +17,23 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ActivityLogService {
 
-  private final ActivityLogRepository activityLogRepository;
+  private static final List<ActivityKind> AI_ACTIVITY_KINDS =
+      List.of(
+          ActivityKind.AI_SCORING_STARTED,
+          ActivityKind.AI_SCORING_COMPLETED,
+          ActivityKind.AI_SCORING_FAILED);
 
-  public ActivityLogService(ActivityLogRepository activityLogRepository) {
+  private final ActivityLogRepository activityLogRepository;
+  private final Clock clock;
+
+  public ActivityLogService(ActivityLogRepository activityLogRepository, Clock clock) {
     this.activityLogRepository = activityLogRepository;
+    this.clock = clock;
   }
 
   public ActivityPageResponse findAll(
@@ -50,10 +60,10 @@ public class ActivityLogService {
             filters.and(
                 (root, query, cb) ->
                     cb.greaterThanOrEqualTo(
-                        root.get("createdAt"), LocalDateTime.now().minusHours(24))));
+                        root.get("createdAt"), LocalDateTime.now(clock).minusHours(24))));
     long aiRelated =
         activityLogRepository.count(
-            filters.and((root, query, cb) -> cb.equal(root.get("source"), ActivitySource.AI)));
+            filters.and((root, query, cb) -> root.get("kind").in(AI_ACTIVITY_KINDS)));
 
     return new ActivityPageResponse(
         items,
@@ -119,6 +129,33 @@ public class ActivityLogService {
             .build());
   }
 
+  public void recordAiProcessingStarted(
+      User actor, UUID applicationId, String targetLabel, UUID runId) {
+    activityLogRepository.save(
+        ActivityLog.builder()
+            .actor(actor)
+            .actorName(actor.getFullName())
+            .kind(ActivityKind.AI_SCORING_STARTED)
+            .source(ActivitySource.ADMIN)
+            .targetType(ActivityTargetType.APPLICATION)
+            .targetId(applicationId)
+            .targetLabel(targetLabel)
+            .description("đã yêu cầu chạy lại quy trình AI")
+            .metadata(Map.of("runId", runId.toString(), "trigger", "ADMIN_RETRY"))
+            .build());
+  }
+
+  @Transactional(readOnly = true)
+  public List<ActivityResponse> findRecent(int limit) {
+    return activityLogRepository
+        .findAll(
+            PageRequest.of(0, Math.clamp(limit, 1, 20), Sort.by(Sort.Direction.DESC, "createdAt")))
+        .getContent()
+        .stream()
+        .map(this::toResponse)
+        .toList();
+  }
+
   private Specification<ActivityLog> buildFilters(
       String search,
       String group,
@@ -179,7 +216,7 @@ public class ActivityLogService {
           predicates.add(
               root.get("kind")
                   .in(ActivityKind.APPLICATION_SUBMITTED, ActivityKind.APPLICATION_STATUS_CHANGED));
-      case "AI" -> predicates.add(cb.equal(root.get("source"), ActivitySource.AI));
+      case "AI" -> predicates.add(root.get("kind").in(AI_ACTIVITY_KINDS));
       default -> {
         // Unknown groups intentionally return all groups for forward compatibility.
       }

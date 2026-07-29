@@ -8,9 +8,13 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/features/auth/auth.service";
 import type { AuthUser, LoginInput } from "@/features/auth/auth.types";
-import { setAccessToken } from "@/services/http/api-client";
+import {
+  AUTH_SESSION_EXPIRED_EVENT,
+  setAccessToken,
+} from "@/services/http/api-client";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -24,9 +28,15 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     let active = true;
+    const expireSession = () => {
+      queryClient.clear();
+      setUser(null);
+    };
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, expireSession);
     authService
       .restore()
       .then((restoredUser) => {
@@ -41,19 +51,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     return () => {
       active = false;
+      window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, expireSession);
     };
-  }, []);
+  }, [queryClient]);
 
   const login = useCallback(async (input: LoginInput) => {
     const authenticatedUser = await authService.login(input);
+    queryClient.clear();
     setUser(authenticatedUser);
     return authenticatedUser;
-  }, []);
+  }, [queryClient]);
 
   const logout = useCallback(async () => {
-    await authService.logout();
-    setUser(null);
-  }, []);
+    try {
+      await authService.logout();
+    } finally {
+      queryClient.clear();
+      setUser(null);
+    }
+  }, [queryClient]);
 
   const value = useMemo(
     () => ({ user, isLoading, login, logout }),

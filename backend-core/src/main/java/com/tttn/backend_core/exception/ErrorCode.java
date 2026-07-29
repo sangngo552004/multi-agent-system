@@ -57,7 +57,10 @@ public enum ErrorCode {
   IDEMPOTENCY_KEY_REQUIRED(
       1040, "A valid Idempotency-Key header is required", HttpStatus.BAD_REQUEST),
   AI_RUN_NOT_FOUND(1041, "AI processing run not found", HttpStatus.NOT_FOUND),
-  DATA_CONFLICT(1042, "Data conflicts with the current state", HttpStatus.CONFLICT);
+  DATA_CONFLICT(1042, "Data conflicts with the current state", HttpStatus.CONFLICT),
+  INVALID_DASHBOARD_RANGE(
+      1043, "Dashboard rangeDays must be either 7 or 30", HttpStatus.BAD_REQUEST),
+  INVALID_ADMIN_FILTER(1044, "Invalid admin list filter", HttpStatus.BAD_REQUEST);
 
   private final int code;
   private final String message;

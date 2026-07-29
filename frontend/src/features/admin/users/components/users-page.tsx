@@ -15,6 +15,11 @@ import type { UserFilters } from "@/features/admin/users/users.types";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { UserRole, UserStatus } from "@/types/domain/admin";
 import type { SortingState } from "@tanstack/react-table";
+import {
+  readEnumParam,
+  readPageIndex,
+  readSorting,
+} from "@/features/admin/admin-search-params";
 
 const roleOptions = [
   { value: "ALL", label: "Tất cả vai trò" },
@@ -27,22 +32,26 @@ const statusOptions = [
   { value: "ACTIVE", label: "Đang hoạt động" },
   { value: "BLOCKED", label: "Đã khóa" },
 ];
+const userRoles = ["ALL", "ADMIN", "HR", "CANDIDATE"] as const;
+const userStatuses = ["ALL", "ACTIVE", "BLOCKED"] as const;
+const userSortFields = ["fullName", "role", "lastActiveAt", "createdAt"] as const;
+
 export function UsersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
-  const [role, setRole] = useState<UserRole | "ALL">((searchParams.get("role") as UserRole) ?? "ALL");
-  const [status, setStatus] = useState<UserStatus | "ALL">((searchParams.get("status") as UserStatus) ?? "ALL");
-  const [page, setPage] = useState(() => {
-    const value = Number(searchParams.get("page") ?? "1");
-    return Number.isFinite(value) && value > 0 ? value - 1 : 0;
-  });
-  const [sorting, setSorting] = useState<SortingState>([
-    {
-      id: searchParams.get("sort")?.split(",")[0] || "createdAt",
-      desc: searchParams.get("sort")?.split(",")[1] !== "asc",
-    },
-  ]);
+  const [role, setRole] = useState<UserRole | "ALL">(() =>
+    readEnumParam(searchParams.get("role"), userRoles, "ALL"),
+  );
+  const [status, setStatus] = useState<UserStatus | "ALL">(() =>
+    readEnumParam(searchParams.get("status"), userStatuses, "ALL"),
+  );
+  const [page, setPage] = useState(() =>
+    readPageIndex(searchParams.get("page")),
+  );
+  const [sorting, setSorting] = useState<SortingState>(() =>
+    readSorting(searchParams.get("sort"), userSortFields, "createdAt"),
+  );
   const debouncedSearch = useDebounce(search);
   const filters = useMemo<UserFilters>(
     () => ({

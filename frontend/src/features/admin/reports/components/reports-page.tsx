@@ -21,7 +21,7 @@ export function ReportsPage() {
 
   return <div className="space-y-7">
     <PageHeader eyebrow="Tổng hợp vận hành" title="Báo cáo tuyển dụng" description="Theo dõi tài khoản, nhu cầu tuyển dụng, hồ sơ ứng viên và tình trạng xử lý AI trong toàn tổ chức." actions={<Select label="Khoảng báo cáo" value={String(range)} onValueChange={(value) => setRange(Number(value) as DashboardRange)} options={[{ value: "7", label: "7 ngày gần đây" }, { value: "30", label: "30 ngày gần đây" }]} />} />
-    {!report.data.hasData ? <EmptyState title="Chưa có dữ liệu báo cáo" description="Chuyển kịch bản demo về Bình thường để xem số liệu mẫu." /> : <>
+    {!report.data.hasData ? <EmptyState title="Chưa có dữ liệu báo cáo" description="Hệ thống chưa có dữ liệu vận hành trong phạm vi có thể tổng hợp." /> : <>
       <OperationalPulse metrics={report.data.metrics} />
       <ReportNotes range={range} data={report.data} />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.75fr)]"><ApplicationTrendChart data={report.data.trend} /><AiStatusPanel data={report.data.aiStatuses} /></div>

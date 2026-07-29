@@ -1,6 +1,7 @@
 import type { ActivityEntry } from "@/types/domain/admin";
 
 export type ActivityGroup = "ALL" | "ADMIN" | "CONTENT" | "AI" | "APPLICATION";
+export type ActivityDateRange = "ALL" | "24H" | "7D" | "30D";
 
 export type ActivityFilters = {
   search?: string;

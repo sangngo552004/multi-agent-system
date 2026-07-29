@@ -18,6 +18,8 @@ type RequestOptions = RequestInit & {
 let accessToken: string | null = null;
 let refreshPromise: Promise<string> | null = null;
 
+export const AUTH_SESSION_EXPIRED_EVENT = "auth:session-expired";
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -31,6 +33,13 @@ export class ApiError extends Error {
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
+}
+
+function notifySessionExpired() {
+  setAccessToken(null);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
+  }
 }
 
 export async function refreshAccessToken() {
@@ -62,7 +71,12 @@ export async function apiRequest<T>(
   } = options;
 
   if (authenticated && !accessToken) {
-    await refreshAccessToken();
+    try {
+      await refreshAccessToken();
+    } catch (error) {
+      notifySessionExpired();
+      throw error;
+    }
   }
 
   const headers = new Headers(fetchOptions.headers);
@@ -88,7 +102,12 @@ export async function apiRequest<T>(
       error.status === 401
     ) {
       setAccessToken(null);
-      await refreshAccessToken();
+      try {
+        await refreshAccessToken();
+      } catch (refreshError) {
+        notifySessionExpired();
+        throw refreshError;
+      }
       return apiRequest<T>(path, {
         ...fetchOptions,
         authenticated: true,

@@ -9,6 +9,8 @@ import com.tttn.backend_core.exception.AppException;
 import com.tttn.backend_core.exception.ErrorCode;
 import com.tttn.backend_core.repository.*;
 import jakarta.persistence.criteria.Predicate;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -55,18 +57,24 @@ public class AdminApplicationService {
   private final AiProcessingStepRepository stepRepository;
   private final AiProcessingOutboxRepository outboxRepository;
   private final UserRepository userRepository;
+  private final ActivityLogService activityLogService;
+  private final Clock clock;
 
   public AdminApplicationService(
       ApplicationRepository applicationRepository,
       AiProcessingRunRepository runRepository,
       AiProcessingStepRepository stepRepository,
       AiProcessingOutboxRepository outboxRepository,
-      UserRepository userRepository) {
+      UserRepository userRepository,
+      ActivityLogService activityLogService,
+      Clock clock) {
     this.applicationRepository = applicationRepository;
     this.runRepository = runRepository;
     this.stepRepository = stepRepository;
     this.outboxRepository = outboxRepository;
     this.userRepository = userRepository;
+    this.activityLogService = activityLogService;
+    this.clock = clock;
   }
 
   @Transactional(readOnly = true)
@@ -191,6 +199,8 @@ public class AdminApplicationService {
             .payload(processRequest(application, run))
             .status("NEW")
             .build());
+    activityLogService.recordAiProcessingStarted(
+        actor, applicationId, application.getCandidate().getFullName(), run.getId());
     return acceptedResponse(run);
   }
 
@@ -227,8 +237,8 @@ public class AdminApplicationService {
       return null;
     }
     return switch (dateRange) {
-      case "7" -> LocalDateTime.now().minusDays(7);
-      case "30" -> LocalDateTime.now().minusDays(30);
+      case "7" -> LocalDate.now(clock).minusDays(6).atStartOfDay();
+      case "30" -> LocalDate.now(clock).minusDays(29).atStartOfDay();
       default -> throw new AppException(ErrorCode.INVALID_APPLICATION_FILTER);
     };
   }

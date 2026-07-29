@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, ChevronDown, LogOut, Menu, UserRound } from "lucide-react";
 import { routeLabels } from "@/config/navigation";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,8 +58,13 @@ export function AdminTopbar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const router = useRouter();
 
   const handleLogout = async () => {
-    await logout();
-    router.replace("/login");
+    try {
+      await logout();
+    } catch {
+      // Local identity and query cache are still cleared by AuthProvider.
+    } finally {
+      router.replace("/login");
+    }
   };
 
   return (
@@ -81,18 +85,12 @@ export function AdminTopbar({ onOpenMenu }: { onOpenMenu: () => void }) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
-        {process.env.NEXT_PUBLIC_USE_ADMIN_MOCKS === "true" ? (
-          <Badge tone="signal" className="hidden sm:inline-flex">
-            DEMO
-          </Badge>
-        ) : null}
         <Link
           href="/admin/activity"
           className="relative inline-flex size-10 items-center justify-center rounded-[9px] text-muted transition-colors hover:bg-surface-soft hover:text-ink"
           aria-label="Mở nhật ký hoạt động"
         >
           <Bell className="size-[18px]" />
-          <span className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-accent ring-2 ring-canvas" />
         </Link>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
