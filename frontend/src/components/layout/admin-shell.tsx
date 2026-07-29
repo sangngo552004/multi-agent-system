@@ -1,13 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Dialog } from "radix-ui";
 import { X } from "lucide-react";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { AdminTopbar } from "@/components/layout/admin-topbar";
+import { useAuth } from "@/features/auth/auth-provider";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+    } else if (user.role !== "ADMIN") {
+      router.replace(user.role === "HR" ? "/hr/dashboard" : "/candidate/dashboard");
+    }
+  }, [isLoading, pathname, router, user]);
+
+  if (isLoading || !user || user.role !== "ADMIN") {
+    return (
+      <div className="grid min-h-screen place-items-center bg-canvas">
+        <p className="text-sm text-muted">Đang kiểm tra quyền truy cập…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-shell min-h-screen bg-canvas">

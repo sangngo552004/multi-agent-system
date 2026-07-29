@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { CURRENT_ADMIN_ID } from "@/lib/constants";
+import { useAuth } from "@/features/auth/auth-provider";
 import { useUpdateUserStatus } from "@/features/admin/users/users.queries";
 import {
   userStatusReasonSchema,
@@ -19,8 +19,9 @@ import type { AdminUser } from "@/types/domain/admin";
 export function UserStatusDialog({ user }: { user: AdminUser }) {
   const [open, setOpen] = useState(false);
   const mutation = useUpdateUserStatus();
+  const { user: currentUser } = useAuth();
   const willBlock = user.status === "ACTIVE";
-  const selfBlock = user.id === CURRENT_ADMIN_ID && willBlock;
+  const selfBlock = user.id === currentUser?.id && willBlock;
   const form = useForm<UserStatusReasonForm>({
     resolver: zodResolver(userStatusReasonSchema),
     defaultValues: { reason: "" },

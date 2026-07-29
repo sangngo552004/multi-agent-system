@@ -1,7 +1,6 @@
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import type { DashboardData, DashboardRange } from "@/features/admin/dashboard/dashboard.types";
-import type { ApplicationFilters } from "@/features/admin/applications/applications.types";
 import type { JobFilters } from "@/features/admin/jobs/jobs.types";
 import type { CareerLevelInput, CompetencyInput, JobFamilyInput, ToggleKnowledgeInput } from "@/features/admin/knowledge/knowledge.types";
 import type {
@@ -11,9 +10,7 @@ import type {
 import { CURRENT_ADMIN_ID } from "@/lib/constants";
 import { mockDatabase } from "@/mocks/mock-database";
 import { getMockScenario } from "@/mocks/mock-scenarios";
-import type { AdminService } from "@/services/contracts/admin-service";
 import { getReadinessIssues, mockJobService } from "@/services/mock/mock-job.service";
-import { mockApplicationService } from "@/services/mock/mock-application.service";
 import { mockKnowledgeService } from "@/services/mock/mock-knowledge.service";
 import type { CompetencyLevel } from "@/types/domain/admin";
 import type { ActivityEntry, AdminUser, AiProcessingStatus } from "@/types/domain/admin";
@@ -65,7 +62,7 @@ function emptyDashboard(range: DashboardRange): DashboardData {
   };
 }
 
-class MockAdminService implements AdminService {
+class MockAdminService {
   async getDashboard(range: DashboardRange): Promise<DashboardData> {
     await delay(QUERY_DELAY);
     const scenario = getMockScenario();
@@ -200,18 +197,6 @@ class MockAdminService implements AdminService {
 
   getJob(jobId: string) {
     return mockJobService.getJob(jobId);
-  }
-
-  getApplications(filters: ApplicationFilters = {}) {
-    return mockApplicationService.getApplications(filters);
-  }
-
-  getApplication(applicationId: string) {
-    return mockApplicationService.getApplication(applicationId);
-  }
-
-  retryApplication(applicationId: string) {
-    return mockApplicationService.retryApplication(applicationId);
   }
 
   async getActivities() {

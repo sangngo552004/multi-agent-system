@@ -44,6 +44,18 @@ public class Job {
   @Column(columnDefinition = "TEXT")
   private String benefits;
 
+  @Column(name = "department_name")
+  private String departmentName;
+
+  @Column(name = "openings_count", nullable = false)
+  @Builder.Default
+  private Integer openingsCount = 1;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  @Builder.Default
+  private JobStatus status = JobStatus.OPEN;
+
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "job_family_id")
   private JobFamily jobFamily;

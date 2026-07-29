@@ -39,6 +39,7 @@ function NavLink({ item, onNavigate }: { item: NavigationItem; onNavigate?: () =
 export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const queryClient = useQueryClient();
   const scenario = useMockScenario();
+  const showDemoControls = process.env.NEXT_PUBLIC_USE_ADMIN_MOCKS === "true";
 
   const handleScenario = async (nextScenario: MockScenario) => {
     setMockScenario(nextScenario);
@@ -96,7 +97,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </nav>
 
-      <div className="m-3 rounded-[10px] border border-white/10 bg-white/[0.045] p-3">
+      {showDemoControls ? <div className="m-3 rounded-[10px] border border-white/10 bg-white/[0.045] p-3">
         <div className="flex items-center justify-between">
           <span className="admin-kicker rounded-full bg-signal px-2 py-1 text-[9px] text-ink">
             Chế độ demo
@@ -121,7 +122,7 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <RotateCcw className="size-3.5" />
           Khôi phục dữ liệu
         </button>
-      </div>
+      </div> : null}
     </aside>
   );
 }

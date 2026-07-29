@@ -10,8 +10,8 @@ export function AiDiagnosticsPanel({ application }: { application: ApplicationDe
         {application.errorCode ? <Badge tone="danger">{application.errorCode}</Badge> : <Badge tone="success">Không có lỗi</Badge>}
       </header>
       <div className="grid gap-px bg-border sm:grid-cols-3">
-        <Metric icon={FileScan} label="Phương thức đọc" value={application.extractionMethod === "OCR" ? "Nhận dạng hình ảnh" : "Lớp văn bản"} />
-        <Metric icon={Gauge} label="Độ tin cậy" value={`${Math.round(application.aiConfidence * 100)}%`} />
+        <Metric icon={FileScan} label="Phương thức đọc" value={application.extractionMethod ? (application.extractionMethod === "OCR" ? "Nhận dạng hình ảnh" : application.extractionMethod === "TEXT_LAYER" ? "Lớp văn bản" : "Mô hình ngôn ngữ") : "Chưa có"} />
+        <Metric icon={Gauge} label="Độ tin cậy" value={application.aiConfidence === null ? "Chưa có" : `${Math.round(application.aiConfidence * 100)}%`} />
         <Metric icon={TriangleAlert} label="Cảnh báo trích xuất" value={`${application.warningCount} cảnh báo`} />
       </div>
       {application.errorMessage ? <div className="border-t border-border bg-danger/[0.035] px-5 py-4"><p className="text-xs font-semibold text-danger">Mô tả lỗi</p><p className="mt-1.5 text-sm leading-6 text-muted">{application.errorMessage}</p></div> : null}

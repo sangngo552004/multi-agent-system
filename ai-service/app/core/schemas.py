@@ -191,6 +191,22 @@ class CVExtractResult(BaseModel):
     error: Optional[str] = None
 
 
+class ApplicationProcessRequest(BaseModel):
+    """Versioned Core -> AI command without embedded CV contents."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    schema_version: str = Field(alias="schemaVersion")
+    request_id: str = Field(alias="requestId")
+    application_id: str = Field(alias="applicationId")
+    run_id: str = Field(alias="runId")
+    file_url: str = Field(alias="fileUrl")
+    callback_queue: str = Field(
+        default="ai.application.process.events", alias="callbackQueue"
+    )
+    job_snapshot: dict = Field(alias="jobSnapshot")
+
+
 # ── Matching Schema ────────────────────────────────────────────────────
 
 

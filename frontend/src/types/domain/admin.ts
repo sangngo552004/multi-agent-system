@@ -25,8 +25,12 @@ export type AdminApplication = RecruitmentApplication;
 export type ActivityKind =
   | "USER_STATUS_CHANGED"
   | "STAFF_PROFILE_SYNCED"
+  | "JOB_CREATED"
   | "JOB_STATUS_CHANGED"
   | "AI_RETRY_COMPLETED"
+  | "AI_SCORING_STARTED"
+  | "AI_SCORING_COMPLETED"
+  | "AI_SCORING_FAILED"
   | "KNOWLEDGE_CHANGED"
   | "JOB_UPDATED"
   | "AI_PROCESSING_FAILED"

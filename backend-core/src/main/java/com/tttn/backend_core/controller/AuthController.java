@@ -5,10 +5,18 @@ import com.tttn.backend_core.dto.request.LoginRequest;
 import com.tttn.backend_core.dto.request.RegisterRequest;
 import com.tttn.backend_core.dto.response.ApiResponse;
 import com.tttn.backend_core.dto.response.AuthResponse;
+import com.tttn.backend_core.dto.response.CurrentUserResponse;
 import com.tttn.backend_core.service.AuthService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.security.Principal;
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,6 +30,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
   private final AuthService authService;
+
+  @Value("${auth.refresh-cookie-secure:false}")
+  private boolean secureRefreshCookie;
 
   public AuthController(AuthService authService) {
     this.authService = authService;
@@ -44,7 +55,46 @@ public class AuthController {
 
   @RateLimit(action = "LOGIN", maxRequests = 5, duration = 1, unit = ChronoUnit.MINUTES)
   @PostMapping("/login")
-  public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-    return ApiResponse.success(authService.login(request));
+  public ApiResponse<AuthResponse> login(
+      @Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+    AuthResponse auth = authService.login(request);
+    setRefreshCookie(response, auth.getRefreshToken(), Duration.ofDays(7));
+    return ApiResponse.success(auth);
+  }
+
+  @GetMapping("/me")
+  public ApiResponse<CurrentUserResponse> me(Principal principal) {
+    return ApiResponse.success(authService.currentUser(principal.getName()));
+  }
+
+  @PostMapping("/refresh")
+  public ApiResponse<AuthResponse> refresh(
+      @CookieValue(name = "refresh_token", required = false) String refreshToken,
+      HttpServletResponse response) {
+    AuthResponse auth = authService.refresh(refreshToken);
+    setRefreshCookie(response, auth.getRefreshToken(), Duration.ofDays(7));
+    return ApiResponse.success(auth);
+  }
+
+  @PostMapping("/logout")
+  public ApiResponse<Void> logout(
+      @CookieValue(name = "refresh_token", required = false) String refreshToken,
+      HttpServletResponse response) {
+    authService.logout(refreshToken);
+    setRefreshCookie(response, "", Duration.ZERO);
+    return ApiResponse.success(null);
+  }
+
+  private void setRefreshCookie(
+      HttpServletResponse response, String refreshToken, Duration maxAge) {
+    ResponseCookie cookie =
+        ResponseCookie.from("refresh_token", refreshToken == null ? "" : refreshToken)
+            .httpOnly(true)
+            .secure(secureRefreshCookie)
+            .sameSite("Lax")
+            .path("/api/auth")
+            .maxAge(maxAge)
+            .build();
+    response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
   }
 }

@@ -19,3 +19,10 @@ export function useJob(jobId: string) {
     queryFn: () => adminService.getJob(jobId),
   });
 }
+
+export function useJobFilterOptions() {
+  return useQuery({
+    queryKey: adminQueryKeys.jobFilterOptions,
+    queryFn: () => adminService.getJobFilterOptions(),
+  });
+}

@@ -1,5 +1,6 @@
 package com.tttn.backend_core.security;
 
+import com.tttn.backend_core.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,9 +19,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtFilter extends OncePerRequestFilter {
 
   private final JwtUtils jwtUtils;
+  private final UserRepository userRepository;
 
-  public JwtFilter(JwtUtils jwtUtils) {
+  public JwtFilter(JwtUtils jwtUtils, UserRepository userRepository) {
     this.jwtUtils = jwtUtils;
+    this.userRepository = userRepository;
   }
 
   @Override
@@ -39,12 +42,19 @@ public class JwtFilter extends OncePerRequestFilter {
         if ("ACCESS".equals(type)) {
           String username = claims.getSubject();
           if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            String role = claims.get("roles", String.class);
-            UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(
-                    username, null, List.of(new SimpleGrantedAuthority(role)));
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+            userRepository
+                .findByEmail(username)
+                .filter(user -> user.isActive())
+                .ifPresent(
+                    user -> {
+                      String role = "ROLE_" + user.getRole().name();
+                      UsernamePasswordAuthenticationToken authToken =
+                          new UsernamePasswordAuthenticationToken(
+                              username, null, List.of(new SimpleGrantedAuthority(role)));
+                      authToken.setDetails(
+                          new WebAuthenticationDetailsSource().buildDetails(request));
+                      SecurityContextHolder.getContext().setAuthentication(authToken);
+                    });
           }
         }
       } catch (Exception e) {

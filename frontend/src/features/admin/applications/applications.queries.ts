@@ -1,11 +1,13 @@
 "use client";
 
+import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { buildAiPipeline } from "@/features/admin/applications/application-pipeline";
 import type { ApplicationFilters } from "@/features/admin/applications/applications.types";
-import type { ApplicationDetail } from "@/features/admin/applications/applications.types";
 import { adminService } from "@/services/admin.service";
 import { adminQueryKeys } from "@/services/query-keys";
+
+const POLL_INTERVAL_MS = 2_000;
+const POLL_TIMEOUT_MS = 120_000;
 
 export function useApplications(filters: ApplicationFilters) {
   return useQuery({
@@ -16,49 +18,49 @@ export function useApplications(filters: ApplicationFilters) {
 }
 
 export function useApplication(applicationId: string) {
+  const pollingStartedAt = useRef<number | null>(null);
   return useQuery({
     queryKey: adminQueryKeys.application(applicationId),
     queryFn: () => adminService.getApplication(applicationId),
+    refetchInterval: (query) => {
+      const application = query.state.data;
+      const active =
+        application?.aiStatus === "WAITING" ||
+        application?.aiStatus === "PROCESSING";
+      if (!active) {
+        pollingStartedAt.current = null;
+        return false;
+      }
+      pollingStartedAt.current ??= Date.now();
+      return Date.now() - pollingStartedAt.current < POLL_TIMEOUT_MS
+        ? POLL_INTERVAL_MS
+        : false;
+    },
   });
 }
 
 export function useRetryApplication() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (applicationId: string) => adminService.retryApplication(applicationId),
-    onMutate: async (applicationId) => {
-      const key = adminQueryKeys.application(applicationId);
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<ApplicationDetail>(key);
-      queryClient.setQueryData<ApplicationDetail>(key, (current) => transitionAiStatus(current, "WAITING"));
-      const processingTimer = window.setTimeout(() => {
-        queryClient.setQueryData<ApplicationDetail>(key, (current) => transitionAiStatus(current, "PROCESSING"));
-      }, 650);
-      return { previous, processingTimer };
-    },
-    onError: (_error, applicationId, context) => {
-      window.clearTimeout(context?.processingTimer);
-      if (context?.previous) queryClient.setQueryData(adminQueryKeys.application(applicationId), context.previous);
-    },
-    onSuccess: async (application, _applicationId, context) => {
-      window.clearTimeout(context?.processingTimer);
-      queryClient.setQueryData(adminQueryKeys.application(application.id), application);
+    mutationFn: ({
+      applicationId,
+      idempotencyKey,
+    }: {
+      applicationId: string;
+      idempotencyKey: string;
+    }) => adminService.retryApplication(applicationId, idempotencyKey),
+    onSuccess: async (accepted) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.all }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.application(application.id) }),
+        queryClient.invalidateQueries({
+          queryKey: adminQueryKeys.application(accepted.applicationId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["admin", "applications"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["admin", "activities"],
+        }),
       ]);
     },
   });
-}
-
-function transitionAiStatus(application: ApplicationDetail | undefined, aiStatus: "WAITING" | "PROCESSING") {
-  if (!application) return application;
-  const updated: ApplicationDetail = {
-    ...application,
-    aiStatus,
-    errorCode: undefined,
-    errorMessage: undefined,
-    canRetry: false,
-  };
-  return { ...updated, pipeline: buildAiPipeline(updated) };
 }

@@ -4,9 +4,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+import com.tttn.backend_core.entity.Role;
+import com.tttn.backend_core.entity.User;
+import com.tttn.backend_core.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +26,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class JwtFilterTest {
 
   @Mock private JwtUtils jwtUtils;
+  @Mock private UserRepository userRepository;
 
   @Mock private FilterChain filterChain;
 
@@ -48,7 +53,10 @@ class JwtFilterTest {
     when(jwtUtils.parseClaims("valid-token")).thenReturn(claims);
     when(claims.get("type", String.class)).thenReturn("ACCESS");
     when(claims.getSubject()).thenReturn("test@tttn.com");
-    when(claims.get("roles", String.class)).thenReturn("ROLE_HR");
+    when(userRepository.findByEmail("test@tttn.com"))
+        .thenReturn(
+            Optional.of(
+                User.builder().email("test@tttn.com").role(Role.HR).isActive(true).build()));
 
     jwtFilter.doFilterInternal(request, response, filterChain);
 

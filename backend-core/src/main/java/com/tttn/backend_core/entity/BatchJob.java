@@ -52,7 +52,7 @@ public class BatchJob {
   private String status; // 'PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'
 
   @JdbcTypeCode(SqlTypes.JSON)
-  @Column(columnDefinition = "jsonb", nullable = false)
+  @Column(columnDefinition = "json", nullable = false)
   private Map<String, Object> payload;
 
   @CreationTimestamp

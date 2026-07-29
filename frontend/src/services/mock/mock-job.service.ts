@@ -64,7 +64,16 @@ class MockJobService {
   async getJobs(filters: JobFilters = {}): Promise<JobListResult> {
     await delay(QUERY_DELAY);
     if (getMockScenario() === "empty") {
-      return { items: [], statusCounts: { DRAFT: 0, OPEN: 0, PAUSED: 0, CLOSED: 0 } };
+      return {
+        items: [],
+        statusCounts: { DRAFT: 0, OPEN: 0, PAUSED: 0, CLOSED: 0 },
+        page: 0,
+        size: filters.size ?? 20,
+        totalItems: 0,
+        totalPages: 0,
+        first: true,
+        last: true,
+      };
     }
 
     const query = normalize(filters.search ?? "");
@@ -84,7 +93,16 @@ class MockJobService {
     const items = baseItems.filter(
       (job) => !filters.status || filters.status === "ALL" || job.status === filters.status,
     );
-    return { items, statusCounts };
+    return {
+      items,
+      statusCounts,
+      page: 0,
+      size: items.length,
+      totalItems: items.length,
+      totalPages: items.length ? 1 : 0,
+      first: true,
+      last: true,
+    };
   }
 
   async getJob(jobId: string): Promise<JobDetail> {

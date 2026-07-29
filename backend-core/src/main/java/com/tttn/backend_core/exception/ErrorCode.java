@@ -29,7 +29,35 @@ public enum ErrorCode {
   BODY_TEMPLATE_REQUIRED(1021, "Body template is required", HttpStatus.BAD_REQUEST),
   ORGANIZATION_NAME_REQUIRED(1022, "Organization name is required", HttpStatus.BAD_REQUEST),
   ORGANIZATION_TYPE_REQUIRED(1023, "Organization type is required", HttpStatus.BAD_REQUEST),
-  PEDIGREE_RANK_REQUIRED(1024, "Pedigree rank is required", HttpStatus.BAD_REQUEST);
+  PEDIGREE_RANK_REQUIRED(1024, "Pedigree rank is required", HttpStatus.BAD_REQUEST),
+  USER_STATUS_REQUIRED(1025, "User status is required", HttpStatus.BAD_REQUEST),
+  STATUS_REASON_REQUIRED(1026, "A reason is required", HttpStatus.BAD_REQUEST),
+  STATUS_REASON_INVALID(
+      1027, "Reason must contain between 8 and 240 characters", HttpStatus.BAD_REQUEST),
+  USER_SELF_BLOCK_FORBIDDEN(1028, "Administrators cannot block themselves", HttpStatus.CONFLICT),
+  JOB_NOT_FOUND(1029, "Job not found", HttpStatus.NOT_FOUND),
+  INVALID_REFRESH_TOKEN(1030, "Invalid or expired refresh token", HttpStatus.UNAUTHORIZED),
+  KNOWLEDGE_NOT_FOUND(1031, "Knowledge item not found", HttpStatus.NOT_FOUND),
+  KNOWLEDGE_NAME_CONFLICT(
+      1032, "A knowledge item with this name already exists", HttpStatus.CONFLICT),
+  CAREER_RANK_CONFLICT(1033, "This career rank is already in use", HttpStatus.CONFLICT),
+  KNOWLEDGE_IN_USE(
+      1034,
+      "This item is in use. Confirm the forced deactivation to continue",
+      HttpStatus.CONFLICT),
+  INVALID_KNOWLEDGE_ENTITY(1035, "Invalid knowledge entity", HttpStatus.BAD_REQUEST),
+  INVALID_COMPETENCY_LEVELS(
+      1036,
+      "Exactly five distinct competency levels from 1 to 5 are required",
+      HttpStatus.BAD_REQUEST),
+  INVALID_APPLICATION_FILTER(1037, "Invalid application filter", HttpStatus.BAD_REQUEST),
+  AI_RETRY_NOT_ALLOWED(1038, "The latest AI run cannot be retried", HttpStatus.CONFLICT),
+  AI_RUN_ALREADY_ACTIVE(
+      1039, "An AI processing run is already active for this application", HttpStatus.CONFLICT),
+  IDEMPOTENCY_KEY_REQUIRED(
+      1040, "A valid Idempotency-Key header is required", HttpStatus.BAD_REQUEST),
+  AI_RUN_NOT_FOUND(1041, "AI processing run not found", HttpStatus.NOT_FOUND),
+  DATA_CONFLICT(1042, "Data conflicts with the current state", HttpStatus.CONFLICT);
 
   private final int code;
   private final String message;

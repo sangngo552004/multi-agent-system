@@ -42,7 +42,7 @@ public class OutboxEvent {
   private String applicationId;
 
   @JdbcTypeCode(SqlTypes.JSON)
-  @Column(columnDefinition = "jsonb", nullable = false)
+  @Column(columnDefinition = "json", nullable = false)
   private Map<String, Object> payload;
 
   @Column(length = 20)

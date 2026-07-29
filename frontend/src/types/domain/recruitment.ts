@@ -12,7 +12,7 @@ export type SystemUser = {
   jobTitle?: string;
   workLocation?: string;
   createdAt: string;
-  lastActiveAt: string;
+  lastActiveAt?: string;
   jobsCount: number;
   applicationsCount: number;
   blockReason?: string;

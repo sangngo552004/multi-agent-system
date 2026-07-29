@@ -4,6 +4,7 @@ import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -18,22 +19,33 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
   private final JwtFilter jwtFilter;
   private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+  private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
   @Value("${cors.allowed-origins:http://localhost:3000}")
   private String allowedOrigins;
 
   private static final String[] PUBLIC_ENDPOINTS = {
-    "/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**"
+    "/api/auth/register",
+    "/api/auth/verify",
+    "/api/auth/login",
+    "/api/auth/refresh",
+    "/api/auth/logout",
+    "/swagger-ui/**",
+    "/v3/api-docs/**"
   };
 
   public SecurityConfig(
-      JwtFilter jwtFilter, JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
+      JwtFilter jwtFilter,
+      JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+      JwtAccessDeniedHandler jwtAccessDeniedHandler) {
     this.jwtFilter = jwtFilter;
     this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+    this.jwtAccessDeniedHandler = jwtAccessDeniedHandler;
   }
 
   @Bean
@@ -46,7 +58,10 @@ public class SecurityConfig {
     try {
       http.csrf(AbstractHttpConfigurer::disable)
           .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-          .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+          .exceptionHandling(
+              ex ->
+                  ex.authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                      .accessDeniedHandler(jwtAccessDeniedHandler))
           .authorizeHttpRequests(
               auth ->
                   auth.requestMatchers(PUBLIC_ENDPOINTS).permitAll().anyRequest().authenticated())

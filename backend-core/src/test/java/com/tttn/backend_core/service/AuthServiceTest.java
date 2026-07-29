@@ -16,8 +16,10 @@ import com.tttn.backend_core.exception.AppException;
 import com.tttn.backend_core.exception.ErrorCode;
 import com.tttn.backend_core.repository.UserRepository;
 import com.tttn.backend_core.security.JwtUtils;
+import io.jsonwebtoken.Claims;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +40,8 @@ class AuthServiceTest {
   @Mock private ObjectMapper objectMapper;
   @Mock private ValueOperations<String, String> valueOperations;
   @Mock private MailService mailService;
+  @Mock private RefreshTokenService refreshTokenService;
+  @Mock private Claims claims;
 
   @InjectMocks private AuthService authService;
 
@@ -87,6 +91,7 @@ class AuthServiceTest {
 
     User user =
         User.builder()
+            .id(UUID.randomUUID())
             .email("test@test.com")
             .passwordHash("hash")
             .isActive(true)
@@ -98,6 +103,7 @@ class AuthServiceTest {
     when(passwordEncoder.matches("password", "hash")).thenReturn(true);
     when(jwtUtils.generateAccessToken(any(User.class))).thenReturn("access-token");
     when(jwtUtils.generateRefreshToken(any(User.class))).thenReturn("refresh-token");
+    when(jwtUtils.parseClaims("refresh-token")).thenReturn(claims);
 
     AuthResponse response = authService.login(request);
 

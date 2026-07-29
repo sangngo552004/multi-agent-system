@@ -43,7 +43,7 @@ export function UserDetailPage({ userId }: { userId: string }) {
               <TabsContent value="overview">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Detail icon={Shield} label="Vai trò hệ thống" value={roleMap[user.role]} />
-                  <Detail icon={CalendarDays} label="Lần hoạt động gần nhất" value={formatRelativeTime(user.lastActiveAt)} />
+                  <Detail icon={CalendarDays} label="Lần hoạt động gần nhất" value={user.lastActiveAt ? formatRelativeTime(user.lastActiveAt) : "Chưa ghi nhận"} />
                   <Detail icon={Mail} label="Email đăng nhập" value={user.email} />
                   <Detail icon={CalendarDays} label="Ngày tạo tài khoản" value={formatDate(user.createdAt, "dd MMMM yyyy")} />
                 </div>
