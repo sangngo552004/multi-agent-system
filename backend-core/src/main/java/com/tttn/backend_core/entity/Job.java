@@ -68,9 +68,10 @@ public class Job {
   @Builder.Default
   private List<JobCompetency> requiredCompetencies = new ArrayList<>();
 
-  @Column(name = "is_active", nullable = false)
+  @Enumerated(EnumType.STRING)
+  @Column(name = "status", nullable = false)
   @Builder.Default
-  private Boolean isActive = true;
+  private JobStatus status = JobStatus.DRAFT;
 
   @Column(name = "expired_at")
   private LocalDateTime expiredAt;

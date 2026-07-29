@@ -29,7 +29,31 @@ public enum ErrorCode {
   BODY_TEMPLATE_REQUIRED(1021, "Body template is required", HttpStatus.BAD_REQUEST),
   ORGANIZATION_NAME_REQUIRED(1022, "Organization name is required", HttpStatus.BAD_REQUEST),
   ORGANIZATION_TYPE_REQUIRED(1023, "Organization type is required", HttpStatus.BAD_REQUEST),
-  PEDIGREE_RANK_REQUIRED(1024, "Pedigree rank is required", HttpStatus.BAD_REQUEST);
+  PEDIGREE_RANK_REQUIRED(1024, "Pedigree rank is required", HttpStatus.BAD_REQUEST),
+
+  // Job related errors
+  JOB_NOT_FOUND(2001, "Job not found", HttpStatus.NOT_FOUND),
+  HR_USER_NOT_FOUND(2002, "HR user not found", HttpStatus.NOT_FOUND),
+  TITLE_REQUIRED(2003, "Title is required", HttpStatus.BAD_REQUEST),
+  LOCATION_REQUIRED(2004, "Location is required", HttpStatus.BAD_REQUEST),
+  EMPLOYMENT_TYPE_REQUIRED(2005, "Employment type is required", HttpStatus.BAD_REQUEST),
+  DESCRIPTION_REQUIRED(2006, "Description is required", HttpStatus.BAD_REQUEST),
+  REQUIREMENTS_REQUIRED(2007, "Requirements are required", HttpStatus.BAD_REQUEST),
+  JOB_FAMILY_NOT_FOUND(2008, "Job family not found", HttpStatus.NOT_FOUND),
+  CAREER_LEVEL_NOT_FOUND(2009, "Career level not found", HttpStatus.NOT_FOUND),
+  COMPETENCY_NOT_FOUND(2010, "Competency not found", HttpStatus.NOT_FOUND),
+  COMPETENCY_ID_REQUIRED(2011, "Competency ID is required", HttpStatus.BAD_REQUEST),
+  WEIGHT_REQUIRED(2012, "Weight is required", HttpStatus.BAD_REQUEST),
+  LEVEL_REQUIRED(2013, "Required level is required", HttpStatus.BAD_REQUEST),
+  IS_MANDATORY_REQUIRED(2014, "isMandatory flag is required", HttpStatus.BAD_REQUEST),
+  RULE_IDS_REQUIRED(2015, "Rule IDs list cannot be null", HttpStatus.BAD_REQUEST),
+  JOB_NOT_DRAFT(2016, "Job is not in DRAFT status", HttpStatus.BAD_REQUEST),
+  CANNOT_DELETE_PUBLISHED_JOB(
+      2017, "Cannot delete a published or closed job", HttpStatus.BAD_REQUEST),
+  CANNOT_UPDATE_PUBLISHED_JOB_WITH_APPLICANTS(
+      2018,
+      "Cannot update a published job that already has applicants. Please duplicate the job instead.",
+      HttpStatus.BAD_REQUEST);
 
   private final int code;
   private final String message;
