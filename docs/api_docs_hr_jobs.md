@@ -87,6 +87,19 @@ Tài liệu này mô tả chi tiết các API mới phục vụ luồng tạo/ch
 | **Publish Job** | `POST` | `/api/v1/hr/jobs/{id}/publish` | Chuyển trạng thái từ DRAFT sang PUBLISHED. (Sau này sẽ trigger email auto). |
 | **Đóng Job** | `POST` | `/api/v1/hr/jobs/{id}/close` | Chuyển trạng thái từ PUBLISHED sang CLOSED. |
 
+### 1.5. Quản lý Master Data (Dữ liệu gốc)
+
+Hệ thống hỗ trợ đẩy đủ 4 phương thức `GET` (List & Lọc qua QueryDSL), `POST` (Tạo mới), `PUT /{id}` (Cập nhật), và `DELETE /{id}` (Xóa mềm - Soft Delete) cho các nhóm danh mục sau:
+
+| Danh mục | Base Path | Payload POST/PUT | Giải thích |
+| :--- | :--- | :--- | :--- |
+| **Kỹ năng (Competency)** | `/api/v1/hr/competencies` | `MasterDataRequest` (name, description, category) | Danh sách kỹ năng yêu cầu. |
+| **Nhóm việc (Job Family)** | `/api/v1/hr/job-families` | `MasterDataRequest` (name, description) | Lĩnh vực công việc (ví dụ: Engineering). |
+| **Cấp độ (Career Level)** | `/api/v1/hr/career-levels` | `MasterDataRequest` (name, description, rankValue) | Cấp bậc ứng viên (ví dụ: Junior, Senior). |
+| **Luật (Institutional Rule)** | `/api/v1/hr/rules` | `InstitutionalRuleRequest` (ruleCode, name, bonusPoints...) | Luật cộng điểm ưu tiên. |
+
+> **Lưu ý quan trọng**: Thao tác `DELETE` sẽ chỉ chuyển `isActive = false` và đổi tên phần tử để tránh lỗi trùng lặp khi HR tạo mới lại sau này. Dữ liệu của các Job cũ (đã PUBLISHED) không bị ảnh hưởng do Backend đã sử dụng cơ chế Snapshot (chụp lưu) JSON tại thời điểm xuất bản.
+
 ---
 
 ## 2. Bảng mã Lỗi Nghiệp vụ (dành cho i18n)
@@ -125,3 +138,93 @@ Dưới đây là danh sách Error Code Backend có thể trả về trong luồ
 3. HR chỉnh sửa thêm nếu muốn -> Bấm "Lưu nháp" -> Gọi `POST /api/v1/hr/jobs` (Tạo Job Info cơ bản -> Có được `jobId`).
 4. Ngay sau khi có `jobId`, FE tự động gọi ngầm `PUT /api/v1/hr/jobs/{jobId}/competencies` và `PUT /api/v1/hr/jobs/{jobId}/rules` để lưu Kỹ năng và Luật.
 5. Khi HR bấm "Xuất bản" -> Gọi `POST /api/v1/hr/jobs/{jobId}/publish`.
+
+---
+
+## 4. Quản lý Ứng viên (Applications) & Gửi Mail
+
+Dưới đây là các API dành cho màn hình Quản lý Danh sách Ứng viên (trong một Job cụ thể) và theo dõi tiến độ gửi bulk email.
+
+### 4.1. Lấy danh sách Ứng viên của một Job (Có Lọc & Phân trang)
+> Lấy danh sách ứng viên đã nộp đơn vào một Job. Hỗ trợ truyền Params trên URL để lọc theo trạng thái, điểm phù hợp, hoặc tìm kiếm.
+
+- **Method**: `GET`
+- **Path**: `/api/v1/hr/jobs/{jobId}/applications`
+- **Query Params** (Tất cả đều không bắt buộc):
+  - `page`: Trang hiện tại (Mặc định 0)
+  - `size`: Số lượng record mỗi trang (Mặc định 20)
+  - `status`: Lọc theo trạng thái (`PENDING`, `SHORTLISTED`, `REJECTED`)
+  - `fitScore`: Mức điểm fit score chính xác (Nếu cần lọc min/max thì FE tuỳ biến truyền param, hiện Backend đang hỗ trợ lọc `=` thông qua QueryDSL mặc định, nếu cần phức tạp hơn hãy báo Backend cập nhật).
+- **Response (200 OK - Trả về Page<ApplicationResponse>)**:
+```json
+{
+  "content": [
+    {
+      "id": "uuid-cua-application",
+      "candidateId": "uuid-cua-candidate",
+      "candidateName": "Nguyễn Văn A",
+      "candidateEmail": "nguyenvana@gmail.com",
+      "resumeUrl": "https://link-cv.com/abc.pdf",
+      "status": "PENDING",
+      "fitScore": 85.5,
+      "appliedAt": "2024-03-15T10:30:00Z"
+    }
+  ],
+  "pageable": { ... },
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+### 4.2. Xem chi tiết Hồ sơ (AI Feedback & Scoring Breakdown)
+> Dùng khi HR click vào xem chi tiết một ứng viên. Sẽ trả về thêm đánh giá của AI và breakdown điểm chi tiết.
+
+- **Method**: `GET`
+- **Path**: `/api/v1/applications/{applicationId}`
+- **Response (200 OK)**:
+```json
+{
+  "id": "uuid-cua-application",
+  "candidateName": "Nguyễn Văn A",
+  "status": "PENDING",
+  "fitScore": 85.5,
+  "aiFeedback": "Ứng viên có kỹ năng Java rất tốt nhưng thiếu kinh nghiệm làm việc thực tế...",
+  "scoringBreakdown": {
+    "competency_scores": [...],
+    "rules_triggered": [...]
+  }
+}
+```
+
+### 4.3. Phê duyệt (Approve) & Từ chối (Reject)
+> Đánh dấu ứng viên vào danh sách Shortlist hoặc loại.
+
+- **Approve**: `POST /api/v1/applications/{applicationId}/approve`
+- **Reject**: `POST /api/v1/applications/{applicationId}/reject`
+- **Response (200 OK)**:
+```json
+{
+  "status": "success",
+  "message": "Application approved successfully."
+}
+```
+
+### 4.4. Theo dõi Tiến độ Gửi Mail Hàng loạt (Batch Email Tracking)
+> Khi gửi thư mời/từ chối hàng loạt, API kích hoạt sẽ trả về một `batchJobId`. Frontend dùng ID này để gọi API dưới đây liên tục (Polling mỗi 3-5 giây) để vẽ Progress Bar.
+
+- **Kích hoạt gửi Mail (Đã có từ trước)**: `POST /api/v1/applications/batch-email`
+  - Payload cần truyền `applicationIds` (mảng ID), `action` (INVITE/REJECT), `subjectTemplate`, `bodyTemplate`.
+  - Trả về Tracking ID (ví dụ: `Batch email request accepted. Tracking ID: 1234-5678...`)
+- **Tracking API**: `GET /api/v1/applications/batch-email/{batchJobId}`
+- **Response (200 OK)**:
+```json
+{
+  "id": "1234-5678...",
+  "status": "PROCESSING",
+  "totalCount": 100,
+  "processedCount": 45,
+  "successCount": 40,
+  "failedCount": 5
+}
+```
+*(Khi `processedCount` == `totalCount`, tiến trình gửi mail đã hoàn tất).*

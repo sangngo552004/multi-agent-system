@@ -1,7 +1,10 @@
 package com.tttn.backend_core.service;
 
 import com.tttn.backend_core.dto.request.BatchEmailRequest;
+import com.tttn.backend_core.dto.response.BatchJobResponse;
 import com.tttn.backend_core.entity.BatchJob;
+import com.tttn.backend_core.exception.AppException;
+import com.tttn.backend_core.exception.ErrorCode;
 import com.tttn.backend_core.repository.BatchJobRepository;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,5 +44,23 @@ public class BatchJobService {
         "Batch job created: id={}, totalCount={}", batchJobId, request.getApplicationIds().size());
 
     return batchJobId;
+  }
+
+  @Transactional(readOnly = true)
+  public BatchJobResponse getBatchJobStatus(String batchJobId) {
+    BatchJob batchJob =
+        batchJobRepository
+            .findById(batchJobId)
+            .orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
+
+    return BatchJobResponse.builder()
+        .id(batchJob.getId())
+        .status(batchJob.getStatus())
+        .totalCount(batchJob.getTotalCount())
+        .processedCount(batchJob.getProcessedCount())
+        .successCount(batchJob.getSuccessCount())
+        .failedCount(batchJob.getFailedCount())
+        .payload(batchJob.getPayload())
+        .build();
   }
 }

@@ -2,12 +2,15 @@ package com.tttn.backend_core.controller;
 
 import com.tttn.backend_core.dto.request.BatchEmailRequest;
 import com.tttn.backend_core.dto.response.ApiResponse;
+import com.tttn.backend_core.dto.response.ApplicationResponse;
+import com.tttn.backend_core.dto.response.BatchJobResponse;
 import com.tttn.backend_core.service.ApplicationService;
 import com.tttn.backend_core.service.BatchJobService;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -35,5 +38,15 @@ public class ApplicationController {
   public ApiResponse<String> batchEmail(@Valid @RequestBody BatchEmailRequest request) {
     String batchJobId = batchJobService.createBatchJob(request);
     return ApiResponse.success("Batch email request accepted. Tracking ID: " + batchJobId);
+  }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<ApplicationResponse> getApplicationDetail(@PathVariable UUID id) {
+    return ResponseEntity.ok(applicationService.getApplicationDetail(id));
+  }
+
+  @GetMapping("/batch-email/{batchJobId}")
+  public ResponseEntity<BatchJobResponse> getBatchJobStatus(@PathVariable String batchJobId) {
+    return ResponseEntity.ok(batchJobService.getBatchJobStatus(batchJobId));
   }
 }
