@@ -24,4 +24,6 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
   @Modifying
   @Query("UPDATE Application a SET a.status = :status WHERE a.id IN :ids")
   int updateStatusBatch(@Param("ids") List<UUID> ids, @Param("status") ApplicationStatus status);
+
+  int countByJobId(UUID jobId);
 }

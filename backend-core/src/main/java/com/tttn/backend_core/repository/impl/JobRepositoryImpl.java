@@ -6,6 +6,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.tttn.backend_core.dto.request.JobFilterRequest;
 import com.tttn.backend_core.entity.EmploymentType;
 import com.tttn.backend_core.entity.Job;
+import com.tttn.backend_core.entity.JobStatus;
 import com.tttn.backend_core.entity.QJob;
 import com.tttn.backend_core.repository.custom.JobRepositoryCustom;
 import java.util.List;
@@ -29,7 +30,7 @@ public class JobRepositoryImpl implements JobRepositoryCustom {
         queryFactory
             .selectFrom(qJob)
             .where(
-                isActiveEq(qJob, filter.getIsActive()),
+                statusEq(qJob, filter.getStatus()),
                 keywordContains(qJob, filter.getKeyword()),
                 locationContains(qJob, filter.getLocation()),
                 employmentTypeEq(qJob, filter.getEmploymentType()),
@@ -43,8 +44,8 @@ public class JobRepositoryImpl implements JobRepositoryCustom {
     return new PageImpl<>(jobs, pageable, total);
   }
 
-  private BooleanExpression isActiveEq(QJob qJob, Boolean isActive) {
-    return isActive != null ? qJob.isActive.eq(isActive) : null;
+  private BooleanExpression statusEq(QJob qJob, JobStatus status) {
+    return status != null ? qJob.status.eq(status) : null;
   }
 
   private BooleanExpression keywordContains(QJob qJob, String keyword) {

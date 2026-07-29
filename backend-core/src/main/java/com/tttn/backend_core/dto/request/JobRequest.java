@@ -38,6 +38,4 @@ public class JobRequest {
   private UUID careerLevelId;
 
   private LocalDateTime expiredAt;
-
-  private Boolean isActive;
 }

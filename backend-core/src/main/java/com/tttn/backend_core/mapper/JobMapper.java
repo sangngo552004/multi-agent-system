@@ -27,5 +27,6 @@ public interface JobMapper {
   @Mapping(target = "requiredCompetencies", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
   @Mapping(target = "updatedAt", ignore = true)
+  @Mapping(target = "status", ignore = true)
   void updateEntity(JobRequest request, @MappingTarget Job job);
 }

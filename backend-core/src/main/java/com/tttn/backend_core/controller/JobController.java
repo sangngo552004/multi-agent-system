@@ -1,11 +1,14 @@
 package com.tttn.backend_core.controller;
 
+import com.tttn.backend_core.dto.request.JobCompetencyRequest;
 import com.tttn.backend_core.dto.request.JobFilterRequest;
 import com.tttn.backend_core.dto.request.JobRequest;
+import com.tttn.backend_core.dto.request.JobRuleUpdateRequest;
 import com.tttn.backend_core.dto.response.JobResponse;
 import com.tttn.backend_core.security.CustomUserPrincipal;
 import com.tttn.backend_core.service.JobService;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -49,5 +52,22 @@ public class JobController {
   public ResponseEntity<Void> deleteJob(@PathVariable UUID id) {
     jobService.deleteJob(id);
     return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/{id}/duplicate")
+  public ResponseEntity<JobResponse> duplicateJob(@PathVariable UUID id) {
+    return ResponseEntity.status(HttpStatus.CREATED).body(jobService.duplicateJob(id));
+  }
+
+  @PutMapping("/{id}/competencies")
+  public ResponseEntity<JobResponse> updateJobCompetencies(
+      @PathVariable UUID id, @Valid @RequestBody List<JobCompetencyRequest> requests) {
+    return ResponseEntity.ok(jobService.updateJobCompetencies(id, requests));
+  }
+
+  @PutMapping("/{id}/rules")
+  public ResponseEntity<JobResponse> updateJobRules(
+      @PathVariable UUID id, @Valid @RequestBody JobRuleUpdateRequest request) {
+    return ResponseEntity.ok(jobService.updateJobRules(id, request));
   }
 }

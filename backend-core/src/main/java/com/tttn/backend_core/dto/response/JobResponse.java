@@ -1,6 +1,7 @@
 package com.tttn.backend_core.dto.response;
 
 import com.tttn.backend_core.entity.EmploymentType;
+import com.tttn.backend_core.entity.JobStatus;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -27,7 +28,7 @@ public class JobResponse {
   private UUID careerLevelId;
   private String careerLevelName;
 
-  private Boolean isActive;
+  private JobStatus status;
   private LocalDateTime expiredAt;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
