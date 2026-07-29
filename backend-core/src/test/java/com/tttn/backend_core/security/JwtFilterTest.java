@@ -47,14 +47,16 @@ class JwtFilterTest {
 
     when(jwtUtils.parseClaims("valid-token")).thenReturn(claims);
     when(claims.get("type", String.class)).thenReturn("ACCESS");
-    when(claims.getSubject()).thenReturn("test@tttn.com");
+    when(claims.getSubject()).thenReturn("123e4567-e89b-12d3-a456-426614174000");
     when(claims.get("roles", String.class)).thenReturn("ROLE_HR");
 
     jwtFilter.doFilterInternal(request, response, filterChain);
 
     // Verify context is populated
     assertNotNull(SecurityContextHolder.getContext().getAuthentication());
-    assertEquals("test@tttn.com", SecurityContextHolder.getContext().getAuthentication().getName());
+    assertEquals(
+        "123e4567-e89b-12d3-a456-426614174000",
+        SecurityContextHolder.getContext().getAuthentication().getName());
     assertEquals(
         "ROLE_HR",
         SecurityContextHolder.getContext()

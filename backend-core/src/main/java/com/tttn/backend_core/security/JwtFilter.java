@@ -38,11 +38,10 @@ public class JwtFilter extends OncePerRequestFilter {
         String type = claims.get("type", String.class);
 
         if ("ACCESS".equals(type)) {
-          String username = claims.getSubject();
-          if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+          String userId = claims.getSubject();
+          if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             String role = claims.get("roles", String.class);
-            CustomUserPrincipal principal =
-                new CustomUserPrincipal(UUID.fromString(username), role);
+            CustomUserPrincipal principal = new CustomUserPrincipal(UUID.fromString(userId), role);
 
             UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(
