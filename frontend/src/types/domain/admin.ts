@@ -12,14 +12,14 @@ export type {
   CareerPathPhase,
   EmploymentType,
   JobCompetencyRequirement,
-  JobStatus,
   RecruitmentStatus,
   UserRole,
   UserStatus,
 } from "@/types/domain/recruitment";
 
 export type AdminUser = SystemUser;
-export type AdminJob = RecruitmentJob;
+export type JobStatus = "DRAFT" | "PUBLISHED" | "PAUSED" | "CLOSED";
+export type AdminJob = Omit<RecruitmentJob, "status"> & { status: JobStatus };
 export type AdminApplication = RecruitmentApplication;
 
 export type ActivityKind =

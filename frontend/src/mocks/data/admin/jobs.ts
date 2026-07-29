@@ -1,9 +1,8 @@
 import type {
-  AdminJob,
   EmploymentType,
   JobCompetencyRequirement,
-  JobStatus,
 } from "@/types/domain/admin";
+import type { JobStatus, RecruitmentJob } from "@/types/domain/recruitment";
 
 type JobDefinition = {
   id: string;
@@ -134,7 +133,7 @@ const sharedRequirements = [
   "Có tư duy học hỏi và khả năng giải quyết vấn đề trong môi trường thay đổi.",
 ];
 
-export const jobSeeds: AdminJob[] = definitions.map((job) => ({
+export const jobSeeds: RecruitmentJob[] = definitions.map((job) => ({
   id: job.id,
   title: job.title,
   departmentName: job.departmentName,

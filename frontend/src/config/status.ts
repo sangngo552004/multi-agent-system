@@ -17,6 +17,7 @@ export const roleMap = {
 export const jobStatusMap = {
   DRAFT: { label: "Bản nháp", tone: "neutral" },
   OPEN: { label: "Đang tuyển", tone: "success" },
+  PUBLISHED: { label: "Đang tuyển", tone: "success" },
   PAUSED: { label: "Tạm dừng", tone: "warning" },
   CLOSED: { label: "Đã đóng", tone: "neutral" },
 } as const satisfies Record<string, StatusPresentation>;

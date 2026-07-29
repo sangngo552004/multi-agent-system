@@ -1,6 +1,7 @@
 package com.tttn.backend_core.repository;
 
 import com.tttn.backend_core.entity.Job;
+import com.tttn.backend_core.repository.custom.JobRepositoryCustom;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,7 +13,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface JobRepository extends JpaRepository<Job, UUID>, JpaSpecificationExecutor<Job> {
+public interface JobRepository
+    extends JpaRepository<Job, UUID>, JpaSpecificationExecutor<Job>, JobRepositoryCustom {
 
   @EntityGraph(
       attributePaths = {

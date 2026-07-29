@@ -6,12 +6,12 @@ import { userSeeds } from "@/mocks/data/admin/users";
 import type {
   ActivityEntry,
   AdminApplication,
-  AdminJob,
   AdminUser,
   CareerLevel,
   Competency,
   JobFamily,
 } from "@/types/domain/admin";
+import type { RecruitmentJob } from "@/types/domain/recruitment";
 import type {
   ApplicationStatusHistoryEntry,
   CareerPathGenerationStatus,
@@ -22,7 +22,7 @@ import type {
 
 export type MockDatabaseState = {
   users: AdminUser[];
-  jobs: AdminJob[];
+  jobs: RecruitmentJob[];
   applications: AdminApplication[];
   jobFamilies: JobFamily[];
   careerLevels: CareerLevel[];
@@ -141,14 +141,14 @@ class MockDatabase {
     return structuredClone(user);
   }
 
-  updateJob(jobId: string, patch: Partial<AdminJob>) {
+  updateJob(jobId: string, patch: Partial<RecruitmentJob>) {
     const job = this.findJob(jobId);
     if (!job) return undefined;
     Object.assign(job, patch);
     return structuredClone(job);
   }
 
-  addJob(job: AdminJob) {
+  addJob(job: RecruitmentJob) {
     this.state.jobs.unshift(structuredClone(job));
     return structuredClone(job);
   }

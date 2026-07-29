@@ -55,7 +55,7 @@ public class AdminDashboardService {
 
     long totalUsers = userRepository.count();
     long blockedUsers = userRepository.countByIsActiveFalse();
-    long openJobs = adminJobService.countJobsByStatus(JobStatus.OPEN);
+    long openJobs = adminJobService.countJobsByStatus(JobStatus.PUBLISHED);
     long incompleteJobs = adminJobService.countIncompleteNonClosedJobs();
 
     Map<AiProcessingStatus, Long> aiStatusCounts = loadAiStatusCounts(fromInclusive, toExclusive);

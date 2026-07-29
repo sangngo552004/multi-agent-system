@@ -2,7 +2,7 @@ package com.tttn.backend_core.entity;
 
 public enum JobStatus {
   DRAFT,
-  OPEN,
+  PUBLISHED,
   PAUSED,
   CLOSED
 }

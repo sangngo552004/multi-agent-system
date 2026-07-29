@@ -137,6 +137,26 @@
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>3.0.3</version>
 		</dependency>
+		<!-- QueryDSL -->
+		<dependency>
+			<groupId>com.querydsl</groupId>
+			<artifactId>querydsl-jpa</artifactId>
+			<classifier>jakarta</classifier>
+			<version>5.1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.querydsl</groupId>
+			<artifactId>querydsl-apt</artifactId>
+			<classifier>jakarta</classifier>
+			<version>5.1.0</version>
+			<scope>provided</scope>
+		</dependency>
+		<!-- MapStruct -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>1.6.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -169,6 +189,27 @@
 									<groupId>org.projectlombok</groupId>
 									<artifactId>lombok</artifactId>
 								</path>
+								<path>
+									<groupId>org.projectlombok</groupId>
+									<artifactId>lombok-mapstruct-binding</artifactId>
+									<version>0.2.0</version>
+								</path>
+								<path>
+									<groupId>org.mapstruct</groupId>
+									<artifactId>mapstruct-processor</artifactId>
+									<version>1.6.0</version>
+								</path>
+								<path>
+									<groupId>com.querydsl</groupId>
+									<artifactId>querydsl-apt</artifactId>
+									<classifier>jakarta</classifier>
+									<version>5.1.0</version>
+								</path>
+								<path>
+									<groupId>jakarta.persistence</groupId>
+									<artifactId>jakarta.persistence-api</artifactId>
+									<version>3.1.0</version>
+								</path>
 							</annotationProcessorPaths>
 						</configuration>
 					</execution>
@@ -183,6 +224,27 @@
 								<path>
 									<groupId>org.projectlombok</groupId>
 									<artifactId>lombok</artifactId>
+								</path>
+								<path>
+									<groupId>org.projectlombok</groupId>
+									<artifactId>lombok-mapstruct-binding</artifactId>
+									<version>0.2.0</version>
+								</path>
+								<path>
+									<groupId>org.mapstruct</groupId>
+									<artifactId>mapstruct-processor</artifactId>
+									<version>1.6.0</version>
+								</path>
+								<path>
+									<groupId>com.querydsl</groupId>
+									<artifactId>querydsl-apt</artifactId>
+									<classifier>jakarta</classifier>
+									<version>5.1.0</version>
+								</path>
+								<path>
+									<groupId>jakarta.persistence</groupId>
+									<artifactId>jakarta.persistence-api</artifactId>
+									<version>3.1.0</version>
 								</path>
 							</annotationProcessorPaths>
 						</configuration>

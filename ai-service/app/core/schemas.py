@@ -65,37 +65,39 @@ class PersonalInfo(BaseModel):
 
 class ExperienceItem(BaseModel):
     # --- Core fields (populated by NER and/or LLM) ---
-    title: Optional[str] = None        # position / job title
+    title: Optional[str] = None  # position / job title
     company: Optional[str] = None
-    duration: Optional[str] = None     # kept for backward compatibility
+    duration: Optional[str] = None  # kept for backward compatibility
     description: Optional[str] = None  # kept for backward compatibility
 
     # --- Rich fields (populated by LLM enrichment) ---
-    position: Optional[str] = None          # explicit position label from LLM
-    employment_type: Optional[str] = None   # Full-time | Part-time | Internship | Contract | Freelance
-    start_date: Optional[str] = None        # e.g. "2022-01" or "Jan 2022"
-    end_date: Optional[str] = None          # e.g. "2024-03" or "Present"
+    position: Optional[str] = None  # explicit position label from LLM
+    employment_type: Optional[str] = (
+        None  # Full-time | Part-time | Internship | Contract | Freelance
+    )
+    start_date: Optional[str] = None  # e.g. "2022-01" or "Jan 2022"
+    end_date: Optional[str] = None  # e.g. "2024-03" or "Present"
     location: Optional[str] = None
-    summary: Optional[str] = None           # 2-5 sentence synthesis by LLM
+    summary: Optional[str] = None  # 2-5 sentence synthesis by LLM
     responsibilities: list[str] = Field(default_factory=list)
     achievements: list[str] = Field(default_factory=list)
     technologies: list[str] = Field(default_factory=list)
-    business_domain: Optional[str] = None   # e.g. "Fintech", "E-commerce"
+    business_domain: Optional[str] = None  # e.g. "Fintech", "E-commerce"
 
 
 class ProjectItem(BaseModel):
     """A project entry extracted from the CV."""
 
     name: Optional[str] = None
-    summary: Optional[str] = None           # 2-5 sentence synthesis by LLM
-    description: Optional[str] = None       # original description from CV
+    summary: Optional[str] = None  # 2-5 sentence synthesis by LLM
+    description: Optional[str] = None  # original description from CV
     role: Optional[str] = None
     responsibilities: list[str] = Field(default_factory=list)
     technologies: list[str] = Field(default_factory=list)
     team_size: Optional[str] = None
     duration: Optional[str] = None
     achievements: list[str] = Field(default_factory=list)
-    url: Optional[str] = None               # GitHub / project URL
+    url: Optional[str] = None  # GitHub / project URL
 
 
 class EducationItem(BaseModel):
@@ -128,7 +130,9 @@ class CVExtractionResponse(BaseModel):
     language_detected: DetectedLanguage = DetectedLanguage.UNKNOWN
     personal_info: PersonalInfo = Field(default_factory=PersonalInfo)
     social_links: SocialLinks = Field(default_factory=SocialLinks)
-    professional_metadata: ProfessionalMetadata = Field(default_factory=ProfessionalMetadata)
+    professional_metadata: ProfessionalMetadata = Field(
+        default_factory=ProfessionalMetadata
+    )
     categorized_skills: CategorizedSkills = Field(default_factory=CategorizedSkills)
     spoken_languages: list[LanguageProficiency] = Field(default_factory=list)
     normalized_keywords: list[str] = Field(default_factory=list)
@@ -160,9 +164,6 @@ class ValidationResult(BaseModel):
     errors: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     file_info: FileInfo = Field(default_factory=FileInfo)
-
-
-
 
 
 # ── Text extraction result ─────────────────────────────────────────────
@@ -515,12 +516,10 @@ class CareerPathRequest(_StrictCareerPathInput):
 
     @model_validator(mode="after")
     def validate_references(self):
-        competency_ids = {
-            item.competency_id for item in self.job.required_competencies
-        }
-        unknown_decision_ids = set(
-            self.decision.related_competency_ids
-        ) - competency_ids
+        competency_ids = {item.competency_id for item in self.job.required_competencies}
+        unknown_decision_ids = (
+            set(self.decision.related_competency_ids) - competency_ids
+        )
         if unknown_decision_ids:
             raise ValueError("decision references unknown job competencies")
         resource_ids = [item.resource_id for item in self.approved_resources]
@@ -629,9 +628,7 @@ class RoadmapValidationResult(BaseModel):
     is_valid: bool
     errors: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
-    metrics: RoadmapValidationMetrics = Field(
-        default_factory=RoadmapValidationMetrics
-    )
+    metrics: RoadmapValidationMetrics = Field(default_factory=RoadmapValidationMetrics)
 
 
 class CandidateLearningResource(BaseModel):
@@ -731,3 +728,33 @@ class ApiErrorResponse(BaseModel):
     status: Literal["error"] = "error"
     error_code: str = Field(min_length=1)
     message: str = Field(min_length=1)
+
+
+# -- JD Parsing -------------------------------------------------------------
+
+
+class JDParseRequest(BaseModel):
+    text: str = Field(description="Raw text of the Job Description")
+
+
+class JDJobInfo(BaseModel):
+    title: str = ""
+    location: str = ""
+    employmentType: str = "FULL_TIME"
+    description: str = ""
+    requirements: str = ""
+    benefits: str = ""
+    jobFamilyId: Optional[str] = None
+    careerLevelId: Optional[str] = None
+
+
+class JDCompetency(BaseModel):
+    competencyId: str
+    weight: float
+    requiredLevel: int
+    isMandatory: bool
+
+
+class JDParseResponse(BaseModel):
+    jobInfo: JDJobInfo
+    competencies: list[JDCompetency] = Field(default_factory=list)

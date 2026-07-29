@@ -11,6 +11,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,13 +57,21 @@ class JwtFilterTest {
     when(userRepository.findByEmail("test@tttn.com"))
         .thenReturn(
             Optional.of(
-                User.builder().email("test@tttn.com").role(Role.HR).isActive(true).build()));
+                User.builder()
+                    .id(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"))
+                    .email("test@tttn.com")
+                    .role(Role.HR)
+                    .isActive(true)
+                    .build()));
 
     jwtFilter.doFilterInternal(request, response, filterChain);
 
     // Verify context is populated
     assertNotNull(SecurityContextHolder.getContext().getAuthentication());
     assertEquals("test@tttn.com", SecurityContextHolder.getContext().getAuthentication().getName());
+    CustomUserPrincipal principal =
+        (CustomUserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    assertEquals(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"), principal.getUserId());
     assertEquals(
         "ROLE_HR",
         SecurityContextHolder.getContext()

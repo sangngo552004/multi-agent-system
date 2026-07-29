@@ -35,7 +35,7 @@ public enum ErrorCode {
   STATUS_REASON_INVALID(
       1027, "Reason must contain between 8 and 240 characters", HttpStatus.BAD_REQUEST),
   USER_SELF_BLOCK_FORBIDDEN(1028, "Administrators cannot block themselves", HttpStatus.CONFLICT),
-  JOB_NOT_FOUND(1029, "Job not found", HttpStatus.NOT_FOUND),
+  ADMIN_JOB_NOT_FOUND(1029, "Job not found", HttpStatus.NOT_FOUND),
   INVALID_REFRESH_TOKEN(1030, "Invalid or expired refresh token", HttpStatus.UNAUTHORIZED),
   KNOWLEDGE_NOT_FOUND(1031, "Knowledge item not found", HttpStatus.NOT_FOUND),
   KNOWLEDGE_NAME_CONFLICT(
@@ -60,7 +60,31 @@ public enum ErrorCode {
   DATA_CONFLICT(1042, "Data conflicts with the current state", HttpStatus.CONFLICT),
   INVALID_DASHBOARD_RANGE(
       1043, "Dashboard rangeDays must be either 7 or 30", HttpStatus.BAD_REQUEST),
-  INVALID_ADMIN_FILTER(1044, "Invalid admin list filter", HttpStatus.BAD_REQUEST);
+  INVALID_ADMIN_FILTER(1044, "Invalid admin list filter", HttpStatus.BAD_REQUEST),
+
+  // Job related errors
+  JOB_NOT_FOUND(2001, "Job not found", HttpStatus.NOT_FOUND),
+  HR_USER_NOT_FOUND(2002, "HR user not found", HttpStatus.NOT_FOUND),
+  TITLE_REQUIRED(2003, "Title is required", HttpStatus.BAD_REQUEST),
+  LOCATION_REQUIRED(2004, "Location is required", HttpStatus.BAD_REQUEST),
+  EMPLOYMENT_TYPE_REQUIRED(2005, "Employment type is required", HttpStatus.BAD_REQUEST),
+  DESCRIPTION_REQUIRED(2006, "Description is required", HttpStatus.BAD_REQUEST),
+  REQUIREMENTS_REQUIRED(2007, "Requirements are required", HttpStatus.BAD_REQUEST),
+  JOB_FAMILY_NOT_FOUND(2008, "Job family not found", HttpStatus.NOT_FOUND),
+  CAREER_LEVEL_NOT_FOUND(2009, "Career level not found", HttpStatus.NOT_FOUND),
+  COMPETENCY_NOT_FOUND(2010, "Competency not found", HttpStatus.NOT_FOUND),
+  COMPETENCY_ID_REQUIRED(2011, "Competency ID is required", HttpStatus.BAD_REQUEST),
+  WEIGHT_REQUIRED(2012, "Weight is required", HttpStatus.BAD_REQUEST),
+  LEVEL_REQUIRED(2013, "Required level is required", HttpStatus.BAD_REQUEST),
+  IS_MANDATORY_REQUIRED(2014, "isMandatory flag is required", HttpStatus.BAD_REQUEST),
+  RULE_IDS_REQUIRED(2015, "Rule IDs list cannot be null", HttpStatus.BAD_REQUEST),
+  JOB_NOT_DRAFT(2016, "Job is not in DRAFT status", HttpStatus.BAD_REQUEST),
+  CANNOT_DELETE_PUBLISHED_JOB(
+      2017, "Cannot delete a published or closed job", HttpStatus.BAD_REQUEST),
+  CANNOT_UPDATE_PUBLISHED_JOB_WITH_APPLICANTS(
+      2018,
+      "Cannot update a published job that already has applicants. Please duplicate the job instead.",
+      HttpStatus.BAD_REQUEST);
 
   private final int code;
   private final String message;

@@ -22,6 +22,8 @@ from app.core.schemas import (
     CareerPathOutput,
     CareerPathRequest,
     CVExtractionResponse,
+    JDParseRequest,
+    JDParseResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -55,6 +57,10 @@ async def lifespan(app: FastAPI):
     # Nếu backend chưa sẵn sàng → log warning, fallback về hardcode.
     try:
         kb_loader.warmup_kb()
+        # Warmup JD Parser Master Data
+        from app.agents.jd_parser_agent.master_data import warmup_master_data
+
+        warmup_master_data()
     except Exception as e:
         logger.warning("KB warmup failed (%s). Will fallback to hardcoded KB.", e)
 
@@ -216,6 +222,24 @@ async def extract_cv(
     )
 
     return response
+
+
+@app.post(
+    "/parse-jd",
+    response_model=JDParseResponse,
+    summary="Extract structured data from a raw Job Description text",
+    description="Uses LLM to parse JD text and fuzzily matches extracted requirements with internal Master Data (Competencies, Job Families, Career Levels).",
+)
+async def parse_jd(request: JDParseRequest) -> JDParseResponse:
+    from app.agents.jd_parser_agent.agent import parse_jd_with_llm
+
+    logger.info("Received JD parse request")
+    try:
+        response = await parse_jd_with_llm(request)
+        return response
+    except Exception as e:
+        logger.error(f"Failed to parse JD: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post(

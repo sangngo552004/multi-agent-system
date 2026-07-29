@@ -121,7 +121,7 @@ public class AdminJobService {
     Job job =
         jobRepository
             .findAdminJobById(id)
-            .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
+            .orElseThrow(() -> new AppException(ErrorCode.ADMIN_JOB_NOT_FOUND));
     long applications = applicationCounts(List.of(id)).getOrDefault(id, 0L);
     Map<AiProcessingStatus, Long> aiCounts = aiStatusCounts(id);
     User owner = job.getHr();

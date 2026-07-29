@@ -94,7 +94,7 @@ class AdminJobServiceTest {
             .description("Build internal services")
             .requirements("Java")
             .benefits("Healthcare")
-            .status(JobStatus.OPEN)
+            .status(JobStatus.PUBLISHED)
             .createdAt(LocalDateTime.parse("2026-07-01T08:00:00"))
             .expiredAt(LocalDateTime.parse("2026-08-01T08:00:00"))
             .build();

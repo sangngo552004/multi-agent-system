@@ -83,4 +83,6 @@ public interface ApplicationRepository
   List<DailyApplicationCountProjection> countApplicationsByDay(
       @Param("fromInclusive") LocalDateTime fromInclusive,
       @Param("toExclusive") LocalDateTime toExclusive);
+
+  int countByJobId(UUID jobId);
 }

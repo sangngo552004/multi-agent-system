@@ -40,17 +40,19 @@ public class JwtFilter extends OncePerRequestFilter {
         String type = claims.get("type", String.class);
 
         if ("ACCESS".equals(type)) {
-          String username = claims.getSubject();
-          if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+          String email = claims.getSubject();
+          if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             userRepository
-                .findByEmail(username)
+                .findByEmail(email)
                 .filter(user -> user.isActive())
                 .ifPresent(
                     user -> {
                       String role = "ROLE_" + user.getRole().name();
+                      CustomUserPrincipal principal =
+                          new CustomUserPrincipal(user.getId(), role, user.getEmail());
                       UsernamePasswordAuthenticationToken authToken =
                           new UsernamePasswordAuthenticationToken(
-                              username, null, List.of(new SimpleGrantedAuthority(role)));
+                              principal, null, List.of(new SimpleGrantedAuthority(role)));
                       authToken.setDetails(
                           new WebAuthenticationDetailsSource().buildDetails(request));
                       SecurityContextHolder.getContext().setAuthentication(authToken);

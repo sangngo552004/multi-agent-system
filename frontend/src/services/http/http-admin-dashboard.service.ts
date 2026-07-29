@@ -75,7 +75,7 @@ function mapDashboard(response: DashboardApiResponse): DashboardData {
         label: "Vị trí đang tuyển",
         value: metrics.openJobs,
         change: `${metrics.incompleteJobs} thiếu cấu hình AI`,
-        href: "/admin/jobs?status=OPEN",
+        href: "/admin/jobs?status=PUBLISHED",
       },
       {
         id: "applications",

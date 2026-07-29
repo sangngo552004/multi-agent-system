@@ -24,13 +24,13 @@ import {
   readSorting,
 } from "@/features/admin/admin-search-params";
 
-const emptyCounts: Record<JobStatus, number> = { DRAFT: 0, OPEN: 0, PAUSED: 0, CLOSED: 0 };
+const emptyCounts: Record<JobStatus, number> = { DRAFT: 0, PUBLISHED: 0, PAUSED: 0, CLOSED: 0 };
 const readinessOptions = [
   { value: "ALL", label: "Mọi cấu hình AI" },
   { value: "READY", label: "Sẵn sàng cho AI" },
   { value: "INCOMPLETE", label: "Thiếu cấu hình" },
 ];
-const jobStatuses = ["ALL", "DRAFT", "OPEN", "PAUSED", "CLOSED"] as const;
+const jobStatuses = ["ALL", "DRAFT", "PUBLISHED", "PAUSED", "CLOSED"] as const;
 const readinessValues = ["ALL", "READY", "INCOMPLETE"] as const;
 const jobSortFields = ["title", "status", "createdAt"] as const;
 

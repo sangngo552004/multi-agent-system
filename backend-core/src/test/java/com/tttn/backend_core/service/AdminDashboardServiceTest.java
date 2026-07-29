@@ -67,7 +67,7 @@ class AdminDashboardServiceTest {
 
     when(userRepository.count()).thenReturn(120L);
     when(userRepository.countByIsActiveFalse()).thenReturn(3L);
-    when(adminJobService.countJobsByStatus(JobStatus.OPEN)).thenReturn(12L);
+    when(adminJobService.countJobsByStatus(JobStatus.PUBLISHED)).thenReturn(12L);
     when(adminJobService.countIncompleteNonClosedJobs()).thenReturn(2L);
     when(applicationRepository.countByAiStatusBetween(
             LocalDateTime.parse("2026-07-23T00:00:00"), LocalDateTime.parse("2026-07-30T00:00:00")))
