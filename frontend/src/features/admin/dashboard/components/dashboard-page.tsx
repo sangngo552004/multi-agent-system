@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/data-display/empty-state";
-import { ErrorState } from "@/components/data-display/error-state";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 import { AiStatusPanel } from "@/features/admin/dashboard/components/ai-status-panel";
 import { ApplicationTrendChart } from "@/features/admin/dashboard/components/application-trend-chart";
 import { AttentionQueue } from "@/features/admin/dashboard/components/attention-queue";
@@ -13,27 +12,33 @@ import { OperationalPulse } from "@/features/admin/dashboard/components/operatio
 import { RecentActivity } from "@/features/admin/dashboard/components/recent-activity";
 import { useDashboard } from "@/features/admin/dashboard/dashboard.queries";
 import type { DashboardRange } from "@/features/admin/dashboard/dashboard.types";
-import { resetDemoData } from "@/mocks/reset-demo";
-import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/features/auth/auth-provider";
 
 export function DashboardPage() {
   const [range, setRange] = useState<DashboardRange>(7);
   const dashboard = useDashboard(range);
-  const queryClient = useQueryClient();
-
-  const reset = async () => {
-    resetDemoData();
-    await queryClient.invalidateQueries();
-  };
+  const { user } = useAuth();
 
   return (
     <div className="space-y-8">
-      <DashboardHeader range={range} onRangeChange={setRange} generatedAt={dashboard.data?.generatedAt} />
+      <DashboardHeader
+        range={range}
+        onRangeChange={setRange}
+        generatedAt={dashboard.data?.generatedAt}
+        userName={user?.fullName}
+      />
       {dashboard.isPending ? <DashboardSkeleton /> : null}
-      {dashboard.isError ? <ErrorState description={dashboard.error.message} onRetry={() => dashboard.refetch()} /> : null}
+      {dashboard.isError ? (
+        <AdminQueryError
+          error={dashboard.error}
+          fallbackDescription="Chưa thể tổng hợp dữ liệu vận hành."
+          onRetry={() => dashboard.refetch()}
+          retrying={dashboard.isFetching}
+        />
+      ) : null}
       {dashboard.data && !dashboard.data.hasData ? (
         <div className="rounded-[12px] border border-border bg-surface">
-          <EmptyState title="Chưa có dữ liệu vận hành" description="Kịch bản hiện tại không có dữ liệu. Khôi phục bộ dữ liệu mẫu để tiếp tục demo." action={<Button onClick={reset}>Khôi phục dữ liệu demo</Button>} />
+          <EmptyState title="Chưa có dữ liệu vận hành" description="Hệ thống chưa ghi nhận tài khoản, vị trí tuyển dụng, hồ sơ hoặc hoạt động để tổng hợp." />
         </div>
       ) : null}
       {dashboard.data?.hasData ? (

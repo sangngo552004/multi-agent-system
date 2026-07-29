@@ -1,6 +1,5 @@
 "use client";
 
-import { ErrorState } from "@/components/data-display/error-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,11 +7,21 @@ import { CatalogPanel } from "@/features/admin/knowledge/components/catalog-pane
 import { CompetenciesPanel } from "@/features/admin/knowledge/components/competencies-panel";
 import { KnowledgeSummary } from "@/features/admin/knowledge/components/knowledge-summary";
 import { useKnowledge } from "@/features/admin/knowledge/knowledge.queries";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 
 export function KnowledgePage() {
   const knowledge = useKnowledge();
   if (knowledge.isPending) return <KnowledgeSkeleton />;
-  if (knowledge.isError) return <ErrorState description={knowledge.error.message} onRetry={() => knowledge.refetch()} />;
+  if (knowledge.isError) {
+    return (
+      <AdminQueryError
+        error={knowledge.error}
+        fallbackDescription="Chưa thể tải kho năng lực lúc này."
+        onRetry={() => knowledge.refetch()}
+        retrying={knowledge.isFetching}
+      />
+    );
+  }
 
   return <div className="space-y-7">
     <PageHeader eyebrow="Cấu hình tổ chức" title="Kho năng lực" description="Quản lý các nhóm nghề, cấp bậc và năng lực dùng chung cho nhu cầu tuyển dụng trong tổ chức." />

@@ -6,6 +6,9 @@ export type JobFilters = {
   jobFamilyId?: string | "ALL";
   careerLevelId?: string | "ALL";
   readiness?: "ALL" | "READY" | "INCOMPLETE";
+  page?: number;
+  size?: number;
+  sort?: string;
 };
 
 export type JobListItem = AdminJob & {
@@ -17,6 +20,22 @@ export type JobListItem = AdminJob & {
 export type JobListResult = {
   items: JobListItem[];
   statusCounts: Record<JobStatus, number>;
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+};
+
+export type JobFilterOptions = {
+  jobFamilies: Array<{ id: string; name: string; status: "ACTIVE" | "INACTIVE" }>;
+  careerLevels: Array<{
+    id: string;
+    name: string;
+    rankValue: number;
+    status: "ACTIVE" | "INACTIVE";
+  }>;
 };
 
 export type JobDetail = JobListItem & {

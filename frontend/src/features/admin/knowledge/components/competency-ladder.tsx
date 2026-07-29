@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { getAdminErrorMessage } from "@/features/admin/admin-errors";
 import { competencyLevelsSchema } from "@/features/admin/knowledge/knowledge.schema";
 import { useSaveCompetencyLevels } from "@/features/admin/knowledge/knowledge.queries";
 import type { CompetencyLevel } from "@/types/domain/admin";
@@ -25,13 +26,19 @@ export function CompetencyLadder({ competencyId, initialLevels }: { competencyId
   };
 
   const submit = async () => {
+    if (mutation.isPending) return;
     const parsed = competencyLevelsSchema.safeParse({ levels });
     if (!parsed.success) { setError(`Cấp độ ${levels.find((item) => !item.title.trim() || !item.description.trim())?.level ?? ""} chưa có đủ tên và mô tả.`); return; }
     try {
       await mutation.mutateAsync(parsed.data.levels);
       toast.success("Đã lưu thang năng lực", { description: "Cả 5 cấp độ đã được cập nhật." });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Không thể lưu thang năng lực.");
+      setError(
+        getAdminErrorMessage(
+          reason,
+          "Chưa thể lưu thang năng lực. Vui lòng thử lại.",
+        ),
+      );
     }
   };
 

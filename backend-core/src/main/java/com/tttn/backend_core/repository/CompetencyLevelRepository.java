@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -15,4 +17,9 @@ public interface CompetencyLevelRepository extends JpaRepository<CompetencyLevel
 
   /** Lấy một bậc cụ thể để tra cứu label/description. */
   Optional<CompetencyLevel> findByCompetencyIdAndLevel(UUID competencyId, Integer level);
+
+  @Query(
+      "select cl from CompetencyLevel cl where cl.competency.id in :competencyIds "
+          + "order by cl.competency.id, cl.level")
+  List<CompetencyLevel> findByCompetencyIds(@Param("competencyIds") List<UUID> competencyIds);
 }

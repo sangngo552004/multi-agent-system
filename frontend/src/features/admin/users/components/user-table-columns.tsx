@@ -29,7 +29,7 @@ export const userTableColumns: ColumnDef<AdminUser>[] = [
   },
   {
     accessorKey: "status",
-    header: ({ column }) => <SortableHeader label="Trạng thái tài khoản" column={column} />,
+    header: "Trạng thái tài khoản",
     cell: ({ row }) => {
       const status = userStatusMap[row.original.status];
       return <StatusDot label={status.label} tone={status.tone} />;
@@ -47,8 +47,8 @@ export const userTableColumns: ColumnDef<AdminUser>[] = [
     accessorKey: "lastActiveAt",
     header: ({ column }) => <SortableHeader label="Hoạt động gần nhất" column={column} />,
     cell: ({ row }) => (
-      <span className="text-xs text-muted" title={formatDate(row.original.lastActiveAt, "HH:mm dd/MM/yyyy")}>
-        {formatRelativeTime(row.original.lastActiveAt)}
+      <span className="text-xs text-muted" title={row.original.lastActiveAt ? formatDate(row.original.lastActiveAt, "HH:mm dd/MM/yyyy") : undefined}>
+        {row.original.lastActiveAt ? formatRelativeTime(row.original.lastActiveAt) : "Chưa ghi nhận"}
       </span>
     ),
   },

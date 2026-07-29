@@ -1,5 +1,5 @@
 import { Icon } from "./Icon";
-import type { ExperienceItem } from "@/types/cv-analysis";
+import type { ExperienceItem } from "@/types/domain/cv-analysis";
 
 function ExperienceEntry({ item, active }: { item: ExperienceItem; active?: boolean }) {
   const bullets = [...item.achievements, ...item.responsibilities];

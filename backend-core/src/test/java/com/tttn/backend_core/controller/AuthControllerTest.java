@@ -13,6 +13,7 @@ import com.tttn.backend_core.dto.request.LoginRequest;
 import com.tttn.backend_core.dto.request.RegisterRequest;
 import com.tttn.backend_core.dto.response.AuthResponse;
 import com.tttn.backend_core.entity.Role;
+import com.tttn.backend_core.exception.GlobalExceptionHandler;
 import com.tttn.backend_core.service.AuthService;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +39,10 @@ class AuthControllerTest {
 
   @BeforeEach
   void setUp() {
-    mockMvc = MockMvcBuilders.standaloneSetup(authController).build();
+    mockMvc =
+        MockMvcBuilders.standaloneSetup(authController)
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
   }
 
   @Test
@@ -90,5 +94,15 @@ class AuthControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.code").value(1000))
         .andExpect(jsonPath("$.result.token").value("access"));
+  }
+
+  @Test
+  void testLoginRejectsMalformedJsonAsBadRequest() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("{\"email\":"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(1001))
+        .andExpect(jsonPath("$.message").value("Invalid request"));
   }
 }

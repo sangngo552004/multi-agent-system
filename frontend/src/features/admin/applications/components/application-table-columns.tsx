@@ -26,12 +26,12 @@ export const applicationTableColumns: ColumnDef<ApplicationListItem>[] = [
   {
     accessorKey: "extractionMethod",
     header: "Phương thức đọc",
-    cell: ({ row }) => <span className="text-xs text-muted">{row.original.extractionMethod === "OCR" ? "Nhận dạng hình ảnh" : "Lớp văn bản"}</span>,
+    cell: ({ row }) => <span className="text-xs text-muted">{formatExtractionMethod(row.original.extractionMethod)}</span>,
   },
   {
     accessorKey: "aiConfidence",
     header: ({ column }) => <SortableHeader label="Độ tin cậy" column={column} />,
-    cell: ({ row }) => <span className="text-sm font-semibold tabular-nums text-ink">{Math.round(row.original.aiConfidence * 100)}%</span>,
+    cell: ({ row }) => <span className="text-sm font-semibold tabular-nums text-ink">{row.original.aiConfidence === null ? "—" : `${Math.round(row.original.aiConfidence * 100)}%`}</span>,
   },
   {
     accessorKey: "submittedAt",
@@ -40,3 +40,12 @@ export const applicationTableColumns: ColumnDef<ApplicationListItem>[] = [
   },
   { id: "open", header: "", enableSorting: false, cell: () => <ArrowUpRight className="ml-auto size-4 text-faint" /> },
 ];
+
+function formatExtractionMethod(
+  method: ApplicationListItem["extractionMethod"],
+) {
+  if (!method) return "Chưa có";
+  if (method === "OCR") return "Nhận dạng hình ảnh";
+  if (method === "TEXT_LAYER") return "Lớp văn bản";
+  return method === "LLM" ? "Mô hình ngôn ngữ" : "Mô hình dự phòng";
+}

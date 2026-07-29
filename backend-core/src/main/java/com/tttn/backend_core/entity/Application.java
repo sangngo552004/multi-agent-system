@@ -41,6 +41,32 @@ public class Application {
   @Column(name = "fit_score")
   private Double fitScore;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "ai_status", nullable = false, length = 20)
+  @Builder.Default
+  private AiProcessingStatus aiStatus = AiProcessingStatus.WAITING;
+
+  @Column(name = "ai_confidence")
+  private Double aiConfidence;
+
+  @Column(name = "needs_review", nullable = false)
+  @Builder.Default
+  private Boolean needsReview = false;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "extraction_method", length = 30)
+  private AiExtractionMethod extractionMethod;
+
+  @Column(name = "ai_error_code", length = 80)
+  private String aiErrorCode;
+
+  @Column(name = "ai_error_message", columnDefinition = "TEXT")
+  private String aiErrorMessage;
+
+  @Column(name = "ai_warning_count", nullable = false)
+  @Builder.Default
+  private Integer aiWarningCount = 0;
+
   @Column(name = "ai_feedback", columnDefinition = "TEXT")
   private String aiFeedback;
 
@@ -50,7 +76,7 @@ public class Application {
    * "rules_triggered": [{"rule_code": ..., "bonus_added": ...}], "rejection_reason": "..." }
    */
   @JdbcTypeCode(SqlTypes.JSON)
-  @Column(name = "scoring_breakdown", columnDefinition = "jsonb")
+  @Column(name = "scoring_breakdown", columnDefinition = "json")
   private Map<String, Object> scoringBreakdown;
 
   @CreationTimestamp

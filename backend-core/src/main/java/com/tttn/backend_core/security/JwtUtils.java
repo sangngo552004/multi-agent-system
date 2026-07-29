@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -18,7 +19,7 @@ public class JwtUtils {
   @Value("${jwt.secret:defaultSecretKeyWhichShouldBeVeryLongAndSecureForHS256Algorithm}")
   private String secret;
 
-  @Value("${jwt.expiration:86400000}") // Default 24 hours
+  @Value("${jwt.expiration:900000}") // Default 15 minutes
   private long jwtExpirationInMs;
 
   @Value("${jwt.refresh.expiration:604800000}") // Default 7 days
@@ -48,6 +49,7 @@ public class JwtUtils {
   private String createToken(Map<String, Object> claims, String subject, long expiration) {
     return Jwts.builder()
         .claims(claims)
+        .id(UUID.randomUUID().toString())
         .subject(subject)
         .issuedAt(Date.from(Instant.now()))
         .expiration(Date.from(Instant.now().plusMillis(expiration)))

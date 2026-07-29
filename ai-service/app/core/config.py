@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     RABBITMQ_URL: str = "amqp://admin:password123@localhost:5672/"
     CV_EXTRACT_QUEUE: str = "cv.extract.request"
     CV_RESULT_QUEUE: str = "cv.extract.response"
+    APPLICATION_PROCESS_QUEUE: str = "ai.application.process.request"
+    APPLICATION_EVENT_QUEUE: str = "ai.application.process.events"
     RABBITMQ_ENABLED: bool = False  # Disable by default for local dev
 
     # --- Server ---
@@ -69,7 +71,11 @@ class Settings(BaseSettings):
     # --- OCR ---
     TESSERACT_LANG: str = "eng+vie"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
 
 
 settings = Settings()

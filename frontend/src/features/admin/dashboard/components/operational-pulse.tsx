@@ -11,7 +11,7 @@ export function OperationalPulse({ metrics }: { metrics: DashboardMetric[] }) {
         <h2 id="operational-pulse-title" className="admin-kicker text-muted">
           Nhịp vận hành
         </h2>
-        <span className="text-[11px] text-faint">Số liệu từ dữ liệu mô phỏng</span>
+        <span className="text-[11px] text-faint">Số liệu tổng hợp từ hệ thống</span>
       </div>
       <div className="grid overflow-hidden rounded-[12px] border border-border bg-surface sm:grid-cols-2 xl:grid-cols-5">
         {metrics.map((metric, index) => (

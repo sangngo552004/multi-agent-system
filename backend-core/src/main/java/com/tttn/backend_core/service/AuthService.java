@@ -5,12 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tttn.backend_core.dto.request.LoginRequest;
 import com.tttn.backend_core.dto.request.RegisterRequest;
 import com.tttn.backend_core.dto.response.AuthResponse;
+import com.tttn.backend_core.dto.response.CurrentUserResponse;
 import com.tttn.backend_core.entity.User;
 import com.tttn.backend_core.exception.AppException;
 import com.tttn.backend_core.exception.ErrorCode;
 import com.tttn.backend_core.repository.UserRepository;
 import com.tttn.backend_core.security.JwtUtils;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +28,7 @@ public class AuthService {
   private final StringRedisTemplate redisTemplate;
   private final ObjectMapper objectMapper;
   private final MailService mailService;
+  private final RefreshTokenService refreshTokenService;
 
   private static final int MAX_FAILED_ATTEMPTS = 5;
   private static final long LOCKOUT_DURATION_MINUTES = 15;
@@ -38,13 +41,15 @@ public class AuthService {
       JwtUtils jwtUtils,
       StringRedisTemplate redisTemplate,
       ObjectMapper objectMapper,
-      MailService mailService) {
+      MailService mailService,
+      RefreshTokenService refreshTokenService) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtUtils = jwtUtils;
     this.redisTemplate = redisTemplate;
     this.objectMapper = objectMapper;
     this.mailService = mailService;
+    this.refreshTokenService = refreshTokenService;
   }
 
   public void register(RegisterRequest request) {
@@ -103,6 +108,7 @@ public class AuthService {
     }
   }
 
+  @Transactional
   public AuthResponse login(LoginRequest request) {
     String email = request.getEmail();
     String lockoutKey = "login:lockout:" + email;
@@ -147,8 +153,66 @@ public class AuthService {
 
     String accessToken = jwtUtils.generateAccessToken(user);
     String refreshToken = jwtUtils.generateRefreshToken(user);
+    refreshTokenService.store(user, jwtUtils.parseClaims(refreshToken));
+    user.setLastActiveAt(LocalDateTime.now());
+    userRepository.save(user);
 
     return new AuthResponse(
         accessToken, refreshToken, user.getId(), user.getEmail(), user.getRole().name());
+  }
+
+  @Transactional
+  public AuthResponse refresh(String refreshToken) {
+    try {
+      var claims = jwtUtils.parseClaims(refreshToken);
+      if (!"REFRESH".equals(claims.get("type", String.class))) {
+        throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+      }
+      User user =
+          userRepository
+              .findByEmail(claims.getSubject())
+              .orElseThrow(() -> new AppException(ErrorCode.INVALID_REFRESH_TOKEN));
+      if (!user.isActive() || !refreshTokenService.isActive(user, claims)) {
+        throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+      }
+
+      refreshTokenService.revoke(user, claims);
+      String accessToken = jwtUtils.generateAccessToken(user);
+      String rotatedRefreshToken = jwtUtils.generateRefreshToken(user);
+      refreshTokenService.store(user, jwtUtils.parseClaims(rotatedRefreshToken));
+      user.setLastActiveAt(LocalDateTime.now());
+      userRepository.save(user);
+      return new AuthResponse(
+          accessToken, rotatedRefreshToken, user.getId(), user.getEmail(), user.getRole().name());
+    } catch (AppException exception) {
+      throw exception;
+    } catch (Exception exception) {
+      throw new AppException(ErrorCode.INVALID_REFRESH_TOKEN);
+    }
+  }
+
+  public void logout(String refreshToken) {
+    if (refreshToken == null || refreshToken.isBlank()) {
+      return;
+    }
+    try {
+      var claims = jwtUtils.parseClaims(refreshToken);
+      userRepository
+          .findByEmail(claims.getSubject())
+          .ifPresent(user -> refreshTokenService.revoke(user, claims));
+    } catch (Exception ignored) {
+      // Logout is intentionally idempotent, including for expired cookies.
+    }
+  }
+
+  @Transactional(readOnly = true)
+  public CurrentUserResponse currentUser(String email) {
+    User user =
+        userRepository
+            .findByEmail(email)
+            .filter(User::isActive)
+            .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+    return new CurrentUserResponse(
+        user.getId(), user.getFullName(), user.getEmail(), user.getRole());
   }
 }

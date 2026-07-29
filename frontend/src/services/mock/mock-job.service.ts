@@ -7,7 +7,8 @@ import type {
 import { mockDatabase } from "@/mocks/mock-database";
 import { getMockScenario } from "@/mocks/mock-scenarios";
 import { getJobReadinessIssues } from "@/lib/job-readiness";
-import type { AdminJob, JobStatus } from "@/types/domain/admin";
+import type { JobStatus } from "@/types/domain/admin";
+import type { RecruitmentJob } from "@/types/domain/recruitment";
 
 const QUERY_DELAY = 360;
 
@@ -19,22 +20,27 @@ function normalize(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
 
-export function getReadinessIssues(job: AdminJob) {
+export function getReadinessIssues(job: RecruitmentJob) {
   return getJobReadinessIssues(job);
 }
 
-function toListItem(job: AdminJob): JobListItem {
+function adminStatus(status: RecruitmentJob["status"]): JobStatus {
+  return status === "OPEN" ? "PUBLISHED" : status;
+}
+
+function toListItem(job: RecruitmentJob): JobListItem {
   const snapshot = mockDatabase.snapshot();
   const owner = snapshot.users.find((user) => user.id === job.ownerId);
   return {
     ...job,
+    status: adminStatus(job.status),
     ownerName: owner?.fullName ?? "Không xác định",
     applicationCount: snapshot.applications.filter((item) => item.jobId === job.id).length,
     matchingReady: getReadinessIssues(job).length === 0,
   };
 }
 
-function toDetail(job: AdminJob): JobDetail {
+function toDetail(job: RecruitmentJob): JobDetail {
   const snapshot = mockDatabase.snapshot();
   const owner = snapshot.users.find((user) => user.id === job.ownerId);
   if (!owner) throw new Error("Không tìm thấy HR phụ trách tin này.");
@@ -43,6 +49,7 @@ function toDetail(job: AdminJob): JobDetail {
 
   return {
     ...job,
+    status: adminStatus(job.status),
     ownerName: owner.fullName,
     owner: {
       id: owner.id,
@@ -64,7 +71,16 @@ class MockJobService {
   async getJobs(filters: JobFilters = {}): Promise<JobListResult> {
     await delay(QUERY_DELAY);
     if (getMockScenario() === "empty") {
-      return { items: [], statusCounts: { DRAFT: 0, OPEN: 0, PAUSED: 0, CLOSED: 0 } };
+      return {
+        items: [],
+        statusCounts: { DRAFT: 0, PUBLISHED: 0, PAUSED: 0, CLOSED: 0 },
+        page: 0,
+        size: filters.size ?? 20,
+        totalItems: 0,
+        totalPages: 0,
+        first: true,
+        last: true,
+      };
     }
 
     const query = normalize(filters.search ?? "");
@@ -77,14 +93,23 @@ class MockJobService {
         || (filters.readiness === "INCOMPLETE" && !job.matchingReady);
       return matchesSearch && matchesFamily && matchesLevel && matchesReadiness;
     });
-    const statuses: JobStatus[] = ["DRAFT", "OPEN", "PAUSED", "CLOSED"];
+    const statuses: JobStatus[] = ["DRAFT", "PUBLISHED", "PAUSED", "CLOSED"];
     const statusCounts = Object.fromEntries(
       statuses.map((status) => [status, baseItems.filter((job) => job.status === status).length]),
     ) as Record<JobStatus, number>;
     const items = baseItems.filter(
       (job) => !filters.status || filters.status === "ALL" || job.status === filters.status,
     );
-    return { items, statusCounts };
+    return {
+      items,
+      statusCounts,
+      page: 0,
+      size: items.length,
+      totalItems: items.length,
+      totalPages: items.length ? 1 : 0,
+      first: true,
+      last: true,
+    };
   }
 
   async getJob(jobId: string): Promise<JobDetail> {
