@@ -3,6 +3,7 @@ package com.tttn.backend_core.controller;
 import com.tttn.backend_core.dto.request.JobFilterRequest;
 import com.tttn.backend_core.dto.request.JobRequest;
 import com.tttn.backend_core.dto.response.JobResponse;
+import com.tttn.backend_core.security.CustomUserPrincipal;
 import com.tttn.backend_core.service.JobService;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -11,7 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -32,10 +33,10 @@ public class JobController {
   }
 
   @PostMapping
-  public ResponseEntity<JobResponse> createJob(@Valid @RequestBody JobRequest request) {
-    String userIdStr = SecurityContextHolder.getContext().getAuthentication().getName();
-    UUID hrId = UUID.fromString(userIdStr);
-    return ResponseEntity.status(HttpStatus.CREATED).body(jobService.createJob(hrId, request));
+  public ResponseEntity<JobResponse> createJob(
+      @AuthenticationPrincipal CustomUserPrincipal user, @Valid @RequestBody JobRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(jobService.createJob(user.getUserId(), request));
   }
 
   @PutMapping("/{id}")
