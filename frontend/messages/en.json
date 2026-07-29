@@ -1,0 +1,46 @@
+{
+  "Common": {
+    "welcome": "Welcome to CareerOS",
+    "error": "An error occurred"
+  },
+  "Candidate": {
+    "title": "For Candidates",
+    "jobTitle": "Job Details"
+  },
+  "HR": {
+    "title": "HR System",
+    "applicationDetail": "Application Details"
+  },
+  "Metadata": {
+    "defaultTitle": "CareerOS Demo",
+    "defaultDescription": "Multi-agent career orientation and recruitment system demo.",
+    "admin": {
+      "titleTemplate": "%s | Admin · CareerOS",
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "userDetail": "User Details",
+      "jobs": "Jobs",
+      "jobDetail": "Job Details",
+      "applications": "Applications & AI",
+      "applicationDetail": "Application Details"
+    },
+    "hr": {
+      "titleTemplate": "%s | HR · CareerOS",
+      "dashboard": "Recruitment Dashboard",
+      "talentPool": "Talent Pool",
+      "jobs": "Jobs",
+      "jobDetail": "Job Details",
+      "jobCreate": "Create Job",
+      "jobEdit": "Edit Job",
+      "applications": "Applications",
+      "applicationDetail": "Application Details"
+    },
+    "candidate": {
+      "titleTemplate": "%s | Candidate · CareerOS",
+      "profile": "Profile"
+    },
+    "auth": {
+      "titleTemplate": "%s | Auth · CareerOS"
+    }
+  }
+}
