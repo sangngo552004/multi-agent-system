@@ -1022,13 +1022,29 @@ Các cải thiện dùng chung đã áp dụng:
 
 ### 12.2. Kết quả kiểm tra sau rà soát
 
-- Backend: `mvn test` pass 23/23 test.
+- Backend: `mvn test` pass 31/31 test.
 - Frontend: `npm run lint` có 0 error; 5 warning còn lại đều thuộc khu vực Candidate và có trước đợt rà soát.
 - Frontend: `npm run build` pass với Next.js 16.2.10.
 - Smoke PostgreSQL: login Admin, Job detail/count, Activity date filter và filter-option đều trả response hợp lệ; filter sai trả `400` với code `1044`.
 - OpenAPI sau thay đổi vẫn phản ánh đủ 21 operation dưới `/api/v1/admin/**`.
 - Không thay đổi cấu trúc package backend và không thêm generic abstraction ngoài nhu cầu hiện tại.
 
-### 12.3. Rủi ro chất lượng còn lại, không phải thiếu chức năng
+### 12.3. Hardening hiển thị lỗi và khả năng phục hồi
+
+Đợt rà soát chất lượng sau Phase 5 đã bổ sung các nguyên tắc sau:
+
+- Frontend không còn render trực tiếp `message` trong response lỗi của backend. `ApiError` chỉ giữ `code`, HTTP status và thông điệp tổng quát an toàn.
+- Khu vực Admin ánh xạ error code/status sang nội dung tiếng Việt theo ngữ cảnh; lỗi không xác định dùng fallback cố định, không dùng chuỗi kỹ thuật từ exception.
+- Request có timeout 20 giây. React Query chỉ tự retry một lần với lỗi mạng/timeout/5xx; không lặp request sai `400`, không retry `401/403/404/409`.
+- Search trên giao diện và Admin API được giới hạn 100 ký tự. Activity từ chối group lạ, cặp `targetType/targetId` thiếu một phía và khoảng ngày đảo ngược thay vì âm thầm trả phạm vi dữ liệu rộng hơn.
+- Error state có trạng thái đang thử lại; trang chi tiết có đường quay về danh sách khi lỗi không thể khắc phục bằng retry.
+- Lỗi tải riêng Job filter options được hiển thị độc lập và tạm khóa hai filter phụ thuộc, thay vì âm thầm cho người dùng chọn danh sách rỗng.
+- Mutation User, Knowledge và AI retry dùng cùng bộ ánh xạ lỗi; validation do frontend tạo vẫn hiển thị tại field/form.
+- Error message từ AI service vẫn có thể được lưu nội bộ để điều tra, nhưng Admin API chỉ trả mô tả đã sanitize. Frontend tiếp tục allow-list mã lỗi AI và không render raw `errorMessage` hoặc thông điệp failed step.
+- JSON sai, UUID/enum/query parameter sai kiểu được backend trả `400` theo envelope chung; exception ngoài dự kiến trả `500` tổng quát và được ghi đầy đủ vào server log.
+
+Kiểm tra hồi quy bổ sung gồm malformed query, malformed JSON và sanitizer cho mã lỗi AI đã biết/không biết.
+
+### 12.4. Rủi ro chất lượng còn lại, không phải thiếu chức năng
 
 Frontend chưa có test runner cho unit/component/E2E, nên các luồng giao diện hiện được bảo vệ bởi type-check trong production build, lint, backend test và smoke test API. Nếu dự án tiếp tục phát triển, ưu tiên tiếp theo nên là bổ sung Playwright cho các hành trình Admin quan trọng và contract test sinh từ OpenAPI; việc này không yêu cầu thêm chức năng hay endpoint mới.

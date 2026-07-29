@@ -3,6 +3,8 @@ package com.tttn.backend_core.service;
 import com.tttn.backend_core.dto.response.ActivityPageResponse;
 import com.tttn.backend_core.dto.response.ActivityResponse;
 import com.tttn.backend_core.entity.*;
+import com.tttn.backend_core.exception.AppException;
+import com.tttn.backend_core.exception.ErrorCode;
 import com.tttn.backend_core.repository.ActivityLogRepository;
 import jakarta.persistence.criteria.Predicate;
 import java.time.Clock;
@@ -11,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +30,8 @@ public class ActivityLogService {
           ActivityKind.AI_SCORING_STARTED,
           ActivityKind.AI_SCORING_COMPLETED,
           ActivityKind.AI_SCORING_FAILED);
+  private static final Set<String> ACTIVITY_GROUPS =
+      Set.of("ALL", "ADMIN", "CONTENT", "APPLICATION", "AI");
 
   private final ActivityLogRepository activityLogRepository;
   private final Clock clock;
@@ -45,6 +50,7 @@ public class ActivityLogService {
       LocalDateTime to,
       int page,
       int size) {
+    validateFilters(search, group, targetType, targetId, from, to);
     Specification<ActivityLog> filters =
         buildFilters(search, group, targetType, targetId, from, to);
     Page<ActivityLog> result =
@@ -217,9 +223,30 @@ public class ActivityLogService {
               root.get("kind")
                   .in(ActivityKind.APPLICATION_SUBMITTED, ActivityKind.APPLICATION_STATUS_CHANGED));
       case "AI" -> predicates.add(root.get("kind").in(AI_ACTIVITY_KINDS));
-      default -> {
-        // Unknown groups intentionally return all groups for forward compatibility.
-      }
+      default -> throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
+    }
+  }
+
+  private void validateFilters(
+      String search,
+      String group,
+      ActivityTargetType targetType,
+      UUID targetId,
+      LocalDateTime from,
+      LocalDateTime to) {
+    if (search != null && search.length() > 100) {
+      throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
+    }
+    if (group != null
+        && !group.isBlank()
+        && !ACTIVITY_GROUPS.contains(group.toUpperCase(Locale.ROOT))) {
+      throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
+    }
+    if ((targetType == null) != (targetId == null)) {
+      throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
+    }
+    if (from != null && to != null && from.isAfter(to)) {
+      throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
     }
   }
 

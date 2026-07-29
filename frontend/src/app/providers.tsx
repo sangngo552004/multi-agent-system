@@ -5,6 +5,7 @@ import { Tooltip } from "radix-ui";
 import { useState } from "react";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/features/auth/auth-provider";
+import { shouldRetryApiRequest } from "@/services/http/api-client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -14,7 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           queries: {
             staleTime: 30_000,
             refetchOnWindowFocus: false,
-            retry: 1,
+            retry: shouldRetryApiRequest,
           },
         },
       }),

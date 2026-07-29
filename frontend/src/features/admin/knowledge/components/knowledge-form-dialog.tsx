@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { getAdminErrorMessage } from "@/features/admin/admin-errors";
 import { careerLevelSchema, competencySchema, jobFamilySchema } from "@/features/admin/knowledge/knowledge.schema";
 import { useSaveCareerLevel, useSaveCompetency, useSaveJobFamily } from "@/features/admin/knowledge/knowledge.queries";
 import type { CareerLevelView, CompetencyView, JobFamilyView } from "@/features/admin/knowledge/knowledge.types";
@@ -40,6 +41,7 @@ export function KnowledgeFormDialog({ kind, item }: { kind: FormKind; item?: Exi
   };
 
   const submit = async () => {
+    if (pending) return;
     const base = { name, description };
     const parsed = kind === "JOB_FAMILY" ? jobFamilySchema.safeParse(base) : kind === "CAREER_LEVEL" ? careerLevelSchema.safeParse({ ...base, rankValue }) : competencySchema.safeParse({ ...base, category });
     if (!parsed.success) { setError(parsed.error.issues[0]?.message ?? "Dữ liệu chưa hợp lệ."); return; }
@@ -49,14 +51,21 @@ export function KnowledgeFormDialog({ kind, item }: { kind: FormKind; item?: Exi
       if (kind === "COMPETENCY") await saveCompetency.mutateAsync({ id: item?.id, ...base, category });
       toast.success(item ? `Đã cập nhật ${copy[kind].singular}` : `Đã thêm ${copy[kind].singular}`, { description: name });
       setOpen(false);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Không thể lưu dữ liệu."); }
+    } catch (reason) {
+      setError(
+        getAdminErrorMessage(
+          reason,
+          `Chưa thể lưu ${copy[kind].singular}. Vui lòng thử lại.`,
+        ),
+      );
+    }
   };
 
   return <>
     <Button size="sm" variant={item ? "ghost" : "primary"} onClick={openDialog}>{item ? <Pencil className="size-3.5" /> : <Plus className="size-4" />}{item ? "Sửa" : `Thêm ${copy[kind].singular}`}</Button>
     <Dialog open={open} onOpenChange={(next) => !pending && setOpen(next)}><DialogContent title={`${item ? "Chỉnh sửa" : "Thêm"} ${copy[kind].title.toLowerCase()}`} description="Thông tin này được dùng trong cấu hình việc làm và quy trình đối sánh.">
       <form onSubmit={(event) => { event.preventDefault(); void submit(); }}>
-        <div className="mt-6 space-y-4"><Field label="Tên"><Input value={name} onChange={(event) => setName(event.target.value)} placeholder={`Nhập tên ${copy[kind].singular}`} /></Field>{kind === "COMPETENCY" ? <Field label="Nhóm năng lực"><Input value={category} onChange={(event) => setCategory(event.target.value)} placeholder="Ví dụ: Công nghệ" /></Field> : null}{kind === "CAREER_LEVEL" ? <Field label="Thứ tự cấp bậc"><Input type="number" min={1} max={20} value={rankValue} onChange={(event) => setRankValue(event.target.value)} /></Field> : null}<Field label="Mô tả"><Textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Mô tả ngắn gọn và dễ hiểu..." /></Field>{error ? <p className="text-xs text-danger">{error}</p> : null}</div>
+        <div className="mt-6 space-y-4"><Field label="Tên"><Input value={name} onChange={(event) => { setName(event.target.value); setError(""); }} placeholder={`Nhập tên ${copy[kind].singular}`} /></Field>{kind === "COMPETENCY" ? <Field label="Nhóm năng lực"><Input value={category} onChange={(event) => { setCategory(event.target.value); setError(""); }} placeholder="Ví dụ: Công nghệ" /></Field> : null}{kind === "CAREER_LEVEL" ? <Field label="Thứ tự cấp bậc"><Input type="number" min={1} max={20} value={rankValue} onChange={(event) => { setRankValue(event.target.value); setError(""); }} /></Field> : null}<Field label="Mô tả"><Textarea value={description} onChange={(event) => { setDescription(event.target.value); setError(""); }} placeholder="Mô tả ngắn gọn và dễ hiểu..." /></Field>{error ? <p className="text-xs text-danger" role="alert">{error}</p> : null}</div>
         <div className="mt-6 flex justify-end gap-2 border-t border-border pt-4"><Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>Hủy</Button><Button type="submit" loading={pending}>Lưu thay đổi</Button></div>
       </form>
     </DialogContent></Dialog>

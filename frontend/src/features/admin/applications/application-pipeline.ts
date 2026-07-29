@@ -1,10 +1,11 @@
 import type { AiPipelineStep } from "@/features/admin/applications/applications.types";
+import { getAiFailurePresentation } from "@/features/admin/applications/ai-error-presentation";
 import type { AdminApplication } from "@/types/domain/admin";
 
 export function buildAiPipeline(
   application: Pick<
     AdminApplication,
-    "aiStatus" | "errorCode" | "errorMessage"
+    "aiStatus" | "errorCode"
   >,
 ): AiPipelineStep[] {
   const base: AiPipelineStep[] = [
@@ -78,14 +79,16 @@ export function buildAiPipeline(
   }
 
   const failureIndex = application.errorCode === "INVALID_FILE" ? 1 : 2;
+  const failureMessage = getAiFailurePresentation(
+    application.errorCode,
+  ).description;
   return base.map((step, index) => {
     if (index < failureIndex) return { ...step, status: "COMPLETED" };
     if (index === failureIndex) {
       return {
         ...step,
         status: "FAILED",
-        message:
-          application.errorMessage ?? "Bước xử lý không hoàn tất.",
+        message: failureMessage,
       };
     }
     return {

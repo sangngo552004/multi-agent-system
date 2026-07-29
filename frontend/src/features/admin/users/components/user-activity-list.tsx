@@ -2,15 +2,25 @@
 
 import Link from "next/link";
 import { EmptyState } from "@/components/data-display/empty-state";
-import { ErrorState } from "@/components/data-display/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 import { useUserActivity } from "@/features/admin/users/users.queries";
 import { formatRelativeTime } from "@/lib/format";
 
 export function UserActivityList({ userId }: { userId: string }) {
   const activity = useUserActivity(userId);
   if (activity.isPending) return <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20" />)}</div>;
-  if (activity.isError) return <ErrorState description={activity.error.message} onRetry={() => activity.refetch()} />;
+  if (activity.isError) {
+    return (
+      <AdminQueryError
+        error={activity.error}
+        title="Không thể tải hoạt động"
+        fallbackDescription="Chưa thể tải hoạt động của tài khoản lúc này."
+        onRetry={() => activity.refetch()}
+        retrying={activity.isFetching}
+      />
+    );
+  }
   if (!activity.data?.length) return <EmptyState title="Chưa có hoạt động quản trị" description="Các quyết định liên quan đến tài khoản này sẽ xuất hiện tại đây." />;
 
   return (

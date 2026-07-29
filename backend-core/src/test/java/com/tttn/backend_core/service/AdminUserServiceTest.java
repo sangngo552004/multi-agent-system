@@ -52,4 +52,20 @@ class AdminUserServiceTest {
         activityLogService,
         refreshTokenService);
   }
+
+  @Test
+  void findAllRejectsSearchLongerThanOneHundredCharacters() {
+    AppException exception =
+        assertThrows(
+            AppException.class,
+            () -> adminUserService.findAll("a".repeat(101), null, "ALL", 0, 20, "createdAt,desc"));
+
+    assertEquals(ErrorCode.INVALID_ADMIN_FILTER, exception.getErrorCode());
+    verifyNoInteractions(
+        userRepository,
+        jobRepository,
+        applicationRepository,
+        activityLogService,
+        refreshTokenService);
+  }
 }

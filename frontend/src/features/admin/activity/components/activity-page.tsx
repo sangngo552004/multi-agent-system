@@ -16,7 +16,6 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/data-display/empty-state";
-import { ErrorState } from "@/components/data-display/error-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/input";
@@ -33,6 +32,7 @@ import {
   readIdFilter,
   readPageIndex,
 } from "@/features/admin/admin-search-params";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 import { useDebounce } from "@/hooks/use-debounce";
 import { formatDate, formatRelativeTime } from "@/lib/format";
 import type { ActivityEntry, ActivityKind } from "@/types/domain/admin";
@@ -288,9 +288,11 @@ export function ActivityPage() {
         {activities.isPending ? <ActivitySkeleton /> : null}
         {activities.isError ? (
           <div className="p-5">
-            <ErrorState
-              description={activities.error.message}
+            <AdminQueryError
+              error={activities.error}
+              fallbackDescription="Chưa thể tải nhật ký hoạt động lúc này."
               onRetry={() => activities.refetch()}
+              retrying={activities.isFetching}
             />
           </div>
         ) : null}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { EmptyState } from "@/components/data-display/empty-state";
-import { ErrorState } from "@/components/data-display/error-state";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 import { AiStatusPanel } from "@/features/admin/dashboard/components/ai-status-panel";
 import { ApplicationTrendChart } from "@/features/admin/dashboard/components/application-trend-chart";
 import { AttentionQueue } from "@/features/admin/dashboard/components/attention-queue";
@@ -28,7 +28,14 @@ export function DashboardPage() {
         userName={user?.fullName}
       />
       {dashboard.isPending ? <DashboardSkeleton /> : null}
-      {dashboard.isError ? <ErrorState description={dashboard.error.message} onRetry={() => dashboard.refetch()} /> : null}
+      {dashboard.isError ? (
+        <AdminQueryError
+          error={dashboard.error}
+          fallbackDescription="Chưa thể tổng hợp dữ liệu vận hành."
+          onRetry={() => dashboard.refetch()}
+          retrying={dashboard.isFetching}
+        />
+      ) : null}
       {dashboard.data && !dashboard.data.hasData ? (
         <div className="rounded-[12px] border border-border bg-surface">
           <EmptyState title="Chưa có dữ liệu vận hành" description="Hệ thống chưa ghi nhận tài khoản, vị trí tuyển dụng, hồ sơ hoặc hoạt động để tổng hợp." />

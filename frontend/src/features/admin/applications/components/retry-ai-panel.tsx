@@ -5,6 +5,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { getAdminErrorMessage } from "@/features/admin/admin-errors";
+import { getAiFailurePresentation } from "@/features/admin/applications/ai-error-presentation";
 import { useRetryApplication } from "@/features/admin/applications/applications.queries";
 import type { ApplicationDetail } from "@/features/admin/applications/applications.types";
 
@@ -16,6 +18,7 @@ export function RetryAiPanel({
   const [open, setOpen] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const retry = useRetryApplication();
+  const failure = getAiFailurePresentation(application.errorCode);
 
   if (
     application.aiStatus === "WAITING" ||
@@ -42,11 +45,10 @@ export function RetryAiPanel({
           Không thể chạy lại tự động
         </p>
         <p className="mt-2 text-xs leading-6 text-muted">
-          Tệp CV không hợp lệ. Ứng viên cần tải lại tệp PDF/DOCX có thể đọc
-          được trước khi hệ thống xử lý.
+          {failure.description}
         </p>
         <span className="mt-3 inline-block text-[11px] font-semibold text-danger">
-          Mã lỗi: {application.errorCode ?? "KHÔNG XÁC ĐỊNH"}
+          Mã tham chiếu: {failure.reference}
         </span>
       </div>
     );
@@ -66,8 +68,10 @@ export function RetryAiPanel({
       });
     } catch (error) {
       toast.error("Không thể chạy lại AI", {
-        description:
-          error instanceof Error ? error.message : "Vui lòng thử lại.",
+        description: getAdminErrorMessage(
+          error,
+          "Chưa thể xếp hàng xử lý lại. Vui lòng thử lại.",
+        ),
       });
     }
   };

@@ -85,6 +85,7 @@ public class AdminApplicationService {
       int page,
       int size,
       String sort) {
+    validateSearch(search);
     Page<Application> result =
         applicationRepository.findAll(
             buildFilters(search, aiStatus, dateRange),
@@ -243,6 +244,12 @@ public class AdminApplicationService {
     };
   }
 
+  private void validateSearch(String search) {
+    if (search != null && search.length() > 100) {
+      throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
+    }
+  }
+
   private Sort parseSort(String value) {
     if (value == null || value.isBlank()) {
       return Sort.by(Sort.Direction.DESC, "appliedAt");
@@ -286,7 +293,9 @@ public class AdminApplicationService {
         Boolean.TRUE.equals(application.getNeedsReview()),
         application.getExtractionMethod(),
         application.getAiErrorCode(),
-        application.getAiErrorMessage(),
+        application.getAiErrorCode() == null
+            ? null
+            : AiErrorMessageSanitizer.toPublicMessage(application.getAiErrorCode()),
         canRetry(application, latestRun));
   }
 
@@ -317,7 +326,7 @@ public class AdminApplicationService {
                       name,
                       STEP_LABELS.get(name),
                       step.getStatus(),
-                      step.getMessage(),
+                      publicStepMessage(name, step.getStatus(), run.getErrorCode()),
                       step.getStartedAt(),
                       step.getFinishedAt());
             })
@@ -336,6 +345,15 @@ public class AdminApplicationService {
                     null,
                     null))
         .toList();
+  }
+
+  private String publicStepMessage(AiStepName stepName, AiStepStatus status, String errorCode) {
+    return switch (status) {
+      case FAILED -> AiErrorMessageSanitizer.toPublicMessage(errorCode);
+      case SKIPPED -> "Không chạy do bước trước chưa hoàn tất.";
+      case ACTIVE -> "Bước này đang được hệ thống xử lý.";
+      case COMPLETED, PENDING -> STEP_MESSAGES.get(stepName);
+    };
   }
 
   private List<AiProcessingStep> initialSteps(AiProcessingRun run, LocalDateTime acceptedAt) {

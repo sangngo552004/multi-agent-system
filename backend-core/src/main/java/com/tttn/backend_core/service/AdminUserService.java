@@ -53,6 +53,7 @@ public class AdminUserService {
   @Transactional(readOnly = true)
   public PageResponse<AdminUserResponse> findAll(
       String search, Role role, String status, int page, int size, String sort) {
+    validateSearch(search);
     validateStatusFilter(status);
     Page<User> users =
         userRepository.findAll(
@@ -147,6 +148,12 @@ public class AdminUserService {
       return;
     }
     throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
+  }
+
+  private void validateSearch(String search) {
+    if (search != null && search.length() > 100) {
+      throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
+    }
   }
 
   private Sort parseSort(String value) {

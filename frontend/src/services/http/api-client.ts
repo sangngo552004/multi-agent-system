@@ -3,6 +3,7 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ??
   "http://localhost:8080";
+const REQUEST_TIMEOUT_MS = 20_000;
 
 type ApiEnvelope<T> = {
   code: number;
@@ -22,13 +23,40 @@ export const AUTH_SESSION_EXPIRED_EVENT = "auth:session-expired";
 
 export class ApiError extends Error {
   constructor(
-    message: string,
     public readonly code: number,
     public readonly status: number,
   ) {
-    super(message);
+    super(getSafeApiErrorMessage(code, status));
     this.name = "ApiError";
   }
+}
+
+function getSafeApiErrorMessage(code: number, status: number) {
+  if (code === 1004) return "Email hoặc mật khẩu không đúng.";
+  if (code === 1012) {
+    return "Tài khoản đang tạm khóa do đăng nhập sai nhiều lần.";
+  }
+  if (code === 1013) return "Tài khoản hiện không hoạt động.";
+  if (code === 1015 || status === 429) {
+    return "Bạn thao tác quá nhanh. Vui lòng chờ một lúc rồi thử lại.";
+  }
+  if (status === 401) return "Phiên đăng nhập đã hết hạn.";
+  if (status === 403) return "Bạn không có quyền thực hiện thao tác này.";
+  if (status === 404) return "Không tìm thấy dữ liệu được yêu cầu.";
+  if (status === 409) {
+    return "Dữ liệu đã thay đổi hoặc đang được sử dụng. Vui lòng tải lại.";
+  }
+  if (status >= 500) {
+    return "Hệ thống đang tạm thời gián đoạn. Vui lòng thử lại sau.";
+  }
+  return "Yêu cầu chưa hợp lệ. Vui lòng kiểm tra và thử lại.";
+}
+
+export function shouldRetryApiRequest(failureCount: number, error: unknown) {
+  if (error instanceof ApiError) {
+    return error.status >= 500 && failureCount < 1;
+  }
+  return failureCount < 1;
 }
 
 export function setAccessToken(token: string | null) {
@@ -125,6 +153,7 @@ async function request<T>(
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     credentials: "include",
+    signal: options.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   const payload = (await response.json().catch(() => null)) as
     | ApiEnvelope<T>
@@ -132,7 +161,6 @@ async function request<T>(
 
   if (!response.ok || !payload || payload.code !== 1000) {
     throw new ApiError(
-      payload?.message ?? "Không thể kết nối đến máy chủ.",
       payload?.code ?? response.status,
       response.status,
     );

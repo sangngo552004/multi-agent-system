@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { getAdminErrorMessage } from "@/features/admin/admin-errors";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useUpdateUserStatus } from "@/features/admin/users/users.queries";
 import {
@@ -28,6 +29,7 @@ export function UserStatusDialog({ user }: { user: AdminUser }) {
   });
 
   const onSubmit = form.handleSubmit(async ({ reason }) => {
+    if (mutation.isPending) return;
     try {
       await mutation.mutateAsync({
         userId: user.id,
@@ -41,7 +43,10 @@ export function UserStatusDialog({ user }: { user: AdminUser }) {
       setOpen(false);
     } catch (error) {
       toast.error("Không thể cập nhật tài khoản", {
-        description: error instanceof Error ? error.message : "Vui lòng thử lại.",
+        description: getAdminErrorMessage(
+          error,
+          "Chưa thể cập nhật trạng thái tài khoản. Vui lòng thử lại.",
+        ),
       });
     }
   });

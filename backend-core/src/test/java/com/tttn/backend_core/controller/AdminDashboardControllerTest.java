@@ -66,6 +66,15 @@ class AdminDashboardControllerTest {
         .andExpect(jsonPath("$.code").value(1043));
   }
 
+  @Test
+  void getDashboardReturnsBadRequestForMalformedRange() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/admin/dashboard").param("rangeDays", "seven"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value(1001))
+        .andExpect(jsonPath("$.message").value("Invalid request"));
+  }
+
   private AdminDashboardResponse dashboardResponse() {
     EnumMap<AiProcessingStatus, Long> counts = new EnumMap<>(AiProcessingStatus.class);
     for (AiProcessingStatus status : AiProcessingStatus.values()) {

@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { ArrowLeft, BriefcaseBusiness, CalendarDays, UserRound } from "lucide-react";
-import { ErrorState } from "@/components/data-display/error-state";
 import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { aiStatusMap } from "@/config/status";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 import { AiDiagnosticsPanel } from "@/features/admin/applications/components/ai-diagnostics-panel";
 import { AiProcessRail } from "@/features/admin/applications/components/ai-process-rail";
 import { ApplicationDetailSkeleton } from "@/features/admin/applications/components/application-detail-skeleton";
@@ -16,7 +16,19 @@ import { formatDate } from "@/lib/format";
 export function ApplicationDetailPage({ applicationId }: { applicationId: string }) {
   const query = useApplication(applicationId);
   if (query.isPending) return <ApplicationDetailSkeleton />;
-  if (query.isError) return <ErrorState title="Không thể mở hồ sơ" description={query.error.message} onRetry={() => query.refetch()} />;
+  if (query.isError) {
+    return (
+      <AdminQueryError
+        error={query.error}
+        title="Không thể mở hồ sơ"
+        fallbackDescription="Chưa thể tải trạng thái xử lý hồ sơ lúc này."
+        onRetry={() => query.refetch()}
+        retrying={query.isFetching}
+        backHref="/admin/applications"
+        backLabel="Quay lại danh sách hồ sơ"
+      />
+    );
+  }
   const application = query.data;
   const ai = aiStatusMap[application.aiStatus];
 
@@ -30,7 +42,10 @@ export function ApplicationDetailPage({ applicationId }: { applicationId: string
       </div>
       <div className="rounded-[10px] border border-border bg-surface px-4 py-3"><p className="text-[10px] font-semibold text-faint">Xử lý AI</p><StatusDot className="mt-1" label={ai.label} tone={ai.tone} /></div>
     </header>
-    <AiProcessRail steps={application.pipeline} />
+    <AiProcessRail
+      steps={application.pipeline}
+      errorCode={application.errorCode}
+    />
     <RetryAiPanel application={application} />
     <AiDiagnosticsPanel application={application} />
   </div>;

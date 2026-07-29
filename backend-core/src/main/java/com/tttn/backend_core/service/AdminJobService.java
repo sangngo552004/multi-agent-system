@@ -77,6 +77,7 @@ public class AdminJobService {
       int page,
       int size,
       String sort) {
+    validateSearch(search);
     validateReadinessFilter(readiness);
     Specification<Job> filters =
         buildFilters(search, status, jobFamilyId, careerLevelId, readiness);
@@ -241,6 +242,12 @@ public class AdminJobService {
       return;
     }
     throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
+  }
+
+  private void validateSearch(String search) {
+    if (search != null && search.length() > 100) {
+      throw new AppException(ErrorCode.INVALID_ADMIN_FILTER);
+    }
   }
 
   private Map<AiProcessingStatus, Long> aiStatusCounts(UUID jobId) {

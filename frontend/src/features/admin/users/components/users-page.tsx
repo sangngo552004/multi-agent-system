@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { SlidersHorizontal, UsersRound } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTable } from "@/components/data-display/data-table";
-import { ErrorState } from "@/components/data-display/error-state";
 import { SearchInput } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 import { userTableColumns } from "@/features/admin/users/components/user-table-columns";
 import { UsersTableSkeleton } from "@/features/admin/users/components/users-table-skeleton";
 import { useUsers } from "@/features/admin/users/users.queries";
@@ -105,7 +105,16 @@ export function UsersPage() {
           </div>
         </div>
         {users.isPending ? <div className="overflow-hidden"><UsersTableSkeleton /></div> : null}
-        {users.isError ? <div className="p-5"><ErrorState description={users.error.message} onRetry={() => users.refetch()} /></div> : null}
+        {users.isError ? (
+          <div className="p-5">
+            <AdminQueryError
+              error={users.error}
+              fallbackDescription="Chưa thể tải danh sách tài khoản lúc này."
+              onRetry={() => users.refetch()}
+              retrying={users.isFetching}
+            />
+          </div>
+        ) : null}
         {users.data ? <DataTable columns={userTableColumns} data={users.data.items} getRowId={(user) => user.id} onRowClick={(user) => router.push(`/admin/users/${user.id}`)} server={{ pageIndex: users.data.page, pageSize: users.data.size, pageCount: users.data.totalPages, totalItems: users.data.totalItems, onPageChange: setPage, sorting, onSortingChange: (updater) => { setSorting((current) => typeof updater === "function" ? updater(current) : updater); setPage(0); } }} /> : null}
       </section>
     </div>

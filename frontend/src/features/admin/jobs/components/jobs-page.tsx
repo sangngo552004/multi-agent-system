@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BriefcaseBusiness, SlidersHorizontal } from "lucide-react";
 import { DataTable } from "@/components/data-display/data-table";
-import { ErrorState } from "@/components/data-display/error-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { SearchInput } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { AdminInlineError } from "@/features/admin/components/admin-inline-error";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 import { JobStatusTabs } from "@/features/admin/jobs/components/job-status-tabs";
 import { jobTableColumns } from "@/features/admin/jobs/components/job-table-columns";
 import { JobsTableSkeleton } from "@/features/admin/jobs/components/jobs-table-skeleton";
@@ -112,13 +113,21 @@ export function JobsPage() {
       <PageHeader eyebrow="Giám sát dữ liệu tuyển dụng" title="Tin tuyển dụng" description="Theo dõi trạng thái do HR quản lý và phát hiện tin còn thiếu dữ liệu để hệ thống AI đối sánh." />
       <section className="overflow-hidden rounded-[12px] border border-border bg-surface">
         <JobStatusTabs value={status} onChange={(value) => { setStatus(value); setPage(0); }} counts={jobs.data?.statusCounts ?? emptyCounts} />
+        {filterOptions.isError ? (
+          <AdminInlineError
+            error={filterOptions.error}
+            fallbackDescription="Chưa thể tải nhóm nghề và cấp bậc. Các bộ lọc này tạm thời không khả dụng."
+            onRetry={() => filterOptions.refetch()}
+            retrying={filterOptions.isFetching}
+          />
+        ) : null}
         <div className="border-b border-border p-4 sm:p-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <SearchInput value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} placeholder="Tìm theo vị trí, HR hoặc đơn vị..." className="w-full xl:max-w-sm" />
             <div className="flex flex-wrap items-center gap-2">
               <span className="mr-1 hidden items-center gap-2 text-xs font-medium text-muted sm:flex"><SlidersHorizontal className="size-4" /> {filterCount} bộ lọc</span>
-              <Select label="Nhóm nghề" value={jobFamilyId} onValueChange={(value) => { setJobFamilyId(value); setPage(0); }} options={familyFilters} />
-              <Select label="Cấp bậc" value={careerLevelId} onValueChange={(value) => { setCareerLevelId(value); setPage(0); }} options={levelFilters} />
+              <Select label="Nhóm nghề" value={jobFamilyId} onValueChange={(value) => { setJobFamilyId(value); setPage(0); }} options={familyFilters} disabled={filterOptions.isError} />
+              <Select label="Cấp bậc" value={careerLevelId} onValueChange={(value) => { setCareerLevelId(value); setPage(0); }} options={levelFilters} disabled={filterOptions.isError} />
               <Select label="Cấu hình AI" value={readiness} onValueChange={(value) => { setReadiness(value as NonNullable<JobFilters["readiness"]>); setPage(0); }} options={readinessOptions} />
             </div>
           </div>
@@ -128,7 +137,16 @@ export function JobsPage() {
           </div>
         </div>
         {jobs.isPending ? <div className="overflow-hidden"><JobsTableSkeleton /></div> : null}
-        {jobs.isError ? <div className="p-5"><ErrorState description={jobs.error.message} onRetry={() => jobs.refetch()} /></div> : null}
+        {jobs.isError ? (
+          <div className="p-5">
+            <AdminQueryError
+              error={jobs.error}
+              fallbackDescription="Chưa thể tải danh sách tin tuyển dụng lúc này."
+              onRetry={() => jobs.refetch()}
+              retrying={jobs.isFetching}
+            />
+          </div>
+        ) : null}
         {jobs.data ? <DataTable columns={jobTableColumns} data={jobs.data.items} getRowId={(job) => job.id} rowClassName={(job) => !job.matchingReady && job.status !== "CLOSED" ? "bg-warning/[0.018]" : undefined} onRowClick={(job) => router.push(`/admin/jobs/${job.id}`)} emptyTitle="Không có tin tuyển dụng phù hợp" emptyDescription="Thử chọn trạng thái khác hoặc xóa bớt bộ lọc." server={{ pageIndex: jobs.data.page, pageSize: jobs.data.size, pageCount: jobs.data.totalPages, totalItems: jobs.data.totalItems, onPageChange: setPage, sorting, onSortingChange: (updater) => { setSorting((current) => typeof updater === "function" ? updater(current) : updater); setPage(0); } }} /> : null}
       </section>
     </div>

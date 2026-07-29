@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { ArrowLeft, BriefcaseBusiness, CalendarDays, FileUser, Mail, Shield } from "lucide-react";
-import { ErrorState } from "@/components/data-display/error-state";
 import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { roleMap, userStatusMap } from "@/config/status";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 import { StaffProfilePanel } from "@/features/admin/users/components/staff-profile-panel";
 import { UserActivityList } from "@/features/admin/users/components/user-activity-list";
 import { UserDetailSkeleton } from "@/features/admin/users/components/user-detail-skeleton";
@@ -17,7 +17,19 @@ import { formatDate, formatRelativeTime, getInitials } from "@/lib/format";
 export function UserDetailPage({ userId }: { userId: string }) {
   const userQuery = useUser(userId);
   if (userQuery.isPending) return <UserDetailSkeleton />;
-  if (userQuery.isError) return <ErrorState title="Không thể mở người dùng" description={userQuery.error.message} onRetry={() => userQuery.refetch()} />;
+  if (userQuery.isError) {
+    return (
+      <AdminQueryError
+        error={userQuery.error}
+        title="Không thể mở người dùng"
+        fallbackDescription="Chưa thể tải thông tin tài khoản lúc này."
+        onRetry={() => userQuery.refetch()}
+        retrying={userQuery.isFetching}
+        backHref="/admin/users"
+        backLabel="Quay lại danh sách tài khoản"
+      />
+    );
+  }
   const user = userQuery.data;
   const status = userStatusMap[user.status];
 

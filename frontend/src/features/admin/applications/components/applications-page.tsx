@@ -5,10 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { SortingState } from "@tanstack/react-table";
 import { FileSearch, SlidersHorizontal } from "lucide-react";
 import { DataTable } from "@/components/data-display/data-table";
-import { ErrorState } from "@/components/data-display/error-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { SearchInput } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 import { applicationTableColumns } from "@/features/admin/applications/components/application-table-columns";
 import { ApplicationsTableSkeleton } from "@/features/admin/applications/components/applications-table-skeleton";
 import { useApplications } from "@/features/admin/applications/applications.queries";
@@ -188,9 +188,11 @@ export function ApplicationsPage() {
         {applications.isPending ? <ApplicationsTableSkeleton /> : null}
         {applications.isError ? (
           <div className="p-5">
-            <ErrorState
-              description={applications.error.message}
+            <AdminQueryError
+              error={applications.error}
+              fallbackDescription="Chưa thể tải danh sách hồ sơ lúc này."
               onRetry={() => applications.refetch()}
+              retrying={applications.isFetching}
             />
           </div>
         ) : null}
