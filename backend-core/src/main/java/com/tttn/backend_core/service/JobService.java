@@ -6,6 +6,7 @@ import com.tttn.backend_core.dto.response.JobResponse;
 import com.tttn.backend_core.entity.Job;
 import com.tttn.backend_core.exception.AppException;
 import com.tttn.backend_core.exception.ErrorCode;
+import com.tttn.backend_core.mapper.JobMapper;
 import com.tttn.backend_core.repository.CareerLevelRepository;
 import com.tttn.backend_core.repository.JobFamilyRepository;
 import com.tttn.backend_core.repository.JobRepository;
@@ -25,18 +26,19 @@ public class JobService {
   private final JobFamilyRepository jobFamilyRepository;
   private final CareerLevelRepository careerLevelRepository;
   private final UserRepository userRepository;
+  private final JobMapper jobMapper;
 
   @Transactional(readOnly = true)
   public Page<JobResponse> getJobs(JobFilterRequest filter, Pageable pageable) {
     Page<Job> jobs = jobRepository.searchJobs(filter, pageable);
-    return jobs.map(this::mapToResponse);
+    return jobs.map(jobMapper::toResponse);
   }
 
   @Transactional(readOnly = true)
   public JobResponse getJobDetail(UUID id) {
     Job job =
         jobRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
-    return mapToResponse(job);
+    return jobMapper.toResponse(job);
   }
 
   @Transactional
@@ -51,7 +53,7 @@ public class JobService {
     mapRequestToEntity(request, job);
 
     Job savedJob = jobRepository.save(job);
-    return mapToResponse(savedJob);
+    return jobMapper.toResponse(savedJob);
   }
 
   @Transactional
@@ -62,7 +64,7 @@ public class JobService {
     mapRequestToEntity(request, job);
 
     Job savedJob = jobRepository.save(job);
-    return mapToResponse(savedJob);
+    return jobMapper.toResponse(savedJob);
   }
 
   @Transactional
@@ -74,20 +76,7 @@ public class JobService {
   }
 
   private void mapRequestToEntity(JobRequest request, Job job) {
-    job.setTitle(request.getTitle());
-    job.setLocation(request.getLocation());
-    job.setEmploymentType(request.getEmploymentType());
-    job.setDescription(request.getDescription());
-    job.setRequirements(request.getRequirements());
-    job.setBenefits(request.getBenefits());
-
-    if (request.getIsActive() != null) {
-      job.setIsActive(request.getIsActive());
-    }
-
-    if (request.getExpiredAt() != null) {
-      job.setExpiredAt(request.getExpiredAt());
-    }
+    jobMapper.updateEntity(request, job);
 
     if (request.getJobFamilyId() != null) {
       job.setJobFamily(
@@ -106,32 +95,5 @@ public class JobService {
     } else {
       job.setCareerLevel(null);
     }
-  }
-
-  private JobResponse mapToResponse(Job job) {
-    JobResponse response = new JobResponse();
-    response.setId(job.getId());
-    response.setTitle(job.getTitle());
-    response.setLocation(job.getLocation());
-    response.setEmploymentType(job.getEmploymentType());
-    response.setDescription(job.getDescription());
-    response.setRequirements(job.getRequirements());
-    response.setBenefits(job.getBenefits());
-    response.setIsActive(job.getIsActive());
-    response.setExpiredAt(job.getExpiredAt());
-    response.setCreatedAt(job.getCreatedAt());
-    response.setUpdatedAt(job.getUpdatedAt());
-
-    if (job.getJobFamily() != null) {
-      response.setJobFamilyId(job.getJobFamily().getId());
-      response.setJobFamilyName(job.getJobFamily().getName());
-    }
-
-    if (job.getCareerLevel() != null) {
-      response.setCareerLevelId(job.getCareerLevel().getId());
-      response.setCareerLevelName(job.getCareerLevel().getName());
-    }
-
-    return response;
   }
 }

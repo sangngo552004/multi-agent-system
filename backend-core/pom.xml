@@ -151,6 +151,12 @@
 			<version>5.1.0</version>
 			<scope>provided</scope>
 		</dependency>
+		<!-- MapStruct -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>1.6.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -184,6 +190,16 @@
 									<artifactId>lombok</artifactId>
 								</path>
 								<path>
+									<groupId>org.projectlombok</groupId>
+									<artifactId>lombok-mapstruct-binding</artifactId>
+									<version>0.2.0</version>
+								</path>
+								<path>
+									<groupId>org.mapstruct</groupId>
+									<artifactId>mapstruct-processor</artifactId>
+									<version>1.6.0</version>
+								</path>
+								<path>
 									<groupId>com.querydsl</groupId>
 									<artifactId>querydsl-apt</artifactId>
 									<classifier>jakarta</classifier>
@@ -208,6 +224,16 @@
 								<path>
 									<groupId>org.projectlombok</groupId>
 									<artifactId>lombok</artifactId>
+								</path>
+								<path>
+									<groupId>org.projectlombok</groupId>
+									<artifactId>lombok-mapstruct-binding</artifactId>
+									<version>0.2.0</version>
+								</path>
+								<path>
+									<groupId>org.mapstruct</groupId>
+									<artifactId>mapstruct-processor</artifactId>
+									<version>1.6.0</version>
 								</path>
 								<path>
 									<groupId>com.querydsl</groupId>
