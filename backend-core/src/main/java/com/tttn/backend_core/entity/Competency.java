@@ -21,7 +21,7 @@ public class Competency {
   @Column(nullable = false, unique = true)
   private String name;
 
-  @Column(nullable = false, length = 100)
+  @Column(nullable = false, length = 180)
   private String category; // HARD_SKILL, SOFT_SKILL, EXPERIENCE, PEDIGREE
 
   @Column(columnDefinition = "TEXT")

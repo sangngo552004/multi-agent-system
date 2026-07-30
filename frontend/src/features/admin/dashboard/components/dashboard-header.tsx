@@ -10,15 +10,19 @@ export function DashboardHeader({
   range,
   onRangeChange,
   generatedAt,
+  userName,
 }: {
   range: DashboardRange;
   onRangeChange: (range: DashboardRange) => void;
   generatedAt?: string;
+  userName?: string;
 }) {
+  const displayName = userName?.trim().split(/\s+/).at(-1);
+
   return (
     <PageHeader
       eyebrow="Trung tâm vận hành"
-      title="Chào buổi sáng, Admin."
+      title={`Xin chào${displayName ? `, ${displayName}` : ""}.`}
       description="Những việc đáng chú ý của hệ thống tuyển dụng nội bộ được gom tại đây để bạn xử lý nhanh."
       actions={
         <div className="flex flex-wrap items-center gap-2">

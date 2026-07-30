@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { ErrorState } from "@/components/data-display/error-state";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 import { CompetencyLadder } from "@/features/admin/knowledge/components/competency-ladder";
 import { KnowledgeFormDialog } from "@/features/admin/knowledge/components/knowledge-form-dialog";
 import { useCompetency } from "@/features/admin/knowledge/knowledge.queries";
@@ -12,7 +12,19 @@ import { useCompetency } from "@/features/admin/knowledge/knowledge.queries";
 export function CompetencyDetailPage({ competencyId }: { competencyId: string }) {
   const competency = useCompetency(competencyId);
   if (competency.isPending) return <DetailSkeleton />;
-  if (competency.isError) return <ErrorState title="Không thể mở năng lực" description={competency.error.message} onRetry={() => competency.refetch()} />;
+  if (competency.isError) {
+    return (
+      <AdminQueryError
+        error={competency.error}
+        title="Không thể mở năng lực"
+        fallbackDescription="Chưa thể tải thông tin năng lực lúc này."
+        onRetry={() => competency.refetch()}
+        retrying={competency.isFetching}
+        backHref="/admin/knowledge"
+        backLabel="Quay lại kho năng lực"
+      />
+    );
+  }
   const item = competency.data;
 
   return <div className="space-y-7">

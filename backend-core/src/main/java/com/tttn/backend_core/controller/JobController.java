@@ -1,6 +1,5 @@
 package com.tttn.backend_core.controller;
 
-import com.querydsl.core.types.Predicate;
 import com.tttn.backend_core.dto.request.AiParseRequest;
 import com.tttn.backend_core.dto.request.JobCompetencyRequest;
 import com.tttn.backend_core.dto.request.JobFilterRequest;
@@ -9,7 +8,6 @@ import com.tttn.backend_core.dto.request.JobRuleUpdateRequest;
 import com.tttn.backend_core.dto.response.ApplicationResponse;
 import com.tttn.backend_core.dto.response.JobParseResponse;
 import com.tttn.backend_core.dto.response.JobResponse;
-import com.tttn.backend_core.entity.Application;
 import com.tttn.backend_core.security.CustomUserPrincipal;
 import com.tttn.backend_core.service.AiParsingService;
 import com.tttn.backend_core.service.ApplicationService;
@@ -20,7 +18,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -43,9 +40,12 @@ public class JobController {
   @GetMapping("/{id}/applications")
   public ResponseEntity<Page<ApplicationResponse>> getApplicationsByJob(
       @PathVariable UUID id,
-      @QuerydslPredicate(root = Application.class) Predicate predicate,
+      @RequestParam(required = false) com.tttn.backend_core.entity.ApplicationStatus status,
+      @RequestParam(required = false) com.tttn.backend_core.entity.AiProcessingStatus aiStatus,
+      @RequestParam(required = false) Boolean needsReview,
       Pageable pageable) {
-    return ResponseEntity.ok(applicationService.getApplicationsByJob(id, predicate, pageable));
+    return ResponseEntity.ok(
+        applicationService.getApplicationsByJob(id, status, aiStatus, needsReview, pageable));
   }
 
   @PostMapping("/parse")

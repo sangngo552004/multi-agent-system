@@ -1,10 +1,8 @@
 package com.tttn.backend_core.service;
 
-import com.querydsl.core.types.Predicate;
 import com.tttn.backend_core.dto.response.ApplicationResponse;
 import com.tttn.backend_core.entity.Application;
 import com.tttn.backend_core.entity.ApplicationStatus;
-import com.tttn.backend_core.entity.QApplication;
 import com.tttn.backend_core.exception.AppException;
 import com.tttn.backend_core.exception.ErrorCode;
 import com.tttn.backend_core.repository.ApplicationRepository;
@@ -25,16 +23,33 @@ public class ApplicationService {
 
   @Transactional(readOnly = true)
   public Page<ApplicationResponse> getApplicationsByJob(
-      UUID jobId, Predicate predicate, Pageable pageable) {
-    QApplication q = QApplication.application;
-    Predicate jobPredicate = q.job.id.eq(jobId);
-    Predicate finalPredicate =
-        predicate != null
-            ? com.querydsl.core.types.ExpressionUtils.allOf(jobPredicate, predicate)
-            : jobPredicate;
+      UUID jobId,
+      ApplicationStatus status,
+      com.tttn.backend_core.entity.AiProcessingStatus aiStatus,
+      Boolean needsReview,
+      Pageable pageable) {
+
+    org.springframework.data.jpa.domain.Specification<Application> spec =
+        (root, query, cb) -> {
+          java.util.List<jakarta.persistence.criteria.Predicate> predicates =
+              new java.util.ArrayList<>();
+          predicates.add(cb.equal(root.get("job").get("id"), jobId));
+
+          if (status != null) {
+            predicates.add(cb.equal(root.get("status"), status));
+          }
+          if (aiStatus != null) {
+            predicates.add(cb.equal(root.get("aiStatus"), aiStatus));
+          }
+          if (needsReview != null) {
+            predicates.add(cb.equal(root.get("needsReview"), needsReview));
+          }
+
+          return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
 
     return applicationRepository
-        .findAll(finalPredicate, pageable)
+        .findAll(spec, pageable)
         .map(
             app ->
                 ApplicationResponse.builder()

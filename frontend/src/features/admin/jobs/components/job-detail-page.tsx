@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { ArrowLeft, BriefcaseBusiness, MapPin } from "lucide-react";
-import { ErrorState } from "@/components/data-display/error-state";
 import { StatusDot } from "@/components/ui/status-dot";
 import { jobStatusMap } from "@/config/status";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 import { JobContentPreview } from "@/features/admin/jobs/components/job-content-preview";
 import { JobDetailSkeleton } from "@/features/admin/jobs/components/job-detail-skeleton";
 import { JobMatchingPanel } from "@/features/admin/jobs/components/job-matching-panel";
@@ -15,7 +15,19 @@ import { useJob } from "@/features/admin/jobs/jobs.queries";
 export function JobDetailPage({ jobId }: { jobId: string }) {
   const jobQuery = useJob(jobId);
   if (jobQuery.isPending) return <JobDetailSkeleton />;
-  if (jobQuery.isError) return <ErrorState title="Không thể mở tin tuyển dụng" description={jobQuery.error.message} onRetry={() => jobQuery.refetch()} />;
+  if (jobQuery.isError) {
+    return (
+      <AdminQueryError
+        error={jobQuery.error}
+        title="Không thể mở tin tuyển dụng"
+        fallbackDescription="Chưa thể tải thông tin tin tuyển dụng lúc này."
+        onRetry={() => jobQuery.refetch()}
+        retrying={jobQuery.isFetching}
+        backHref="/admin/jobs"
+        backLabel="Quay lại danh sách tin"
+      />
+    );
+  }
   const job = jobQuery.data;
   const status = jobStatusMap[job.status];
 

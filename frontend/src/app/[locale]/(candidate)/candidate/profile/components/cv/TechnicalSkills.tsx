@@ -1,5 +1,5 @@
 import { Icon } from "./Icon";
-import type { CategorizedSkills } from "@/types/cv-analysis";
+import type { CategorizedSkills } from "@/types/domain/cv-analysis";
 
 interface SkillRowProps {
   label: string;

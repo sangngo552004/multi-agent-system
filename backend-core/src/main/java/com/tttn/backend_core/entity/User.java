@@ -27,6 +27,18 @@ public class User {
   @Column(name = "full_name")
   private String fullName;
 
+  @Column(name = "employee_code", length = 100)
+  private String employeeCode;
+
+  @Column(name = "department_name")
+  private String departmentName;
+
+  @Column(name = "job_title")
+  private String jobTitle;
+
+  @Column(name = "work_location")
+  private String workLocation;
+
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private Role role;
@@ -34,6 +46,12 @@ public class User {
   @Builder.Default
   @Column(name = "is_active", nullable = false)
   private boolean isActive = true;
+
+  @Column(name = "last_active_at")
+  private LocalDateTime lastActiveAt;
+
+  @Column(name = "block_reason", length = 240)
+  private String blockReason;
 
   @CreationTimestamp
   @Column(name = "created_at", updatable = false)

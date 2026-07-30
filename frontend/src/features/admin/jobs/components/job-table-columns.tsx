@@ -22,7 +22,7 @@ export const jobTableColumns: ColumnDef<JobListItem>[] = [
   },
   {
     accessorKey: "ownerName",
-    header: ({ column }) => <SortableHeader label="HR phụ trách" column={column} />,
+    header: "HR phụ trách",
     cell: ({ row }) => <span className="text-sm text-muted">{row.original.ownerName}</span>,
   },
   {
@@ -38,7 +38,7 @@ export const jobTableColumns: ColumnDef<JobListItem>[] = [
   },
   {
     accessorKey: "applicationCount",
-    header: ({ column }) => <SortableHeader label="Số ứng viên" column={column} />,
+    header: "Số ứng viên",
     cell: ({ row }) => <span className="text-sm font-semibold tabular-nums text-ink">{row.original.applicationCount}</span>,
   },
   {

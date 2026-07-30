@@ -3,7 +3,6 @@
 import { CalendarRange, CircleCheckBig, Gauge, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { EmptyState } from "@/components/data-display/empty-state";
-import { ErrorState } from "@/components/data-display/error-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,16 +11,27 @@ import { ApplicationTrendChart } from "@/features/admin/dashboard/components/app
 import { OperationalPulse } from "@/features/admin/dashboard/components/operational-pulse";
 import { useDashboard } from "@/features/admin/dashboard/dashboard.queries";
 import type { DashboardRange } from "@/features/admin/dashboard/dashboard.types";
+import { AdminQueryError } from "@/features/admin/components/admin-query-error";
 
 export function ReportsPage() {
   const [range, setRange] = useState<DashboardRange>(30);
   const report = useDashboard(range);
   if (report.isPending) return <ReportSkeleton />;
-  if (report.isError) return <ErrorState title="Không thể tạo báo cáo" description={report.error.message} onRetry={() => report.refetch()} />;
+  if (report.isError) {
+    return (
+      <AdminQueryError
+        error={report.error}
+        title="Không thể tạo báo cáo"
+        fallbackDescription="Chưa thể tổng hợp báo cáo tuyển dụng lúc này."
+        onRetry={() => report.refetch()}
+        retrying={report.isFetching}
+      />
+    );
+  }
 
   return <div className="space-y-7">
     <PageHeader eyebrow="Tổng hợp vận hành" title="Báo cáo tuyển dụng" description="Theo dõi tài khoản, nhu cầu tuyển dụng, hồ sơ ứng viên và tình trạng xử lý AI trong toàn tổ chức." actions={<Select label="Khoảng báo cáo" value={String(range)} onValueChange={(value) => setRange(Number(value) as DashboardRange)} options={[{ value: "7", label: "7 ngày gần đây" }, { value: "30", label: "30 ngày gần đây" }]} />} />
-    {!report.data.hasData ? <EmptyState title="Chưa có dữ liệu báo cáo" description="Chuyển kịch bản demo về Bình thường để xem số liệu mẫu." /> : <>
+    {!report.data.hasData ? <EmptyState title="Chưa có dữ liệu báo cáo" description="Hệ thống chưa có dữ liệu vận hành trong phạm vi có thể tổng hợp." /> : <>
       <OperationalPulse metrics={report.data.metrics} />
       <ReportNotes range={range} data={report.data} />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.75fr)]"><ApplicationTrendChart data={report.data.trend} /><AiStatusPanel data={report.data.aiStatuses} /></div>

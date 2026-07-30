@@ -1,29 +1,100 @@
 import type { AiPipelineStep } from "@/features/admin/applications/applications.types";
+import { getAiFailurePresentation } from "@/features/admin/applications/ai-error-presentation";
 import type { AdminApplication } from "@/types/domain/admin";
 
-export function buildAiPipeline(application: Pick<AdminApplication, "aiStatus" | "errorCode" | "errorMessage">): AiPipelineStep[] {
+export function buildAiPipeline(
+  application: Pick<
+    AdminApplication,
+    "aiStatus" | "errorCode"
+  >,
+): AiPipelineStep[] {
   const base: AiPipelineStep[] = [
-    { id: "received", label: "Tiếp nhận CV", status: "COMPLETED", message: "Tệp đã được lưu và kiểm tra định dạng." },
-    { id: "extraction", label: "Trích xuất", status: "PENDING", message: "Đọc thông tin hồ sơ và kinh nghiệm." },
-    { id: "matching", label: "Đối sánh", status: "PENDING", message: "So sánh hồ sơ với yêu cầu công việc." },
-    { id: "career-path", label: "Lộ trình nghề nghiệp", status: "PENDING", message: "Xây đề xuất phát triển cá nhân." },
-    { id: "completed", label: "Hoàn tất", status: "PENDING", message: "Tổng hợp kết quả cuối cùng." },
+    {
+      id: "RECEIVED",
+      label: "Tiếp nhận CV",
+      status: "COMPLETED",
+      message: "Tệp đã được lưu và kiểm tra định dạng.",
+      startedAt: null,
+      finishedAt: null,
+    },
+    {
+      id: "EXTRACTION",
+      label: "Trích xuất",
+      status: "PENDING",
+      message: "Đọc thông tin hồ sơ và kinh nghiệm.",
+      startedAt: null,
+      finishedAt: null,
+    },
+    {
+      id: "MATCHING",
+      label: "Đối sánh",
+      status: "PENDING",
+      message: "So sánh hồ sơ với yêu cầu công việc.",
+      startedAt: null,
+      finishedAt: null,
+    },
+    {
+      id: "CAREER_PATH",
+      label: "Lộ trình nghề nghiệp",
+      status: "PENDING",
+      message: "Xây đề xuất phát triển cá nhân.",
+      startedAt: null,
+      finishedAt: null,
+    },
+    {
+      id: "COMPLETED",
+      label: "Hoàn tất",
+      status: "PENDING",
+      message: "Tổng hợp kết quả cuối cùng.",
+      startedAt: null,
+      finishedAt: null,
+    },
   ];
 
   if (application.aiStatus === "COMPLETED") {
-    return base.map((step) => ({ ...step, status: "COMPLETED" as const, message: step.id === "completed" ? "Kết quả đã sẵn sàng để xem." : step.message }));
+    return base.map((step) => ({
+      ...step,
+      status: "COMPLETED" as const,
+      message:
+        step.id === "COMPLETED"
+          ? "Kết quả đã sẵn sàng để xem."
+          : step.message,
+    }));
   }
   if (application.aiStatus === "WAITING") {
-    return base.map((step, index) => index === 1 ? { ...step, status: "ACTIVE", message: "Đang chờ tài nguyên xử lý." } : step);
+    return base;
   }
   if (application.aiStatus === "PROCESSING") {
-    return base.map((step, index) => index < 2 ? { ...step, status: "COMPLETED" } : index === 2 ? { ...step, status: "ACTIVE", message: "Agent đang tính điểm phù hợp." } : step);
+    return base.map((step, index) =>
+      index < 2
+        ? { ...step, status: "COMPLETED" }
+        : index === 2
+          ? {
+              ...step,
+              status: "ACTIVE",
+              message: "Agent đang tính điểm phù hợp.",
+            }
+          : step,
+    );
   }
 
   const failureIndex = application.errorCode === "INVALID_FILE" ? 1 : 2;
+  const failureMessage = getAiFailurePresentation(
+    application.errorCode,
+  ).description;
   return base.map((step, index) => {
     if (index < failureIndex) return { ...step, status: "COMPLETED" };
-    if (index === failureIndex) return { ...step, status: "FAILED", message: application.errorMessage ?? "Bước xử lý không hoàn tất." };
-    return { ...step, status: "SKIPPED", message: "Không chạy do bước trước thất bại." };
+    if (index === failureIndex) {
+      return {
+        ...step,
+        status: "FAILED",
+        message: failureMessage,
+      };
+    }
+    return {
+      ...step,
+      status: "SKIPPED",
+      message: "Không chạy do bước trước thất bại.",
+    };
   });
 }

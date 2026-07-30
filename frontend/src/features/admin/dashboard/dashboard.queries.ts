@@ -9,5 +9,7 @@ export function useDashboard(range: DashboardRange) {
   return useQuery({
     queryKey: adminQueryKeys.dashboard(range),
     queryFn: () => adminService.getDashboard(range),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 }
