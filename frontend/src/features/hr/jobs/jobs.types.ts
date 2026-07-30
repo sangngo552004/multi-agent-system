@@ -21,6 +21,7 @@ export type HrJobListItem = RecruitmentJob & {
   applicationCount: number;
   newApplicationCount: number;
   matchingReady: boolean;
+  ruleIds?: string[];
   expiresSoon: boolean;
   expired: boolean;
 };

@@ -1,0 +1,60 @@
+{
+  "Common": {
+    "welcome": "Welcome to CareerOS",
+    "error": "An error occurred"
+  },
+  "Candidate": {
+    "title": "For Candidates",
+    "jobTitle": "Job Details"
+  },
+  "HR": {
+    "title": "HR System",
+    "applicationDetail": "Application Details"
+  },
+  "Metadata": {
+    "defaultTitle": "CareerOS Demo",
+    "defaultDescription": "Multi-agent career orientation and recruitment system demo.",
+    "admin": {
+      "titleTemplate": "%s | Admin · CareerOS",
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "userDetail": "User Details",
+      "jobs": "Jobs",
+      "jobDetail": "Job Details",
+      "applications": "Applications & AI",
+      "applicationDetail": "Application Details"
+    },
+    "hr": {
+      "titleTemplate": "%s | HR · CareerOS",
+      "dashboard": "Recruitment Dashboard",
+      "talentPool": "Talent Pool",
+      "jobs": "Jobs",
+      "jobDetail": "Job Details",
+      "jobCreate": "Create Job",
+      "jobEdit": "Edit Job",
+      "applications": "Applications",
+      "applicationDetail": "Application Details"
+    },
+    "candidate": {
+      "titleTemplate": "%s | Candidate · CareerOS",
+      "profile": "Profile"
+    },
+    "auth": {
+      "titleTemplate": "%s | Auth · CareerOS"
+    }
+  },
+  "Errors": {
+    "UNKNOWN_ERROR": "An unknown error occurred. Please try again later.",
+    "JOB_NOT_FOUND": "Job campaign not found.",
+    "TITLE_REQUIRED": "Title is required.",
+    "LOCATION_REQUIRED": "Location is required.",
+    "COMPETENCY_NOT_FOUND": "Selected competency is invalid or deleted.",
+    "COMPETENCY_ID_REQUIRED": "Competency ID is required.",
+    "WEIGHT_REQUIRED": "Competency weight is required.",
+    "LEVEL_REQUIRED": "Required level is missing.",
+    "RULE_IDS_REQUIRED": "Institutional rules list is required.",
+    "JOB_NOT_DRAFT": "Action allowed only when job is in DRAFT state.",
+    "CANNOT_DELETE_PUBLISHED_JOB": "Cannot delete a published campaign.",
+    "CANNOT_UPDATE_PUBLISHED_JOB_WITH_APPLICANTS": "Campaign already has applicants. Please use Duplicate to change criteria for a new round."
+  }
+}

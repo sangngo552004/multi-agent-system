@@ -1,5 +1,6 @@
 package com.tttn.backend_core.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tttn.backend_core.dto.request.JobCompetencyRequest;
 import com.tttn.backend_core.dto.request.JobFilterRequest;
 import com.tttn.backend_core.dto.request.JobRequest;
@@ -42,18 +43,35 @@ public class JobService {
   private final InstitutionalRuleRepository institutionalRuleRepository;
   private final ApplicationRepository applicationRepository;
   private final JobMapper jobMapper;
+  private final ObjectMapper objectMapper;
+
+  private JobResponse getResponse(Job job) {
+    if ((job.getStatus() == JobStatus.PUBLISHED || job.getStatus() == JobStatus.CLOSED)
+        && job.getSnapshotData() != null) {
+      try {
+        JobResponse response = objectMapper.readValue(job.getSnapshotData(), JobResponse.class);
+        response.setId(job.getId());
+        response.setStatus(job.getStatus());
+        response.setUpdatedAt(job.getUpdatedAt());
+        return response;
+      } catch (Exception e) {
+        // fallback to mapper if parsing fails
+      }
+    }
+    return jobMapper.toResponse(job);
+  }
 
   @Transactional(readOnly = true)
   public Page<JobResponse> getJobs(JobFilterRequest filter, Pageable pageable) {
     Page<Job> jobs = jobRepository.searchJobs(filter, pageable);
-    return jobs.map(jobMapper::toResponse);
+    return jobs.map(this::getResponse);
   }
 
   @Transactional(readOnly = true)
   public JobResponse getJobDetail(UUID id) {
     Job job =
         jobRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
-    return jobMapper.toResponse(job);
+    return getResponse(job);
   }
 
   @Transactional
@@ -103,7 +121,15 @@ public class JobService {
       throw new AppException(ErrorCode.JOB_NOT_DRAFT);
     }
     job.setStatus(JobStatus.PUBLISHED);
-    return jobMapper.toResponse(jobRepository.save(job));
+
+    JobResponse snapshotObj = jobMapper.toResponse(job);
+    try {
+      job.setSnapshotData(objectMapper.writeValueAsString(snapshotObj));
+    } catch (Exception e) {
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+    }
+
+    return getResponse(jobRepository.save(job));
   }
 
   @Transactional

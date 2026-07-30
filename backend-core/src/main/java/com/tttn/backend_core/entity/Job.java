@@ -76,9 +76,12 @@ public class Job {
   private List<JobCompetency> requiredCompetencies = new ArrayList<>();
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "status", nullable = false)
+  @Column(name = "job_status", nullable = false)
   @Builder.Default
   private JobStatus status = JobStatus.DRAFT;
+
+  @Column(columnDefinition = "TEXT")
+  private String snapshotData;
 
   @Column(name = "expired_at")
   private LocalDateTime expiredAt;

@@ -5,10 +5,12 @@ import com.tttn.backend_core.dto.request.JobCompetencyRequest;
 import com.tttn.backend_core.dto.request.JobFilterRequest;
 import com.tttn.backend_core.dto.request.JobRequest;
 import com.tttn.backend_core.dto.request.JobRuleUpdateRequest;
+import com.tttn.backend_core.dto.response.ApplicationResponse;
 import com.tttn.backend_core.dto.response.JobParseResponse;
 import com.tttn.backend_core.dto.response.JobResponse;
 import com.tttn.backend_core.security.CustomUserPrincipal;
 import com.tttn.backend_core.service.AiParsingService;
+import com.tttn.backend_core.service.ApplicationService;
 import com.tttn.backend_core.service.JobService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -28,10 +30,22 @@ public class JobController {
 
   private final JobService jobService;
   private final AiParsingService aiParsingService;
+  private final ApplicationService applicationService;
 
   @GetMapping
   public ResponseEntity<Page<JobResponse>> getJobs(JobFilterRequest filter, Pageable pageable) {
     return ResponseEntity.ok(jobService.getJobs(filter, pageable));
+  }
+
+  @GetMapping("/{id}/applications")
+  public ResponseEntity<Page<ApplicationResponse>> getApplicationsByJob(
+      @PathVariable UUID id,
+      @RequestParam(required = false) com.tttn.backend_core.entity.ApplicationStatus status,
+      @RequestParam(required = false) com.tttn.backend_core.entity.AiProcessingStatus aiStatus,
+      @RequestParam(required = false) Boolean needsReview,
+      Pageable pageable) {
+    return ResponseEntity.ok(
+        applicationService.getApplicationsByJob(id, status, aiStatus, needsReview, pageable));
   }
 
   @PostMapping("/parse")

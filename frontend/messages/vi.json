@@ -1,0 +1,60 @@
+{
+  "Common": {
+    "welcome": "Chào mừng đến với CareerOS",
+    "error": "Đã xảy ra lỗi"
+  },
+  "Candidate": {
+    "title": "Dành cho ứng viên",
+    "jobTitle": "Chi tiết công việc"
+  },
+  "HR": {
+    "title": "Hệ thống Nhân sự",
+    "applicationDetail": "Chi tiết hồ sơ ứng viên"
+  },
+  "Metadata": {
+    "defaultTitle": "CareerOS Demo",
+    "defaultDescription": "Bản demo hệ thống tuyển dụng nội bộ và định hướng nghề nghiệp ứng dụng đa tác tử.",
+    "admin": {
+      "titleTemplate": "%s | Admin · CareerOS",
+      "dashboard": "Tổng quan",
+      "users": "Người dùng",
+      "userDetail": "Chi tiết người dùng",
+      "jobs": "Tin tuyển dụng",
+      "jobDetail": "Chi tiết tin tuyển dụng",
+      "applications": "Hồ sơ ứng tuyển và AI",
+      "applicationDetail": "Chi tiết hồ sơ ứng tuyển"
+    },
+    "hr": {
+      "titleTemplate": "%s | Nhân sự · CareerOS",
+      "dashboard": "Tổng quan tuyển dụng",
+      "talentPool": "Kho ứng viên tiềm năng",
+      "jobs": "Tin tuyển dụng",
+      "jobDetail": "Chi tiết tin tuyển dụng",
+      "jobCreate": "Tạo tin tuyển dụng",
+      "jobEdit": "Chỉnh sửa tin tuyển dụng",
+      "applications": "Hồ sơ ứng viên",
+      "applicationDetail": "Chi tiết hồ sơ ứng viên"
+    },
+    "candidate": {
+      "titleTemplate": "%s | Ứng viên · CareerOS",
+      "profile": "Hồ sơ cá nhân"
+    },
+    "auth": {
+      "titleTemplate": "%s | Xác thực · CareerOS"
+    }
+  },
+  "Errors": {
+    "UNKNOWN_ERROR": "Đã có lỗi xảy ra. Vui lòng thử lại sau.",
+    "JOB_NOT_FOUND": "Không tìm thấy chiến dịch tuyển dụng.",
+    "TITLE_REQUIRED": "Vui lòng nhập tiêu đề.",
+    "LOCATION_REQUIRED": "Vui lòng nhập địa điểm.",
+    "COMPETENCY_NOT_FOUND": "Kỹ năng bạn chọn không hợp lệ hoặc đã bị xoá.",
+    "COMPETENCY_ID_REQUIRED": "Thiếu mã kỹ năng.",
+    "WEIGHT_REQUIRED": "Thiếu trọng số kỹ năng.",
+    "LEVEL_REQUIRED": "Thiếu cấp độ yêu cầu.",
+    "RULE_IDS_REQUIRED": "Thiếu danh sách luật thưởng điểm.",
+    "JOB_NOT_DRAFT": "Chỉ có thể thao tác khi tin tuyển dụng ở trạng thái Nháp.",
+    "CANNOT_DELETE_PUBLISHED_JOB": "Không thể xoá chiến dịch đã xuất bản.",
+    "CANNOT_UPDATE_PUBLISHED_JOB_WITH_APPLICANTS": "Chiến dịch đã có ứng viên, vui lòng dùng tính năng Nhân Bản để sửa đổi tiêu chí cho đợt tuyển mới."
+  }
+}
