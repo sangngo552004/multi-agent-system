@@ -11,6 +11,8 @@ export interface JobResponse {
 
 export const CandidateJobService = {
   getJobDetail: async (jobId: string) => {
-    return apiClient.get<JobResponse>(`/candidate/jobs/${jobId}`);
+    return apiClient.get<JobResponse>(`/public/jobs/${jobId}`, {
+      authenticated: false,
+    });
   },
 };

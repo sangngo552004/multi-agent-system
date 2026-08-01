@@ -29,6 +29,7 @@ public class AiProcessingEventListener {
   private final AiProcessingRunRepository runRepository;
   private final AiProcessingStepRepository stepRepository;
   private final ApplicationRepository applicationRepository;
+  private final CandidateProfileRepository candidateProfileRepository;
   private final ActivityLogService activityLogService;
 
   @RabbitListener(queues = RabbitMQConfig.APPLICATION_EVENT_QUEUE)
@@ -109,6 +110,27 @@ public class AiProcessingEventListener {
     step.setFinishedAt(occurredAt);
     if (name == AiStepName.EXTRACTION) {
       updateMetrics(application, event);
+      if (event.hasNonNull("cv_data")) {
+        JsonNode cvDataNode = event.get("cv_data");
+        java.util.Map<String, Object> cvData =
+            objectMapper.convertValue(cvDataNode, java.util.Map.class);
+
+        CandidateProfile profile =
+            candidateProfileRepository
+                .findById(application.getCandidate().getId())
+                .orElseGet(
+                    () ->
+                        CandidateProfile.builder()
+                            .userId(application.getCandidate().getId())
+                            .user(application.getCandidate())
+                            .build());
+
+        profile.setSkills((java.util.Map<String, Object>) cvData.get("skills"));
+        profile.setExperience((java.util.Map<String, Object>) cvData.get("experience"));
+        profile.setEducation((java.util.Map<String, Object>) cvData.get("education"));
+
+        candidateProfileRepository.save(profile);
+      }
     }
   }
 

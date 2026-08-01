@@ -24,6 +24,7 @@ public class ApplicationService {
   private final com.tttn.backend_core.repository.UserRepository userRepository;
   private final StorageService storageService;
   private final com.tttn.backend_core.repository.AiProcessingOutboxRepository outboxRepository;
+  private final com.tttn.backend_core.mapper.ApplicationMapper applicationMapper;
 
   @Transactional(readOnly = true)
   public Page<ApplicationResponse> getApplicationsByJob(
@@ -52,22 +53,7 @@ public class ApplicationService {
           return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };
 
-    return applicationRepository
-        .findAll(spec, pageable)
-        .map(
-            app ->
-                ApplicationResponse.builder()
-                    .id(app.getId())
-                    .candidateId(app.getCandidate().getId())
-                    .candidateName(app.getCandidate().getFullName())
-                    .candidateEmail(app.getCandidate().getEmail())
-                    .resumeUrl(app.getResumeUrl())
-                    .status(app.getStatus())
-                    .fitScore(app.getFitScore())
-                    .aiFeedback(app.getAiFeedback())
-                    .appliedAt(app.getAppliedAt())
-                    .updatedAt(app.getUpdatedAt())
-                    .build());
+    return applicationRepository.findAll(spec, pageable).map(applicationMapper::toResponse);
   }
 
   @Transactional(readOnly = true)
@@ -77,19 +63,7 @@ public class ApplicationService {
             .findById(id)
             .orElseThrow(() -> new AppException(ErrorCode.APPLICATION_NOT_FOUND));
 
-    return ApplicationResponse.builder()
-        .id(app.getId())
-        .candidateId(app.getCandidate().getId())
-        .candidateName(app.getCandidate().getFullName())
-        .candidateEmail(app.getCandidate().getEmail())
-        .resumeUrl(app.getResumeUrl())
-        .status(app.getStatus())
-        .fitScore(app.getFitScore())
-        .aiFeedback(app.getAiFeedback())
-        .scoringBreakdown(app.getScoringBreakdown())
-        .appliedAt(app.getAppliedAt())
-        .updatedAt(app.getUpdatedAt())
-        .build();
+    return applicationMapper.toResponse(app);
   }
 
   @Transactional

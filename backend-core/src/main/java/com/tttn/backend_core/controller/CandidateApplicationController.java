@@ -1,5 +1,6 @@
 package com.tttn.backend_core.controller;
 
+import com.tttn.backend_core.annotation.RateLimit;
 import com.tttn.backend_core.dto.response.ApiResponse;
 import com.tttn.backend_core.dto.response.CandidateApplicationResponse;
 import com.tttn.backend_core.entity.Application;
@@ -10,6 +11,7 @@ import com.tttn.backend_core.repository.ApplicationRepository;
 import com.tttn.backend_core.repository.UserRepository;
 import com.tttn.backend_core.service.ApplicationService;
 import java.security.Principal;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -28,8 +30,18 @@ public class CandidateApplicationController {
   private final UserRepository userRepository;
 
   @PostMapping("/jobs/{jobId}/apply")
+  @RateLimit(action = "apply_job", maxRequests = 5, duration = 10, unit = ChronoUnit.MINUTES)
   public ApiResponse<CandidateApplicationResponse> applyForJob(
       @PathVariable UUID jobId, @RequestParam("cvFile") MultipartFile cvFile, Principal principal) {
+
+    String contentType = cvFile.getContentType();
+    String filename = cvFile.getOriginalFilename();
+    if (contentType == null
+        || !contentType.equals("application/pdf")
+        || filename == null
+        || !filename.toLowerCase().endsWith(".pdf")) {
+      throw new AppException(ErrorCode.INVALID_FILE_FORMAT);
+    }
 
     com.tttn.backend_core.entity.User user =
         userRepository

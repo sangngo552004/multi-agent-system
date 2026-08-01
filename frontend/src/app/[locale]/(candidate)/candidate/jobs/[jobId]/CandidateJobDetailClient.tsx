@@ -18,7 +18,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
+import { useAuth } from "@/features/auth/auth-provider";
+import { useRouter } from "next/navigation";
+
 export function CandidateJobDetailClient({ jobId }: { jobId: string }) {
+  const { user } = useAuth();
+  const router = useRouter();
   const [job, setJob] = useState<JobResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
@@ -35,7 +40,16 @@ export function CandidateJobDetailClient({ jobId }: { jobId: string }) {
       .finally(() => setLoading(false));
   }, [jobId]);
 
-  const handleApply = async () => {
+  const handleApplyClick = () => {
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để ứng tuyển.");
+      router.push(`/vi/login?next=/vi/candidate/jobs/${jobId}`);
+      return;
+    }
+    setIsApplyModalOpen(true);
+  };
+
+  const handleApplySubmit = async () => {
     if (!cvFile) {
       toast.error("Vui lòng tải lên CV của bạn.");
       return;
@@ -73,7 +87,8 @@ export function CandidateJobDetailClient({ jobId }: { jobId: string }) {
               <span>🕒 {job.employmentType}</span>
             </div>
           </div>
-          <Button onClick={() => setIsApplyModalOpen(true)} size="lg">
+          <Button onClick={handleApplyClick} size="lg" disabled={isApplying}>
+            {isApplying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
             Ứng tuyển ngay
           </Button>
         </CardHeader>
@@ -121,7 +136,7 @@ export function CandidateJobDetailClient({ jobId }: { jobId: string }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsApplyModalOpen(false)}>Hủy</Button>
-            <Button onClick={handleApply} disabled={isApplying || !cvFile}>
+            <Button onClick={handleApplySubmit} disabled={isApplying || !cvFile}>
               {isApplying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
               {isApplying ? "Đang xử lý..." : "Nộp CV"}
             </Button>

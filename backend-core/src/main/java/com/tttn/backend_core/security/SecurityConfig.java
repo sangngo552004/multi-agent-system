@@ -35,6 +35,7 @@ public class SecurityConfig {
     "/api/auth/login",
     "/api/auth/refresh",
     "/api/auth/logout",
+    "/api/v1/public/**",
     "/swagger-ui/**",
     "/v3/api-docs/**"
   };
@@ -64,7 +65,16 @@ public class SecurityConfig {
                       .accessDeniedHandler(jwtAccessDeniedHandler))
           .authorizeHttpRequests(
               auth ->
-                  auth.requestMatchers(PUBLIC_ENDPOINTS).permitAll().anyRequest().authenticated())
+                  auth.requestMatchers(PUBLIC_ENDPOINTS)
+                      .permitAll()
+                      .requestMatchers("/api/v1/admin/**")
+                      .hasRole("ADMIN")
+                      .requestMatchers("/api/v1/hr/**")
+                      .hasRole("HR")
+                      .requestMatchers("/api/v1/candidate/**")
+                      .hasRole("CANDIDATE")
+                      .anyRequest()
+                      .authenticated())
           .sessionManagement(
               session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
           .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

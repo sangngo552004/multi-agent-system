@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CompetencyService {
   private final CompetencyRepository competencyRepository;
+  private final com.tttn.backend_core.mapper.MasterDataMapper masterDataMapper;
 
   @Transactional(readOnly = true)
   public Page<Competency> findAll(Predicate predicate, Pageable pageable) {
@@ -31,10 +32,7 @@ public class CompetencyService {
 
   @Transactional
   public Competency createCompetency(MasterDataRequest request) {
-    Competency competency = new Competency();
-    competency.setName(request.getName());
-    competency.setDescription(request.getDescription());
-    competency.setIsActive(true);
+    Competency competency = masterDataMapper.toCompetency(request);
     return competencyRepository.save(competency);
   }
 
@@ -47,8 +45,7 @@ public class CompetencyService {
     if (!competency.getIsActive()) {
       throw new AppException(ErrorCode.COMPETENCY_NOT_FOUND);
     }
-    competency.setName(request.getName());
-    competency.setDescription(request.getDescription());
+    masterDataMapper.updateCompetency(request, competency);
     return competencyRepository.save(competency);
   }
 

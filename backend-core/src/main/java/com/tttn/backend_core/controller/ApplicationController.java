@@ -10,7 +10,6 @@ import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -41,12 +40,12 @@ public class ApplicationController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<ApplicationResponse> getApplicationDetail(@PathVariable UUID id) {
-    return ResponseEntity.ok(applicationService.getApplicationDetail(id));
+  public ApiResponse<ApplicationResponse> getApplicationDetail(@PathVariable UUID id) {
+    return ApiResponse.success(applicationService.getApplicationDetail(id));
   }
 
   @GetMapping("/batch-email/{batchJobId}")
-  public ResponseEntity<BatchJobResponse> getBatchJobStatus(@PathVariable String batchJobId) {
-    return ResponseEntity.ok(batchJobService.getBatchJobStatus(batchJobId));
+  public ApiResponse<BatchJobResponse> getBatchJobStatus(@PathVariable String batchJobId) {
+    return ApiResponse.success(batchJobService.getBatchJobStatus(batchJobId));
   }
 }

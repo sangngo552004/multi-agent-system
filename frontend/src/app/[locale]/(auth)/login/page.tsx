@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,6 +99,12 @@ export default function LoginPage() {
             Đăng nhập
           </Button>
         </form>
+        <p className="mt-6 text-center text-sm text-muted">
+          Chưa có tài khoản ứng viên?{" "}
+          <Link href="/vi/register" className="text-brand font-semibold hover:underline">
+            Đăng ký tại đây
+          </Link>
+        </p>
       </section>
     </main>
   );
