@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrainCircuit, Briefcase, GraduationCap, Scale } from "lucide-react";
 import { CompetencyTable } from "./competency-table";

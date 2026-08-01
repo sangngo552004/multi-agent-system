@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Icon } from "./Icon";
 import type {
   PersonalInfo,
@@ -24,7 +25,7 @@ export function CandidateCard({
   return (
     <div className="glass-card p-6 flex flex-col items-center text-center">
       <div className="w-24 h-24 rounded-full overflow-hidden mb-4 border-2 border-[#EDE9FE]">
-        <img className="w-full h-full object-cover" alt={personal.name} src={avatarUrl} />
+        <Image className="w-full h-full object-cover" alt={personal.name} src={avatarUrl} width={96} height={96} />
       </div>
       <h2 className="text-lg font-bold mb-1 uppercase">{personal.name}</h2>
       <p className="text-sm text-[#44474F] mb-3">{metadata.primary_role}</p>

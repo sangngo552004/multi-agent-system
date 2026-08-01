@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, Bell } from "lucide-react";
+import Image from "next/image";
+import { Bell } from "lucide-react";
 
 export function CandidateHeader() {
   const pathname = usePathname();
@@ -22,7 +23,7 @@ export function CandidateHeader() {
       <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 md:px-10 h-16">
         {/* Logo Section */}
         <div className="flex items-center gap-2">
-          <img src="/icons/logo.png" alt="logo" width={24} height={24} />
+          <Image src="/icons/logo.png" alt="logo" width={24} height={24} />
           <span className="font-semibold text-[17px]">{brand}</span>
         </div>
 

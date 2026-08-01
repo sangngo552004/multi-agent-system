@@ -22,6 +22,7 @@ export function ProfileClient() {
 
   return (
     <>
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Google+Sans+Text:wght@400;500;600;700&family=Google+Sans+Display:wght@400;500;700&display=swap"
