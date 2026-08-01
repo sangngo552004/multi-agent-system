@@ -79,6 +79,10 @@ public class Application {
   @Column(name = "scoring_breakdown", columnDefinition = "json")
   private Map<String, Object> scoringBreakdown;
 
+  @Column(name = "is_candidate_notified", nullable = false)
+  @Builder.Default
+  private Boolean isCandidateNotified = false;
+
   @CreationTimestamp
   @Column(name = "applied_at", updatable = false)
   private LocalDateTime appliedAt;

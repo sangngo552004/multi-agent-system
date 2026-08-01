@@ -53,11 +53,13 @@ public class NotificationReplyListener {
 
     if (!invitedIds.isEmpty()) {
       applicationRepository.updateStatusBatch(invitedIds, ApplicationStatus.INVITED);
+      applicationRepository.updateIsCandidateNotifiedBatch(invitedIds, true);
       log.info("Updated {} applications to INVITED", invitedIds.size());
     }
 
     if (!rejectedFinalIds.isEmpty()) {
       applicationRepository.updateStatusBatch(rejectedFinalIds, ApplicationStatus.REJECTED_FINAL);
+      applicationRepository.updateIsCandidateNotifiedBatch(rejectedFinalIds, true);
       log.info("Updated {} applications to REJECTED_FINAL", rejectedFinalIds.size());
     }
 

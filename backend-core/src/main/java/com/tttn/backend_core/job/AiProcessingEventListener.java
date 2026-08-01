@@ -131,6 +131,16 @@ public class AiProcessingEventListener {
     if (event.hasNonNull("matchScore")) {
       application.setFitScore(event.get("matchScore").asDouble());
     }
+    if (event.hasNonNull("careerPathResult")) {
+      java.util.Map<String, Object> scoringBreakdown = application.getScoringBreakdown();
+      if (scoringBreakdown == null) {
+        scoringBreakdown = new java.util.HashMap<>();
+      }
+      scoringBreakdown.put(
+          "career_path_result",
+          objectMapper.convertValue(event.get("careerPathResult"), java.util.Map.class));
+      application.setScoringBreakdown(scoringBreakdown);
+    }
     activityLogService.recordAiProcessingTerminal(
         application.getId(), application.getCandidate().getFullName(), true, null);
   }

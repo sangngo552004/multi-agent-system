@@ -20,6 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class ApplicationService {
 
   private final ApplicationRepository applicationRepository;
+  private final com.tttn.backend_core.repository.JobRepository jobRepository;
+  private final com.tttn.backend_core.repository.UserRepository userRepository;
+  private final StorageService storageService;
+  private final com.tttn.backend_core.repository.AiProcessingOutboxRepository outboxRepository;
 
   @Transactional(readOnly = true)
   public Page<ApplicationResponse> getApplicationsByJob(
@@ -110,5 +114,44 @@ public class ApplicationService {
     application.setStatus(ApplicationStatus.REJECTED);
     applicationRepository.save(application);
     log.info("Application {} rejected (Status -> REJECTED)", id);
+  }
+
+  @Transactional
+  public ApplicationResponse applyForJob(
+      UUID jobId, UUID candidateId, org.springframework.web.multipart.MultipartFile cvFile) {
+    com.tttn.backend_core.entity.Job job =
+        jobRepository.findById(jobId).orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
+
+    com.tttn.backend_core.entity.User candidate =
+        userRepository
+            .findById(candidateId)
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+    String resumeUrl = storageService.uploadFile(cvFile);
+
+    Application application =
+        Application.builder()
+            .candidate(candidate)
+            .job(job)
+            .resumeUrl(resumeUrl)
+            .status(ApplicationStatus.PENDING)
+            .aiStatus(com.tttn.backend_core.entity.AiProcessingStatus.WAITING)
+            .isCandidateNotified(false)
+            .build();
+
+    application = applicationRepository.save(application);
+    log.info(
+        "Candidate {} applied for Job {} (Application ID: {})",
+        candidateId,
+        jobId,
+        application.getId());
+
+    outboxRepository.save(
+        com.tttn.backend_core.entity.AiProcessingOutbox.builder()
+            .applicationId(application.getId())
+            .status("NEW")
+            .build());
+
+    return getApplicationDetail(application.getId());
   }
 }

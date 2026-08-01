@@ -96,9 +96,9 @@ def _run_consumer():
             )
 
             logger.info(
-            "RabbitMQ consumer started. Listening on queues: %s, %s",
-            settings.CV_EXTRACT_QUEUE,
-            settings.APPLICATION_PROCESS_QUEUE,
+                "RabbitMQ consumer started. Listening on queues: %s, %s",
+                settings.CV_EXTRACT_QUEUE,
+                settings.APPLICATION_PROCESS_QUEUE,
             )
             channel.start_consuming()
 
@@ -347,6 +347,7 @@ async def _process_application(channel, request: ApplicationProcessRequest):
         **extraction_metrics,
         "matchScore": match_result.overall_score,
         "needsReview": state["needs_human_review"],
+        "careerPathResult": state.get("career_path_result", {}),
     }
     _publish_application_event(
         channel,

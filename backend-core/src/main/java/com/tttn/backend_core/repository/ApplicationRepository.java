@@ -45,6 +45,11 @@ public interface ApplicationRepository
   @Query("UPDATE Application a SET a.status = :status WHERE a.id IN :ids")
   int updateStatusBatch(@Param("ids") List<UUID> ids, @Param("status") ApplicationStatus status);
 
+  @Modifying
+  @Query("UPDATE Application a SET a.isCandidateNotified = :notified WHERE a.id IN :ids")
+  int updateIsCandidateNotifiedBatch(
+      @Param("ids") List<UUID> ids, @Param("notified") boolean notified);
+
   @Query(
       "select a.candidate.id, count(a) from Application a "
           + "where a.candidate.id in :userIds group by a.candidate.id")
