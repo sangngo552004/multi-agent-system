@@ -3,6 +3,8 @@
 import { Check, RotateCcw, ThumbsDown, UserRoundCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { handleApiError } from "@/lib/api-error";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
@@ -28,6 +30,8 @@ function actionsFor(status: RecruitmentStatus): Action[] {
 }
 
 export function ApplicationStatusActions({ application }: { application: HrApplicationDetail }) {
+  const t = useTranslations();
+
   const mutation = useUpdateHrApplicationStatus();
   const [action, setAction] = useState<Action | null>(null);
   const [reason, setReason] = useState("__none");
@@ -42,7 +46,7 @@ export function ApplicationStatusActions({ application }: { application: HrAppli
       setAction(null);
       setReason("__none");
     } catch (error) {
-      toast.error("Không thể cập nhật hồ sơ", { description: error instanceof Error ? error.message : "Vui lòng thử lại." });
+      handleApiError(error, t);
     }
   };
 

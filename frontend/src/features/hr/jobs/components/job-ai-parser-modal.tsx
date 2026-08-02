@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { handleApiError } from "@/lib/api-error";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +13,8 @@ import { fetchApi } from "@/services/http/api-client";
 import type { HrJobFormValues } from "../jobs.schema";
 
 export function JobAiParserModal() {
+  const t = useTranslations();
+
   const [open, setOpen] = useState(false);
   const [rawText, setRawText] = useState("");
   const [isParsing, setIsParsing] = useState(false);
@@ -44,7 +48,7 @@ export function JobAiParserModal() {
       setOpen(false);
       setRawText("");
     } catch (error: unknown) {
-      toast.error((error as Error).message || "Không thể phân tích JD. Vui lòng thử lại.");
+      handleApiError(error, t);
     } finally {
       setIsParsing(false);
     }

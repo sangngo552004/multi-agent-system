@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { handleApiError } from "@/lib/api-error";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +15,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { hrQueryKeys } from "@/services/query-keys";
 
 export function BatchEmailModal({ jobId }: { jobId: string }) {
+  const t = useTranslations();
+
   const [open, setOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState("REJECTED");
   const [subject, setSubject] = useState("");
@@ -74,7 +78,7 @@ export function BatchEmailModal({ jobId }: { jobId: string }) {
       setTrackingId(res.trackingId || res.id); // Lấy Tracking ID từ Backend
       toast.info("Đã bắt đầu gửi mail...");
     } catch (error: unknown) {
-      toast.error((error as Error).message || "Không thể khởi tạo tiến trình gửi mail.");
+      handleApiError(error, t);
     } finally {
       setIsStarting(false);
     }

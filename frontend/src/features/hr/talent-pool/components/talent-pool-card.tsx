@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { handleApiError } from "@/lib/api-error";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
@@ -17,6 +19,8 @@ import type { TalentPoolListItem } from "@/features/hr/talent-pool/talent-pool.t
 import { formatDate, formatRelativeTime, getInitials } from "@/lib/format";
 
 export function TalentPoolCard({ entry }: { entry: TalentPoolListItem }) {
+  const t = useTranslations();
+
   const [editOpen, setEditOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const update = useUpdateTalentPoolEntry();
@@ -28,11 +32,11 @@ export function TalentPoolCard({ entry }: { entry: TalentPoolListItem }) {
   };
   const submit = form.handleSubmit(async (values) => {
     try { await update.mutateAsync({ entryId: entry.id, labels: parseTalentLabels(values.labelsText), note: values.note, retentionUntil: values.retentionUntil }); toast.success("Đã cập nhật ứng viên tiềm năng"); setEditOpen(false); }
-    catch (error) { toast.error("Không thể cập nhật", { description: error instanceof Error ? error.message : "Vui lòng thử lại." }); }
+    catch (error) { handleApiError(error, t); }
   });
   const confirmRemove = async () => {
     try { await remove.mutateAsync(entry.id); toast.success("Đã xóa khỏi kho ứng viên"); setRemoveOpen(false); }
-    catch (error) { toast.error("Không thể xóa ứng viên", { description: error instanceof Error ? error.message : "Vui lòng thử lại." }); }
+    catch (error) { handleApiError(error, t); }
   };
 
   return <article className="group flex flex-col overflow-hidden rounded-[12px] border border-border bg-surface transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-soft"><div className="h-1 bg-gradient-to-r from-brand via-brand to-signal" /><div className="flex flex-1 flex-col p-5"><div className="flex items-start justify-between gap-4"><div className="flex min-w-0 items-center gap-3"><span className="grid size-11 shrink-0 place-items-center rounded-[11px] bg-brand text-xs font-semibold text-white">{getInitials(entry.candidateName)}</span><div className="min-w-0"><h2 className="truncate text-base font-semibold text-ink">{entry.candidateName}</h2><p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted"><Mail className="size-3.5" />{entry.candidateEmail}</p></div></div>{entry.expired ? <Badge tone="danger">Hết hạn lưu</Badge> : entry.matchScore !== undefined ? <span className="shrink-0 text-right"><strong className="text-xl tabular-nums text-ink">{entry.matchScore}</strong><span className="text-xs text-muted">/100</span></span> : null}</div><div className="mt-5 grid grid-cols-2 gap-3 rounded-[9px] bg-surface-soft/65 p-3"><div><p className="text-[10px] text-muted">Vị trí trước đây</p><p className="mt-1 text-xs font-semibold text-ink">{entry.previousJobTitle}</p></div><div><p className="text-[10px] text-muted">Định hướng</p><p className="mt-1 text-xs font-semibold text-ink">{entry.jobFamilyName ?? "Chưa phân loại"} · {entry.careerLevelName ?? "—"}</p></div></div><div className="mt-4 flex flex-wrap gap-1.5">{entry.labels.map((label) => <Badge key={label} tone="signal">{label}</Badge>)}{!entry.labels.length ? <span className="text-xs text-faint">Chưa có nhãn</span> : null}</div><p className="mt-4 line-clamp-2 min-h-10 text-xs leading-5 text-muted">{entry.note || "Chưa có ghi chú nội bộ."}</p><div className="mt-4 flex flex-wrap gap-1.5">{entry.skills.slice(0, 4).map((skill) => <Badge key={skill} tone="brand">{skill}</Badge>)}{entry.skills.length > 4 ? <Badge>+{entry.skills.length - 4}</Badge> : null}</div><div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-[11px] text-muted"><span className="flex items-center gap-1.5"><CalendarClock className="size-3.5" />Lưu đến {formatDate(entry.retentionUntil)}</span><span>{formatRelativeTime(entry.savedAt)}</span></div><div className="mt-4 flex items-center gap-2"><Button asChild size="sm" className="flex-1"><Link href={`/hr/applications/${entry.applicationId}`}>Mở hồ sơ gốc <ArrowUpRight className="size-4" /></Link></Button><Button size="icon" variant="secondary" className="size-9" onClick={openEdit} aria-label={`Sửa ${entry.candidateName}`}><Edit3 className="size-4" /></Button><Button size="icon" variant="ghost" className="size-9 text-danger hover:text-danger" onClick={() => setRemoveOpen(true)} aria-label={`Xóa ${entry.candidateName} khỏi kho`}><Trash2 className="size-4" /></Button></div></div>

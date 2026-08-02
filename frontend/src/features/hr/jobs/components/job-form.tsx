@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { handleApiError } from "@/lib/api-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -46,6 +48,8 @@ function defaults(profile: SystemUser, job?: HrJobDetail): HrJobFormValues {
 }
 
 export function HrJobForm({ profile, catalog, job }: { profile: SystemUser; catalog: HrCatalogOptions; job?: HrJobDetail }) {
+  const t = useTranslations();
+
   const router = useRouter();
   const mutation = useSaveHrJob();
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -65,7 +69,7 @@ export function HrJobForm({ profile, catalog, job }: { profile: SystemUser; cata
       toast.success(publish ? "Đã mở tuyển" : job ? "Đã lưu thay đổi" : "Đã lưu bản nháp", { description: saved.title });
       router.push(`/hr/jobs/${saved.id}`);
     } catch (error) {
-      toast.error("Không thể lưu tin tuyển dụng", { description: error instanceof Error ? error.message : "Vui lòng thử lại." });
+      handleApiError(error, t);
     }
   });
 

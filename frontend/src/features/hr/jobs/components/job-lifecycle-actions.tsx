@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { handleApiError } from "@/lib/api-error";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { useChangeHrJobStatus, useDuplicateHrJob } from "@/features/hr/jobs/jobs.queries";
@@ -18,6 +20,7 @@ export function HrJobLifecycleActions({ job }: { job: HrJobDetail }) {
   const changeStatus = useChangeHrJobStatus();
   const duplicate = useDuplicateHrJob();
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const t = useTranslations();
 
   const runStatusChange = async () => {
     if (!pendingAction) return;
@@ -26,7 +29,7 @@ export function HrJobLifecycleActions({ job }: { job: HrJobDetail }) {
       toast.success(pendingAction.status === "OPEN" ? "Tin đã được mở tuyển" : pendingAction.status === "PAUSED" ? "Tin đã được tạm dừng" : "Tin đã được đóng");
       setPendingAction(null);
     } catch (error) {
-      toast.error("Không thể cập nhật trạng thái", { description: error instanceof Error ? error.message : "Vui lòng thử lại." });
+      handleApiError(error, t);
     }
   };
 
@@ -36,7 +39,7 @@ export function HrJobLifecycleActions({ job }: { job: HrJobDetail }) {
       toast.success("Đã tạo bản nháp từ tin cũ", { description: "Bạn có thể điều chỉnh cấu hình trước khi mở tuyển." });
       router.push(`/hr/jobs/${copy.id}/edit`);
     } catch (error) {
-      toast.error("Không thể nhân bản tin", { description: error instanceof Error ? error.message : "Vui lòng thử lại." });
+      handleApiError(error, t);
     }
   };
 

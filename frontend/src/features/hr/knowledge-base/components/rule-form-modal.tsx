@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { handleApiError } from "@/lib/api-error";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +61,7 @@ export function RuleFormModal({
       toast.success(initialData ? "Cập nhật thành công" : "Thêm mới thành công");
       onClose();
     } catch (error: unknown) {
-      toast.error((error as Error).message || "Đã có lỗi xảy ra");
+      handleApiError(error, t);
     }
   });
 
