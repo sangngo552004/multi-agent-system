@@ -1,82 +1,45 @@
 package com.tttn.backend_core.service;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import com.tttn.backend_core.config.RabbitMQConfig;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StreamUtils;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class MailService {
 
-  private final JavaMailSender javaMailSender;
+  private final RabbitTemplate rabbitTemplate;
 
-  @Value("${spring.mail.username}")
-  private String fromEmail;
-
-  private String emailExistsTemplate;
-  private String emailVerificationTemplate;
-
-  @PostConstruct
-  public void initTemplates() {
-    try {
-      emailExistsTemplate = loadTemplate("templates/email-exists.html");
-      emailVerificationTemplate = loadTemplate("templates/email-verification.html");
-    } catch (IOException e) {
-      log.error("Lỗi khi tải template email", e);
-    }
-  }
-
-  private String loadTemplate(String path) throws IOException {
-    ClassPathResource resource = new ClassPathResource(path);
-    return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
-  }
+  @Value("${app.base-url:http://localhost:8080}")
+  private String appBaseUrl;
 
   public void sendEmailExistsNotification(String toEmail) {
-    String subject = "Thông báo: Email đã được sử dụng";
-    if (emailExistsTemplate != null) {
-      sendHtmlEmail(toEmail, subject, emailExistsTemplate);
-    } else {
-      log.warn("Không thể gửi email vì template email-exists.html chưa được tải.");
-    }
+    String forgotPasswordUrl = appBaseUrl + "/api/auth/forgot-password";
+
+    Map<String, Object> payload = new HashMap<>();
+    payload.put("action", "EMAIL_EXISTS");
+    payload.put("recipient", toEmail);
+    payload.put("forgotPasswordUrl", forgotPasswordUrl);
+
+    rabbitTemplate.convertAndSend(RabbitMQConfig.AUTH_EMAIL_QUEUE, payload);
+    log.info("Đã gửi sự kiện EMAIL_EXISTS cho {} tới RabbitMQ", toEmail);
   }
 
   public void sendVerificationEmail(String toEmail, String token) {
-    String subject = "Xác nhận đăng ký tài khoản";
-    String verificationUrl = "http://localhost:8080/api/auth/verify?token=" + token;
+    String verificationUrl = appBaseUrl + "/api/auth/verify?token=" + token;
 
-    if (emailVerificationTemplate != null) {
-      String content = emailVerificationTemplate.replace("{{verificationUrl}}", verificationUrl);
-      sendHtmlEmail(toEmail, subject, content);
-    } else {
-      log.warn("Không thể gửi email vì template email-verification.html chưa được tải.");
-    }
-  }
+    Map<String, Object> payload = new HashMap<>();
+    payload.put("action", "VERIFY_EMAIL");
+    payload.put("recipient", toEmail);
+    payload.put("verificationUrl", verificationUrl);
 
-  private void sendHtmlEmail(String toEmail, String subject, String htmlContent) {
-    try {
-      MimeMessage message = javaMailSender.createMimeMessage();
-      MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-      helper.setFrom(fromEmail);
-      helper.setTo(toEmail);
-      helper.setSubject(subject);
-      helper.setText(htmlContent, true);
-
-      javaMailSender.send(message);
-      log.info("Đã gửi email thành công tới {}", toEmail);
-    } catch (MessagingException e) {
-      log.error("Lỗi khi gửi email tới {}", toEmail, e);
-    }
+    rabbitTemplate.convertAndSend(RabbitMQConfig.AUTH_EMAIL_QUEUE, payload);
+    log.info("Đã gửi sự kiện VERIFY_EMAIL cho {} tới RabbitMQ", toEmail);
   }
 }

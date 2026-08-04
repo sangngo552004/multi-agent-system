@@ -11,6 +11,7 @@ public class RabbitMQConfig {
   public static final String REPLY_QUEUE = "core.status.reply.queue";
   public static final String APPLICATION_PROCESS_QUEUE = "ai.application.process.request";
   public static final String APPLICATION_EVENT_QUEUE = "ai.application.process.events";
+  public static final String AUTH_EMAIL_QUEUE = "notification.auth.email.queue";
 
   @Bean
   public Queue emailQueue() {
@@ -30,5 +31,10 @@ public class RabbitMQConfig {
   @Bean
   public Queue applicationEventQueue() {
     return new Queue(APPLICATION_EVENT_QUEUE, true);
+  }
+
+  @Bean
+  public Queue authEmailQueue() {
+    return new Queue(AUTH_EMAIL_QUEUE, true);
   }
 }
