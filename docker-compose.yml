@@ -79,6 +79,37 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Backend Core Service
+  backend-core:
+    build:
+      context: ./backend-core
+      dockerfile: Dockerfile
+    container_name: tttn-backend-core
+    env_file:
+      - ./backend-core/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Frontend Next.js App
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tttn-frontend
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend-core
+    restart: unless-stopped
+
 volumes:
   rabbitmq_data:
   redis_data:
