@@ -42,7 +42,15 @@ class Settings(BaseSettings):
     CAREER_PATH_TEMPERATURE: float = Field(default=0.2, ge=0, le=1)
 
     # --- RabbitMQ ---
-    RABBITMQ_URL: str = "amqp://admin:password123@localhost:5672/"
+    RABBITMQ_HOST: str = "localhost"
+    RABBITMQ_PORT: int = 5672
+    RABBITMQ_USERNAME: str = "admin"
+    RABBITMQ_PASSWORD: str = "password123"
+
+    @property
+    def RABBITMQ_URL(self) -> str:
+        return f"amqp://{self.RABBITMQ_USERNAME}:{self.RABBITMQ_PASSWORD}@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}/"
+
     CV_EXTRACT_QUEUE: str = "cv.extract.request"
     CV_RESULT_QUEUE: str = "cv.extract.response"
     APPLICATION_PROCESS_QUEUE: str = "ai.application.process.request"

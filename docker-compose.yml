@@ -47,7 +47,7 @@ services:
     environment:
       HOST: "0.0.0.0"
       PORT: "8000"
-      RABBITMQ_URL: "amqp://${RABBITMQ_USERNAME:-admin}:${RABBITMQ_PASSWORD:-password123}@rabbitmq:5672/"
+      RABBITMQ_HOST: rabbitmq
       RABBITMQ_ENABLED: "true"
     ports:
       - "8001:8000"
