@@ -30,12 +30,11 @@ public class SecurityConfig {
   private String allowedOrigins;
 
   private static final String[] PUBLIC_ENDPOINTS = {
-    "/api/auth/register",
-    "/api/auth/verify",
-    "/api/auth/login",
-    "/api/auth/refresh",
-    "/api/auth/logout",
-    "/api/v1/public/**",
+    "/api/v1/auth/register",
+    "/api/v1/auth/verify",
+    "/api/v1/auth/login",
+    "/api/v1/auth/refresh",
+    "/api/v1/auth/logout",
     "/swagger-ui/**",
     "/v3/api-docs/**"
   };
@@ -66,6 +65,11 @@ public class SecurityConfig {
           .authorizeHttpRequests(
               auth ->
                   auth.requestMatchers(PUBLIC_ENDPOINTS)
+                      .permitAll()
+                      .requestMatchers(
+                          org.springframework.http.HttpMethod.GET,
+                          "/api/v1/jobs/**",
+                          "/api/v1/hr/knowledge-base/pedigrees")
                       .permitAll()
                       .requestMatchers("/api/v1/admin/**")
                       .hasRole("ADMIN")

@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  * để nhúng description vào LLM prompt.
  */
 @RestController
-@RequestMapping("/api/competencies")
+@RequestMapping("/api/v1/hr/competencies")
 public class CompetencyLevelController {
 
   private final CompetencyLevelService competencyLevelService;

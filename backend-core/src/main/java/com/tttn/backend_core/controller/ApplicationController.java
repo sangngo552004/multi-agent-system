@@ -13,7 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/applications")
+@RequestMapping("/api/v1/hr/applications")
 @RequiredArgsConstructor
 public class ApplicationController {
 
