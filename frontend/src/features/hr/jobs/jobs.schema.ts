@@ -12,7 +12,7 @@ export const hrJobFormSchema = z.object({
   description: requiredText("Mô tả công việc", 20),
   requirementsText: z.array(z.string().trim().min(2, "Yêu cầu cần ít nhất 2 ký tự.")).min(1, "Hãy thêm ít nhất một yêu cầu."),
   benefitsText: z.array(z.string().trim().min(2, "Quyền lợi cần ít nhất 2 ký tự.")).min(1, "Hãy thêm ít nhất một quyền lợi."),
-  ruleIds: z.array(z.string()).default([]),
+  ruleIds: z.array(z.string()),
   jobFamilyId: z.string(),
   careerLevelId: z.string(),
   competencies: z.array(z.object({

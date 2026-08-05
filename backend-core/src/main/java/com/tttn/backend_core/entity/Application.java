@@ -27,7 +27,7 @@ public class Application {
   private User candidate;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "job_id", nullable = false)
+  @JoinColumn(name = "job_id", nullable = true)
   private Job job;
 
   @Column(name = "resume_url", nullable = false)

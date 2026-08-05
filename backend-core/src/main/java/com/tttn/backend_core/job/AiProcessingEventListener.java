@@ -115,21 +115,39 @@ public class AiProcessingEventListener {
         java.util.Map<String, Object> cvData =
             objectMapper.convertValue(cvDataNode, java.util.Map.class);
 
-        CandidateProfile profile =
-            candidateProfileRepository
-                .findById(application.getCandidate().getId())
-                .orElseGet(
-                    () ->
-                        CandidateProfile.builder()
-                            .userId(application.getCandidate().getId())
-                            .user(application.getCandidate())
-                            .build());
+        // If this is a Job Application (job != null), we only store the cv_data in
+        // scoringBreakdown.
+        // We DO NOT update the CandidateProfile to avoid overwriting their master data.
+        if (application.getJob() != null) {
+          java.util.Map<String, Object> breakdown = application.getScoringBreakdown();
+          if (breakdown == null) {
+            breakdown = new java.util.HashMap<>();
+          }
+          breakdown.put("extracted_cv_data", cvData);
+          application.setScoringBreakdown(breakdown);
+          applicationRepository.save(application);
+        } else {
+          // Master Profile Upload (job == null): Update CandidateProfile
+          CandidateProfile profile =
+              candidateProfileRepository
+                  .findById(application.getCandidate().getId())
+                  .orElseGet(
+                      () ->
+                          CandidateProfile.builder()
+                              .userId(application.getCandidate().getId())
+                              .user(application.getCandidate())
+                              .build());
 
-        profile.setSkills((java.util.Map<String, Object>) cvData.get("skills"));
-        profile.setExperience((java.util.Map<String, Object>) cvData.get("experience"));
-        profile.setEducation((java.util.Map<String, Object>) cvData.get("education"));
+          profile.setSkills((java.util.List<String>) cvData.get("skills"));
+          profile.setExperience(
+              (java.util.List<java.util.Map<String, Object>>) cvData.get("experience"));
+          profile.setEducation(
+              (java.util.List<java.util.Map<String, Object>>) cvData.get("education"));
+          profile.setCvUrl(application.getResumeUrl());
+          profile.setRawCvData(cvData);
 
-        candidateProfileRepository.save(profile);
+          candidateProfileRepository.save(profile);
+        }
       }
     }
   }

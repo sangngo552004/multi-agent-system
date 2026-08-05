@@ -1,0 +1,1 @@
+ALTER TABLE applications ALTER COLUMN job_id DROP NOT NULL;

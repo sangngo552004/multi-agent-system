@@ -237,7 +237,7 @@ class MockHrService implements HrService {
     const applicationsInRange = applications.filter(
       (item) => new Date(item.submittedAt).getTime() >= rangeStart,
     );
-    const openJobs = jobs.filter((job) => job.status === "OPEN" && !deadlineState(job).expired);
+    const openJobs = jobs.filter((job) => job.status === "PUBLISHED" && !deadlineState(job).expired);
     const incompleteJobs = jobs.filter(
       (job) => job.status !== "CLOSED" && getJobReadinessIssues(job).length > 0,
     );
@@ -354,7 +354,7 @@ class MockHrService implements HrService {
       return matchesSearch && matchesFamily && matchesLevel && matchesReadiness && matchesDeadline;
     });
 
-    const statuses: JobStatus[] = ["DRAFT", "OPEN", "PAUSED", "CLOSED"];
+    const statuses: JobStatus[] = ["DRAFT", "PUBLISHED", "PAUSED", "CLOSED"];
     const statusCounts = Object.fromEntries(
       statuses.map((status) => [status, baseItems.filter((job) => job.status === status).length]),
     ) as Record<JobStatus, number>;
@@ -436,7 +436,7 @@ class MockHrService implements HrService {
       const job: RecruitmentJob = {
         id: `job-${Date.now()}`,
         ...base,
-        status: input.publish ? "OPEN" : "DRAFT",
+        status: input.publish ? "PUBLISHED" : "DRAFT",
         createdAt: new Date().toISOString(),
       };
       if (input.publish) assertPublishable(job);
@@ -458,11 +458,11 @@ class MockHrService implements HrService {
           benefits: base.benefits,
           expiresAt: base.expiresAt,
         };
-    const candidate = { ...current, ...patch, status: input.publish ? "OPEN" as const : current.status };
+    const candidate = { ...current, ...patch, status: input.publish ? "PUBLISHED" as const : current.status };
     if (input.publish) assertPublishable(candidate);
     const updated = mockDatabase.updateJob(current.id, patch);
     if (!updated) throw new MockHrApiError("Không thể cập nhật tin tuyển dụng.");
-    if (input.publish && current.status === "DRAFT") mockDatabase.updateJob(current.id, { status: "OPEN" });
+    if (input.publish && current.status === "DRAFT") mockDatabase.updateJob(current.id, { status: "PUBLISHED" });
     mockDatabase.addActivity(createHrActivity(input.publish ? "JOB_STATUS_CHANGED" : "JOB_UPDATED", actor.fullName, input.publish ? "đã mở tuyển" : "đã cập nhật tin", candidate));
     return this.getJob(current.id);
   }
@@ -475,18 +475,18 @@ class MockHrService implements HrService {
     if (!current) throw new MockHrApiError("Không tìm thấy tin tuyển dụng.", "HR_JOB_NOT_FOUND");
     if (current.ownerId !== CURRENT_HR_ID) throw new MockHrApiError("Bạn không có quyền thay đổi tin này.", "HR_JOB_FORBIDDEN");
     const allowed: Record<JobStatus, JobStatus[]> = {
-      DRAFT: ["OPEN"],
-      OPEN: ["PAUSED", "CLOSED"],
-      PAUSED: ["OPEN", "CLOSED"],
+      DRAFT: ["PUBLISHED"],
+      PUBLISHED: ["PAUSED", "CLOSED"],
+      PAUSED: ["PUBLISHED", "CLOSED"],
       CLOSED: [],
     };
     if (!allowed[current.status].includes(input.status)) {
       throw new MockHrApiError("Chuyển trạng thái tin không hợp lệ.", "HR_JOB_STATUS_INVALID");
     }
-    if (input.status === "OPEN") assertPublishable(current);
+    if (input.status === "PUBLISHED") assertPublishable(current);
     const updated = mockDatabase.updateJob(current.id, { status: input.status });
     if (!updated) throw new MockHrApiError("Không thể cập nhật trạng thái tin.");
-    const labels: Record<JobStatus, string> = { DRAFT: "bản nháp", OPEN: "đang tuyển", PAUSED: "tạm dừng", CLOSED: "đã đóng" };
+    const labels: Record<JobStatus, string> = { DRAFT: "bản nháp", PUBLISHED: "đang tuyển", PAUSED: "tạm dừng", CLOSED: "đã đóng" };
     mockDatabase.addActivity(createHrActivity("JOB_STATUS_CHANGED", actor.fullName, `đã chuyển trạng thái sang ${labels[input.status]}`, updated));
     return this.getJob(current.id);
   }

@@ -1,45 +1,81 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { UserPlus, Loader2 } from "lucide-react";
+import { UserPlus, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { apiClient } from "@/services/http/api-client";
+import { apiRequest } from "@/services/http/api-client";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useTranslations } from "next-intl";
+import { Link as I18nLink } from "@/i18n/routing";
+
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+const getRegisterSchema = (t: unknown) => z.object({
+  fullName: z.string().min(1, t("validation.fullNameRequired")),
+  email: z.string().min(1, t("validation.emailRequired")).email(t("validation.emailInvalid")),
+  password: z.string()
+    .min(8, t("validation.passwordMinLength"))
+    .regex(passwordRegex, t("validation.passwordRegex")),
+  confirmPassword: z.string().min(1, t("validation.confirmPasswordRequired")),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: t("validation.passwordMismatch"),
+  path: ["confirmPassword"],
+});
+
+type RegisterFormValues = z.infer<ReturnType<typeof getRegisterSchema>>;
 
 export function RegisterClient() {
   const router = useRouter();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const t = useTranslations("Auth");
   const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const registerSchema = getRegisterSchema(t);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const onSubmit = async (data: RegisterFormValues) => {
     setError("");
-    setIsSubmitting(true);
     try {
-      await apiClient.post("/api/v1/auth/register", {
-        fullName,
-        email,
-        password,
-        role: "CANDIDATE",
-      }, { authenticated: false });
+      await apiRequest("/api/v1/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          fullName: data.fullName,
+          email: data.email,
+          password: data.password,
+          role: "CANDIDATE",
+        }),
+        authenticated: false,
+      });
 
+      setRegisteredEmail(data.email);
       setIsSuccess(true);
-      toast.success("Đăng ký thành công! Vui lòng kiểm tra email.");
+      toast.success(t("register.successTitle"));
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Đăng ký thất bại. Vui lòng thử lại.");
+        setError(t("register.errorDefault"));
       }
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -48,13 +84,13 @@ export function RegisterClient() {
       <main className="grid min-h-screen place-items-center bg-canvas px-4 py-12">
         <section className="w-full max-w-md rounded-[14px] border border-border bg-surface p-7 shadow-float sm:p-9 text-center">
           <h1 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-ink">
-            Đăng ký thành công!
+            {t("register.successTitle")}
           </h1>
           <p className="mt-4 text-sm leading-6 text-muted">
-            Một email xác thực đã được gửi đến <strong>{email}</strong>. Vui lòng kiểm tra hòm thư của bạn để kích hoạt tài khoản.
+            {t("register.successDescPrefix")} <strong>{registeredEmail}</strong>. {t("register.successDescSuffix")}
           </p>
-          <Button className="mt-6 w-full" onClick={() => router.push("/vi/login")}>
-            Đến trang Đăng nhập
+          <Button className="mt-6 w-full" onClick={() => router.push("/login")}>
+            {t("register.goToLogin")}
           </Button>
         </section>
       </main>
@@ -62,74 +98,109 @@ export function RegisterClient() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-canvas px-4 py-12">
-      <section className="w-full max-w-md rounded-[14px] border border-border bg-surface p-7 shadow-float sm:p-9">
-        <span className="grid size-11 place-items-center rounded-[11px] bg-brand text-sm font-bold text-white">
-          CO
-        </span>
-        <h1 className="mt-7 text-3xl font-semibold tracking-[-0.04em] text-ink">
-          Tạo tài khoản ứng viên
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-muted">
-          Điền thông tin bên dưới để bắt đầu hành trình sự nghiệp.
-        </p>
+    <main className="grid min-h-screen place-items-center bg-canvas px-4 py-12 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+      <section className="relative w-full max-w-md rounded-2xl border border-border bg-white/80 backdrop-blur-sm p-7 shadow-xl sm:p-9">
+        <Link href="/" className="absolute top-6 left-6 text-muted hover:text-ink transition-colors flex items-center justify-center p-2 rounded-full hover:bg-surface-soft">
+          <ArrowLeft className="size-5" />
+        </Link>
+        <div className="flex flex-col items-center mb-8">
+          <Link href="/">
+            <div className="flex items-center justify-center bg-brand text-white font-bold w-16 h-16 rounded-xl text-3xl mb-4 hover:opacity-90 transition-opacity shadow-md">
+              P
+            </div>
+          </Link>
+          <h1 className="text-2xl font-bold tracking-tight text-ink text-center">
+            {t("register.title")}
+          </h1>
+          <p className="mt-2 text-sm text-center text-muted">
+            {t("register.subtitle")}
+          </p>
+        </div>
 
-        <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
+        <form className="mt-7 space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div>
             <label htmlFor="fullName" className="mb-2 block text-xs font-semibold text-ink">
-              Họ và tên
+              {t("register.fullName")}
             </label>
             <Input
               id="fullName"
               type="text"
-              required
-              value={fullName}
-              onChange={(event) => setFullName(event.target.value)}
+              placeholder="Nguyễn Văn A"
+              {...register("fullName")}
+              className={errors.fullName ? "border-danger" : ""}
             />
+            {errors.fullName && (
+              <p className="mt-1 text-xs text-danger">{errors.fullName.message}</p>
+            )}
           </div>
           <div>
             <label htmlFor="email" className="mb-2 block text-xs font-semibold text-ink">
-              Email
+              {t("register.email")}
             </label>
             <Input
               id="email"
               type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              placeholder="name@example.com"
+              {...register("email")}
+              className={errors.email ? "border-danger" : ""}
             />
+            {errors.email && (
+              <p className="mt-1 text-xs text-danger">{errors.email.message}</p>
+            )}
           </div>
           <div>
             <label
               htmlFor="password"
               className="mb-2 block text-xs font-semibold text-ink"
             >
-              Mật khẩu
+              {t("register.password")}
             </label>
             <Input
               id="password"
               type="password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              placeholder="••••••••"
+              {...register("password")}
+              className={errors.password ? "border-danger" : ""}
             />
+            {errors.password && (
+              <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
+            )}
           </div>
-          {error ? (
+          <div>
+            <label
+              htmlFor="confirmPassword"
+              className="mb-2 block text-xs font-semibold text-ink"
+            >
+              {t("register.confirmPassword")}
+            </label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              placeholder="••••••••"
+              {...register("confirmPassword")}
+              className={errors.confirmPassword ? "border-danger" : ""}
+            />
+            {errors.confirmPassword && (
+              <p className="mt-1 text-xs text-danger">{errors.confirmPassword.message}</p>
+            )}
+          </div>
+          {error && (
             <p className="rounded-[9px] border border-danger/20 bg-danger/[0.04] px-3 py-2 text-xs leading-5 text-danger">
               {error}
             </p>
-          ) : null}
+          )}
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="size-4 mr-2 animate-spin" /> : <UserPlus className="size-4 mr-2" />}
-            Đăng ký
+            {t("register.submit")}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted">
-          Đã có tài khoản?{" "}
-          <Link href="/vi/login" className="text-brand font-semibold hover:underline">
-            Đăng nhập ngay
-          </Link>
+          {t("register.hasAccount")}{" "}
+          <I18nLink href="/login" className="text-brand font-semibold hover:underline">
+            {t("register.loginNow")}
+          </I18nLink>
         </p>
       </section>
     </main>

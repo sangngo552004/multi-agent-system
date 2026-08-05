@@ -8,7 +8,6 @@ import com.tttn.backend_core.exception.AppException;
 import com.tttn.backend_core.exception.ErrorCode;
 import com.tttn.backend_core.repository.CandidateProfileRepository;
 import com.tttn.backend_core.repository.UserRepository;
-import java.util.HashMap;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +18,63 @@ public class CandidateProfileService {
 
   private final UserRepository userRepository;
   private final CandidateProfileRepository candidateProfileRepository;
+  private final AiParsingService aiParsingService;
+  private final StorageService storageService;
+
+  @Transactional
+  public void processAndSaveMasterCv(
+      java.util.UUID userId, org.springframework.web.multipart.MultipartFile file) {
+    String fileUrl = storageService.uploadFile(file);
+    com.fasterxml.jackson.databind.JsonNode cvData = aiParsingService.extractCv(file);
+
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+    CandidateProfile profile =
+        candidateProfileRepository
+            .findById(userId)
+            .orElseGet(() -> CandidateProfile.builder().userId(userId).user(user).build());
+
+    profile.setCvUrl(fileUrl);
+
+    com.fasterxml.jackson.databind.ObjectMapper mapper =
+        new com.fasterxml.jackson.databind.ObjectMapper();
+    try {
+      java.util.Map<String, Object> rawMap =
+          mapper.convertValue(
+              cvData,
+              new com.fasterxml.jackson.core.type.TypeReference<
+                  java.util.Map<String, Object>>() {});
+      profile.setRawCvData(rawMap);
+    } catch (Exception e) {
+      // Ignored if map fails
+    }
+
+    if (cvData.has("skills") && !cvData.get("skills").isNull()) {
+      profile.setSkills(
+          mapper.convertValue(
+              cvData.get("skills"),
+              new com.fasterxml.jackson.core.type.TypeReference<java.util.List<String>>() {}));
+    }
+    if (cvData.has("experience") && !cvData.get("experience").isNull()) {
+      profile.setExperience(
+          mapper.convertValue(
+              cvData.get("experience"),
+              new com.fasterxml.jackson.core.type.TypeReference<
+                  java.util.List<java.util.Map<String, Object>>>() {}));
+    }
+    if (cvData.has("education") && !cvData.get("education").isNull()) {
+      profile.setEducation(
+          mapper.convertValue(
+              cvData.get("education"),
+              new com.fasterxml.jackson.core.type.TypeReference<
+                  java.util.List<java.util.Map<String, Object>>>() {}));
+    }
+
+    candidateProfileRepository.save(profile);
+  }
 
   @Transactional(readOnly = true)
   public CandidateProfileResponse getProfile(String email) {
@@ -67,9 +123,11 @@ public class CandidateProfileService {
         .userId(user.getId())
         .email(user.getEmail())
         .fullName(user.getFullName())
-        .skills(profile.getSkills() != null ? profile.getSkills() : new HashMap<>())
-        .experience(profile.getExperience() != null ? profile.getExperience() : new HashMap<>())
-        .education(profile.getEducation() != null ? profile.getEducation() : new HashMap<>())
+        .skills(profile.getSkills() != null ? profile.getSkills() : new java.util.ArrayList<>())
+        .experience(
+            profile.getExperience() != null ? profile.getExperience() : new java.util.ArrayList<>())
+        .education(
+            profile.getEducation() != null ? profile.getEducation() : new java.util.ArrayList<>())
         .build();
   }
 }

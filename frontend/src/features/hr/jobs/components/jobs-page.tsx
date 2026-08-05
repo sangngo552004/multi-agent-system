@@ -18,8 +18,8 @@ import type { HrDeadlineFilter, HrJobFilters } from "@/features/hr/jobs/jobs.typ
 import { useDebounce } from "@/hooks/use-debounce";
 import type { JobStatus } from "@/types/domain/recruitment";
 
-const emptyCounts: Record<JobStatus, number> = { DRAFT: 0, OPEN: 0, PAUSED: 0, CLOSED: 0 };
-const statusValues = new Set(["DRAFT", "OPEN", "PAUSED", "CLOSED"]);
+const emptyCounts: Record<JobStatus, number> = { DRAFT: 0, PUBLISHED: 0, PAUSED: 0, CLOSED: 0 };
+const statusValues = new Set(["DRAFT", "PUBLISHED", "PAUSED", "CLOSED"]);
 const readinessValues = new Set(["READY", "INCOMPLETE"]);
 const deadlineValues = new Set(["EXPIRING", "EXPIRED"]);
 

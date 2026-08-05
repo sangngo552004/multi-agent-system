@@ -17,7 +17,20 @@ public interface JobMapper {
   @Mapping(source = "jobFamily.name", target = "jobFamilyName")
   @Mapping(source = "careerLevel.id", target = "careerLevelId")
   @Mapping(source = "careerLevel.name", target = "careerLevelName")
+  @Mapping(source = "requiredCompetencies", target = "competencies")
   JobResponse toResponse(Job job);
+
+  default JobResponse.JobCompetencyResponse toCompetencyResponse(
+      com.tttn.backend_core.entity.JobCompetency jc) {
+    if (jc == null || jc.getCompetency() == null) return null;
+    return JobResponse.JobCompetencyResponse.builder()
+        .competencyId(jc.getCompetency().getId())
+        .name(jc.getCompetency().getName())
+        .requiredLevel(jc.getRequiredLevel())
+        .weight(jc.getWeight())
+        .isMandatory(jc.getIsMandatory())
+        .build();
+  }
 
   @Mapping(target = "jobFamily", ignore = true)
   @Mapping(target = "careerLevel", ignore = true)

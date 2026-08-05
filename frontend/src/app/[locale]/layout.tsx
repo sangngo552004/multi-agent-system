@@ -16,11 +16,11 @@ const beVietnamPro = Be_Vietnam_Pro({
 
 export const metadata: Metadata = {
   title: {
-    default: "CareerOS Demo",
-    template: "%s · CareerOS",
+    default: "PTIT Careers",
+    template: "%s · PTIT Careers",
   },
-  description: "Bản demo hệ thống tuyển dụng nội bộ và định hướng nghề nghiệp ứng dụng đa tác tử.",
-  icons: { icon: "/icon.svg" },
+  description: "Cổng thông tin việc làm và tuyển dụng của Học viện Công nghệ Bưu chính Viễn thông.",
+  icons: { icon: "/icons/ptit-logo.webp" },
 };
 
 export default async function RootLayout({

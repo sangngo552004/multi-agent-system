@@ -43,6 +43,102 @@
       "titleTemplate": "%s | Auth · CareerOS"
     }
   },
+  "LandingPage": {
+    "header": {
+      "home": "Home",
+      "about": "About Us",
+      "contact": "Contact",
+      "jobs": "Jobs",
+      "login": "Login",
+      "logout": "Logout"
+    },
+    "hero": {
+      "badge": "Discover career opportunities at PTIT",
+      "title_prefix": "Shape the future with ",
+      "title_highlight": "PTIT",
+      "description": "Join us to build breakthrough technology solutions. PTIT is proud to offer a creative, professional working environment and unlimited growth opportunities.",
+      "cta": "View open positions",
+      "learn_more": "Learn more"
+    },
+    "about": {
+      "title": "Why choose PTIT?",
+      "description": "We don't just offer a job, we offer a career. The environment at PTIT is designed for you to maximize your potential.",
+      "features": {
+        "f1_title": "Creative environment",
+        "f1_desc": "Work with top experts, always pioneering the application of the latest technologies in teaching and research.",
+        "f2_title": "Clear advancement opportunities",
+        "f2_desc": "Personalized development roadmaps and transparent competency assessments help you reach new heights in your career.",
+        "f3_title": "Elite community",
+        "f3_desc": "Become part of a network of outstanding experts, scientists, and engineers across the country."
+      }
+    },
+    "jobs": {
+      "title": "Featured Jobs",
+      "view_all": "View all",
+      "apply_now": "Apply now"
+    },
+    "contact": {
+      "title": "Contact Information",
+      "description": "Connect with us to stay updated on the latest career opportunities and get answers to your recruitment questions.",
+      "hq": "Headquarters (Hanoi)",
+      "hq_address": "Km10, Nguyen Trai Road, Ha Dong District, Hanoi",
+      "hcm": "Ho Chi Minh City Campus",
+      "hcm_address": "11 Nguyen Dinh Chieu, Da Kao Ward, District 1, Ho Chi Minh City",
+      "phone": "Phone",
+      "email": "Email"
+    },
+    "footer": {
+      "copyright": "Posts and Telecommunications Institute of Technology"
+    }
+  },
+  "Auth": {
+    "login": {
+      "title": "Login",
+      "subtitle": "Connect with career opportunities at PTIT",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Login",
+      "noAccount": "Don't have a candidate account?",
+      "registerNow": "Register here",
+      "errorDefault": "Unable to login. Please try again."
+    },
+    "register": {
+      "title": "Create Candidate Account",
+      "subtitle": "Fill in the information below to start your career journey at PTIT.",
+      "fullName": "Full Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Register",
+      "hasAccount": "Already have an account?",
+      "loginNow": "Login now",
+      "errorDefault": "Registration failed. Please try again.",
+      "successTitle": "Registration successful!",
+      "successDescPrefix": "A verification email has been sent to",
+      "successDescSuffix": "Please check your inbox to activate your account.",
+      "goToLogin": "Go to Login Page"
+    },
+    "verify": {
+      "processing": "Verifying your account...",
+      "processingSubtitle": "Please wait a moment...",
+      "successTitle": "Verification Successful!",
+      "successSubtitle": "Your account has been activated. You can now log in.",
+      "goToLogin": "Login now",
+      "errorTitle": "Verification Failed",
+      "errorSubtitle": "The link is invalid or has expired.",
+      "goToHome": "Go to Home"
+    },
+    "validation": {
+      "emailRequired": "Email is required",
+      "emailInvalid": "Invalid email format",
+      "passwordRequired": "Password is required",
+      "fullNameRequired": "Full name is required",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "passwordRegex": "Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number and 1 special character",
+      "confirmPasswordRequired": "Please confirm your password",
+      "passwordMismatch": "Passwords do not match"
+    }
+  },
   "Errors": {
     "9999": "An unknown error occurred. Please try again later.",
     "1002": "User already exists.",

@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class CandidateJobController {
 
   private final JobService jobService;
+  private final com.tttn.backend_core.service.JobFamilyService jobFamilyService;
+  private final com.tttn.backend_core.service.CareerLevelService careerLevelService;
 
   @GetMapping
   @RateLimit(action = "view_jobs", maxRequests = 60, duration = 1, unit = ChronoUnit.MINUTES)
@@ -40,5 +42,15 @@ public class CandidateJobController {
   @RateLimit(action = "view_job", maxRequests = 30, duration = 1, unit = ChronoUnit.MINUTES)
   public ApiResponse<JobResponse> getJobDetail(@PathVariable UUID id) {
     return ApiResponse.success(jobService.getJobDetail(id));
+  }
+
+  @GetMapping("/families")
+  public ApiResponse<java.util.List<com.tttn.backend_core.entity.JobFamily>> getJobFamilies() {
+    return ApiResponse.success(jobFamilyService.getActiveJobFamilies());
+  }
+
+  @GetMapping("/career-levels")
+  public ApiResponse<java.util.List<com.tttn.backend_core.entity.CareerLevel>> getCareerLevels() {
+    return ApiResponse.success(careerLevelService.getActiveCareerLevels());
   }
 }

@@ -30,7 +30,7 @@ public class CandidateApplicationController {
   private final UserRepository userRepository;
 
   @PostMapping("/jobs/{jobId}/apply")
-  @RateLimit(action = "apply_job", maxRequests = 5, duration = 10, unit = ChronoUnit.MINUTES)
+  @RateLimit(action = "apply_job", maxRequests = 3, duration = 1, unit = ChronoUnit.DAYS)
   public ApiResponse<CandidateApplicationResponse> applyForJob(
       @PathVariable UUID jobId, @RequestParam("cvFile") MultipartFile cvFile, Principal principal) {
 
@@ -56,6 +56,30 @@ public class CandidateApplicationController {
             .id(appResponse.getId())
             .jobId(jobId)
             // jobTitle can be mapped later or fetched
+            .resumeUrl(appResponse.getResumeUrl())
+            .status(ApplicationStatus.PENDING)
+            .appliedAt(appResponse.getAppliedAt())
+            .updatedAt(appResponse.getUpdatedAt())
+            .build());
+  }
+
+  @PostMapping("/jobs/{jobId}/apply-master")
+  @RateLimit(action = "apply_job_master", maxRequests = 3, duration = 1, unit = ChronoUnit.DAYS)
+  public ApiResponse<CandidateApplicationResponse> applyWithMasterCv(
+      @PathVariable UUID jobId, Principal principal) {
+
+    com.tttn.backend_core.entity.User user =
+        userRepository
+            .findByEmail(principal.getName())
+            .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+    com.tttn.backend_core.dto.response.ApplicationResponse appResponse =
+        applicationService.applyWithMasterCv(jobId, user.getId());
+
+    return ApiResponse.success(
+        CandidateApplicationResponse.builder()
+            .id(appResponse.getId())
+            .jobId(jobId)
             .resumeUrl(appResponse.getResumeUrl())
             .status(ApplicationStatus.PENDING)
             .appliedAt(appResponse.getAppliedAt())

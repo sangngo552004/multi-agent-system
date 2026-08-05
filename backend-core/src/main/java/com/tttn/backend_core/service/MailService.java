@@ -19,6 +19,9 @@ public class MailService {
   @Value("${app.base-url:http://localhost:8080}")
   private String appBaseUrl;
 
+  @Value("${app.frontend-url:http://localhost:3000}")
+  private String frontendUrl;
+
   public void sendEmailExistsNotification(String toEmail) {
     String forgotPasswordUrl = appBaseUrl + "/api/auth/forgot-password";
 
@@ -32,7 +35,7 @@ public class MailService {
   }
 
   public void sendVerificationEmail(String toEmail, String token) {
-    String verificationUrl = appBaseUrl + "/api/auth/verify?token=" + token;
+    String verificationUrl = frontendUrl + "/vi/verify?token=" + token;
 
     Map<String, Object> payload = new HashMap<>();
     payload.put("action", "VERIFY_EMAIL");

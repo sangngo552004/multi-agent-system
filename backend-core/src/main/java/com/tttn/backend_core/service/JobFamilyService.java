@@ -62,4 +62,9 @@ public class JobFamilyService {
     entity.setName(entity.getName() + " - deleted_" + System.currentTimeMillis());
     jobFamilyRepository.save(entity);
   }
+
+  @Transactional(readOnly = true)
+  public java.util.List<JobFamily> getActiveJobFamilies() {
+    return jobFamilyRepository.findByIsActiveTrueOrderByNameAsc();
+  }
 }

@@ -53,6 +53,23 @@ public class JobService {
         response.setId(job.getId());
         response.setStatus(job.getStatus());
         response.setUpdatedAt(job.getUpdatedAt());
+
+        // Fill fields that might be missing in older snapshots
+        if (response.getDepartmentName() == null) {
+          response.setDepartmentName(job.getDepartmentName());
+        }
+        if (response.getOpeningsCount() == null) {
+          response.setOpeningsCount(job.getOpeningsCount());
+        }
+        if (response.getCompetencies() == null) {
+          if (job.getRequiredCompetencies() != null) {
+            response.setCompetencies(
+                job.getRequiredCompetencies().stream()
+                    .map(jobMapper::toCompetencyResponse)
+                    .collect(Collectors.toList()));
+          }
+        }
+
         return response;
       } catch (Exception e) {
         // fallback to mapper if parsing fails

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchApi } from "@/services/http/api-client";
+import { apiRequest as fetchApi } from "@/services/http/api-client";
 import type { CareerLevel, Competency, InstitutionalRule, JobFamily } from "./knowledge-base.types";
 import type { CareerLevelFormValues, CompetencyFormValues, InstitutionalRuleFormValues, JobFamilyFormValues } from "./knowledge-base.schema";
 import { hrQueryKeys } from "@/services/query-keys";

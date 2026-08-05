@@ -14,7 +14,7 @@ export function DynamicListInput({
   control: Control<unknown>;
   name: string;
   placeholder: string;
-  error?: string | unknown;
+  error?: unknown;
 }) {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -55,7 +55,7 @@ export function DynamicListInput({
           <Plus className="mr-2 size-4" /> Thêm tiêu chí
         </Button>
       </div>
-      {error && <p className="mt-1 text-xs text-danger">{typeof error === "string" ? error : error.message || "Vui lòng nhập đầy đủ"}</p>}
+      {error && <p className="mt-1 text-xs text-danger">{typeof error === "string" ? error : (error?.message || "Vui lòng nhập đầy đủ")}</p>}
     </div>
   );
 }

@@ -43,6 +43,102 @@
       "titleTemplate": "%s | Xác thực · CareerOS"
     }
   },
+  "LandingPage": {
+    "header": {
+      "home": "Trang chủ",
+      "about": "Về chúng tôi",
+      "contact": "Liên hệ",
+      "jobs": "Việc làm",
+      "login": "Đăng nhập",
+      "logout": "Đăng xuất"
+    },
+    "hero": {
+      "badge": "Khám phá cơ hội nghề nghiệp tại PTIT",
+      "title_prefix": "Kiến tạo tương lai cùng ",
+      "title_highlight": "PTIT",
+      "description": "Tham gia cùng chúng tôi để xây dựng những giải pháp công nghệ đột phá. PTIT tự hào mang đến môi trường làm việc sáng tạo, chuyên nghiệp và những cơ hội phát triển không giới hạn.",
+      "cta": "Xem vị trí tuyển dụng",
+      "learn_more": "Tìm hiểu thêm"
+    },
+    "about": {
+      "title": "Tại sao chọn PTIT?",
+      "description": "Chúng tôi không chỉ cung cấp một công việc, chúng tôi mang đến một sự nghiệp. Môi trường tại PTIT được thiết kế để bạn phát huy tối đa tiềm năng.",
+      "features": {
+        "f1_title": "Môi trường sáng tạo",
+        "f1_desc": "Làm việc cùng những chuyên gia hàng đầu, luôn tiên phong ứng dụng công nghệ mới nhất vào giảng dạy và nghiên cứu.",
+        "f2_title": "Cơ hội thăng tiến rõ ràng",
+        "f2_desc": "Lộ trình phát triển được cá nhân hoá, đánh giá năng lực minh bạch giúp bạn đạt được những nấc thang mới trong sự nghiệp.",
+        "f3_title": "Cộng đồng tinh hoa",
+        "f3_desc": "Trở thành một phần của mạng lưới chuyên gia, nhà khoa học và kỹ sư xuất sắc trải dài khắp cả nước."
+      }
+    },
+    "jobs": {
+      "title": "Việc làm nổi bật",
+      "view_all": "Xem tất cả",
+      "apply_now": "Ứng tuyển ngay"
+    },
+    "contact": {
+      "title": "Thông tin liên hệ",
+      "description": "Kết nối với chúng tôi để cập nhật những cơ hội nghề nghiệp mới nhất và giải đáp thắc mắc về tuyển dụng.",
+      "hq": "Trụ sở chính (Hà Nội)",
+      "hq_address": "Km10, Đường Nguyễn Trãi, Q.Hà Đông, Hà Nội",
+      "hcm": "Cơ sở TP. Hồ Chí Minh",
+      "hcm_address": "11 Nguyễn Đình Chiểu, Phường Đa Kao, Quận 1, TP Hồ Chí Minh",
+      "phone": "Điện thoại",
+      "email": "Email"
+    },
+    "footer": {
+      "copyright": "Học viện Công nghệ Bưu chính Viễn thông"
+    }
+  },
+  "Auth": {
+    "login": {
+      "title": "Đăng nhập",
+      "subtitle": "Kết nối với cơ hội nghề nghiệp tại Học viện Công nghệ Bưu chính Viễn thông",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "submit": "Đăng nhập",
+      "noAccount": "Chưa có tài khoản ứng viên?",
+      "registerNow": "Đăng ký tại đây",
+      "errorDefault": "Không thể đăng nhập. Vui lòng thử lại."
+    },
+    "register": {
+      "title": "Tạo tài khoản ứng viên",
+      "subtitle": "Điền thông tin bên dưới để bắt đầu hành trình sự nghiệp tại PTIT.",
+      "fullName": "Họ và tên",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "confirmPassword": "Nhập lại mật khẩu",
+      "submit": "Đăng ký",
+      "hasAccount": "Đã có tài khoản?",
+      "loginNow": "Đăng nhập ngay",
+      "errorDefault": "Đăng ký thất bại. Vui lòng thử lại.",
+      "successTitle": "Đăng ký thành công!",
+      "successDescPrefix": "Một email xác thực đã được gửi đến",
+      "successDescSuffix": "Vui lòng kiểm tra hòm thư của bạn để kích hoạt tài khoản.",
+      "goToLogin": "Đến trang Đăng nhập"
+    },
+    "verify": {
+      "processing": "Đang xác thực tài khoản...",
+      "processingSubtitle": "Vui lòng chờ trong giây lát...",
+      "successTitle": "Xác thực thành công!",
+      "successSubtitle": "Tài khoản của bạn đã được kích hoạt. Bạn có thể đăng nhập ngay bây giờ.",
+      "goToLogin": "Đăng nhập ngay",
+      "errorTitle": "Xác thực thất bại",
+      "errorSubtitle": "Đường dẫn không hợp lệ hoặc đã hết hạn.",
+      "goToHome": "Về trang chủ"
+    },
+    "validation": {
+      "emailRequired": "Email không được để trống",
+      "emailInvalid": "Định dạng email không hợp lệ",
+      "passwordRequired": "Mật khẩu không được để trống",
+      "fullNameRequired": "Họ và tên không được để trống",
+      "passwordMinLength": "Mật khẩu phải có ít nhất 8 ký tự",
+      "passwordRegex": "Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt",
+      "confirmPasswordRequired": "Vui lòng nhập lại mật khẩu",
+      "passwordMismatch": "Mật khẩu nhập lại không khớp"
+    }
+  },
   "Errors": {
     "9999": "Đã có lỗi xảy ra. Vui lòng thử lại sau.",
     "1002": "Tài khoản đã tồn tại trên hệ thống.",

@@ -202,10 +202,11 @@ class ApplicationProcessRequest(BaseModel):
     application_id: str = Field(alias="applicationId")
     run_id: str = Field(alias="runId")
     file_url: str = Field(alias="fileUrl")
-    callback_queue: str = Field(
-        default="ai.application.process.events", alias="callbackQueue"
-    )
+    callback_queue: Optional[str] = Field(None, alias="callbackQueue")
     job_snapshot: dict = Field(alias="jobSnapshot")
+    skip_matching: bool = Field(False, alias="skipMatching")
+    skip_extraction: bool = Field(False, alias="skipExtraction")
+    cv_data: Optional[dict] = Field(None, alias="cvData")
 
 
 # ── Matching Schema ────────────────────────────────────────────────────

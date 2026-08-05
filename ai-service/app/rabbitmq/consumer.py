@@ -257,65 +257,126 @@ async def _process_application(channel, request: ApplicationProcessRequest):
         "telemetry": {},
     }
 
-    _publish_application_event(
-        channel,
-        request,
-        "STEP_STARTED",
-        step="EXTRACTION",
-        message="Extracting structured CV data.",
-    )
-    extraction_update = await async_extract_node(state)
-    state.update(extraction_update)
-    cv_data = state["cv_data"]
-    extraction_metrics = {
-        "aiConfidence": cv_data.confidence_scores.overall,
-        "warningCount": len(cv_data.warnings),
-        "extractionMethod": cv_data.extraction_method.value.upper(),
-        "needsReview": cv_data.status != ExtractionStatus.SUCCESS,
-    }
-    if cv_data.status == ExtractionStatus.FAILED:
+    if request.skip_extraction and request.cv_data:
+        from app.core.schemas import CVExtractionResponse
+
+        try:
+            state["cv_data"] = CVExtractionResponse(**request.cv_data)
+        except Exception as e:
+            logger.error(f"Failed to parse provided cv_data: {e}")
+            _publish_application_event(
+                channel,
+                request,
+                "RUN_FAILED",
+                step="EXTRACTION",
+                message="Provided CV data is invalid.",
+                errorCode="INVALID_CV_DATA",
+                errorMessage=str(e),
+            )
+            return
+
         _publish_application_event(
             channel,
             request,
-            "RUN_FAILED",
+            "STEP_SKIPPED",
             step="EXTRACTION",
-            message="The CV file is invalid or unreadable.",
-            errorCode="INVALID_FILE",
-            errorMessage="The CV file is invalid or unreadable.",
+            message="Skipped CV extraction (using provided Master CV data).",
+            aiConfidence=state["cv_data"].confidence_scores.overall,
+            warningCount=len(state["cv_data"].warnings),
+            extractionMethod=state["cv_data"].extraction_method.value.upper(),
+            needsReview=False,
+        )
+        extraction_metrics = {
+            "aiConfidence": state["cv_data"].confidence_scores.overall,
+            "warningCount": len(state["cv_data"].warnings),
+            "extractionMethod": state["cv_data"].extraction_method.value.upper(),
+            "needsReview": False,
+        }
+    else:
+        _publish_application_event(
+            channel,
+            request,
+            "STEP_STARTED",
+            step="EXTRACTION",
+            message="Extracting structured CV data.",
+        )
+        extraction_update = await async_extract_node(state)
+        state.update(extraction_update)
+        cv_data = state["cv_data"]
+        extraction_metrics = {
+            "aiConfidence": cv_data.confidence_scores.overall,
+            "warningCount": len(cv_data.warnings),
+            "extractionMethod": cv_data.extraction_method.value.upper(),
+            "needsReview": cv_data.status != ExtractionStatus.SUCCESS,
+        }
+        if cv_data.status == ExtractionStatus.FAILED:
+            _publish_application_event(
+                channel,
+                request,
+                "RUN_FAILED",
+                step="EXTRACTION",
+                message="The CV file is invalid or unreadable.",
+                errorCode="INVALID_FILE",
+                errorMessage="The CV file is invalid or unreadable.",
+                **extraction_metrics,
+            )
+            return
+        _publish_application_event(
+            channel,
+            request,
+            "STEP_COMPLETED",
+            step="EXTRACTION",
+            message="CV extraction completed.",
             **extraction_metrics,
         )
-        return
-    _publish_application_event(
-        channel,
-        request,
-        "STEP_COMPLETED",
-        step="EXTRACTION",
-        message="CV extraction completed.",
-        **extraction_metrics,
-    )
 
-    _publish_application_event(
-        channel,
-        request,
-        "STEP_STARTED",
-        step="MATCHING",
-        message="Matching the CV against the job snapshot.",
-    )
-    matching_update = await match_node(state)
-    state.update(matching_update)
-    match_result = state["match_result"]
-    _publish_application_event(
-        channel,
-        request,
-        "STEP_COMPLETED",
-        step="MATCHING",
-        message="Job matching completed.",
-        matchScore=match_result.overall_score,
-        needsReview=state["needs_human_review"],
-    )
+    if request.skip_matching:
+        _publish_application_event(
+            channel,
+            request,
+            "STEP_SKIPPED",
+            step="MATCHING",
+            message="Skipped job matching for Master CV.",
+        )
+        # Create a dummy match result
+        from app.core.schemas import MatchingOutput
+
+        match_result = MatchingOutput(
+            status="REJECTED",
+            overall_score=0,
+            analysis="Master CV Upload - no job matching performed.",
+            strengths=[],
+            weaknesses=[],
+            competency_scores=[],
+            missing_skills=[],
+        )
+        state["match_result"] = match_result
+        state["needs_human_review"] = False
+    else:
+        _publish_application_event(
+            channel,
+            request,
+            "STEP_STARTED",
+            step="MATCHING",
+            message="Matching the CV against the job snapshot.",
+        )
+        matching_update = await match_node(state)
+        state.update(matching_update)
+        match_result = state["match_result"]
+        _publish_application_event(
+            channel,
+            request,
+            "STEP_COMPLETED",
+            step="MATCHING",
+            message="Job matching completed.",
+            matchScore=match_result.overall_score,
+            needsReview=state["needs_human_review"],
+        )
 
     should_build_career_path = (
-        settings.CAREER_PATH_ENABLED and not state["needs_human_review"]
+        settings.CAREER_PATH_ENABLED
+        and not state["needs_human_review"]
+        and not request.skip_matching
     )
     if should_build_career_path:
         _publish_application_event(

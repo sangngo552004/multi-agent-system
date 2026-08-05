@@ -32,4 +32,20 @@ public class JobResponse {
   private LocalDateTime expiredAt;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
+
+  private String departmentName;
+  private Integer openingsCount;
+  private java.util.List<JobCompetencyResponse> competencies;
+
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class JobCompetencyResponse {
+    private UUID competencyId;
+    private String name;
+    private Integer requiredLevel;
+    private Double weight;
+    private Boolean isMandatory;
+  }
 }

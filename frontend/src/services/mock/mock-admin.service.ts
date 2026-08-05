@@ -122,7 +122,7 @@ class MockAdminService {
       metrics: [
         { id: "users", label: "Tổng tài khoản", value: users.length, change: "+4 tháng này", href: "/admin/users" },
         { id: "blocked-users", label: "Tài khoản bị khóa", value: blockedUsers, change: "Cần rà soát", href: "/admin/users?status=BLOCKED", emphasis: blockedUsers > 0 },
-        { id: "jobs", label: "Vị trí đang tuyển", value: jobs.filter((job) => job.status === "OPEN").length, change: `${incompleteJobs} thiếu cấu hình AI`, href: "/admin/jobs?readiness=INCOMPLETE" },
+        { id: "jobs", label: "Vị trí đang tuyển", value: jobs.filter((job) => job.status === "PUBLISHED").length, change: `${incompleteJobs} thiếu cấu hình AI`, href: "/admin/jobs?readiness=INCOMPLETE" },
         { id: "applications", label: `Ứng tuyển / ${range} ngày`, value: applicationsInRange.length, change: "Theo ngày nộp", href: "/admin/applications" },
         { id: "ai-rate", label: "AI hoàn thành", value: aiCompletionRate, suffix: "%", change: `${failedAiInRange} hồ sơ lỗi`, href: "/admin/applications?aiStatus=FAILED" },
       ],

@@ -62,4 +62,9 @@ public class CareerLevelService {
     entity.setName(entity.getName() + " - deleted_" + System.currentTimeMillis());
     careerLevelRepository.save(entity);
   }
+
+  @Transactional(readOnly = true)
+  public java.util.List<CareerLevel> getActiveCareerLevels() {
+    return careerLevelRepository.findByIsActiveTrueOrderByRankValueAsc();
+  }
 }

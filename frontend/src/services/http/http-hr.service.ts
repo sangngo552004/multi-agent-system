@@ -91,7 +91,7 @@ export const httpHrService: HrService = {
 
   changeJobStatus: async (input: ChangeHrJobStatusInput): Promise<HrJobDetail> => {
     let endpoint = "";
-    if (input.status === "OPEN") endpoint = "publish";
+    if (input.status === "PUBLISHED") endpoint = "publish";
     else if (input.status === "CLOSED") endpoint = "close";
 
     if (endpoint) {

@@ -36,3 +36,8 @@ export const hrQueryKeys = {
   talentPool: (filters: TalentPoolFilters) => ["hr", "talent-pool", filters] as const,
   notifications: ["hr", "notifications"] as const,
 };
+export const publicQueryKeys = {
+  all: ["public"] as const,
+  jobs: (filters: unknown) => ["public", "jobs", filters] as const,
+  job: (jobId: string) => ["public", "jobs", "detail", jobId] as const,
+};

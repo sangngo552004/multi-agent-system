@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CandidateProfileUpdateRequest {
-  private Map<String, Object> skills;
-  private Map<String, Object> experience;
-  private Map<String, Object> education;
+  private java.util.List<String> skills;
+  private java.util.List<Map<String, Object>> experience;
+  private java.util.List<Map<String, Object>> education;
 }
