@@ -23,7 +23,7 @@ export function RegisterClient() {
     setError("");
     setIsSubmitting(true);
     try {
-      await apiClient.post("/api/auth/register", {
+      await apiClient.post("/api/v1/auth/register", {
         fullName,
         email,
         password,

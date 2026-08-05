@@ -68,7 +68,20 @@ class Settings(BaseSettings):
 
     # --- Checkpointer / State Persistence ---
     CHECKPOINTER_TYPE: str = "memory"  # "memory" or "postgres"
-    DATABASE_URL: str = "postgresql://postgres:password123@localhost:5432/tttn"
+    DB_URL: str = "jdbc:postgresql://localhost:5432/tttn"
+    DB_USERNAME: str = "postgres"
+    DB_PASSWORD: str = "password123"
+
+    @property
+    def DATABASE_URL(self) -> str:
+        url = self.DB_URL
+        if url.startswith("jdbc:"):
+            url = url[5:]
+        if "://" in url:
+            scheme, rest = url.split("://", 1)
+            if self.DB_USERNAME and self.DB_PASSWORD and "@" not in rest:
+                return f"{scheme}://{self.DB_USERNAME}:{self.DB_PASSWORD}@{rest}"
+        return url
 
     # --- Observability / Tracing ---
     LANGCHAIN_TRACING_V2: bool = False

@@ -72,7 +72,7 @@ function notifySessionExpired() {
 
 export async function refreshAccessToken() {
   if (!refreshPromise) {
-    refreshPromise = request<{ token: string }>("/api/auth/refresh", {
+    refreshPromise = request<{ token: string }>("/api/v1/auth/refresh", {
       method: "POST",
       authenticated: false,
       retryOnUnauthorized: false,

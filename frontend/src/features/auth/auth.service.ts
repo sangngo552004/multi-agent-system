@@ -16,7 +16,7 @@ type AuthTokenResponse = {
 
 export const authService = {
   async login(input: LoginInput) {
-    const auth = await apiRequest<AuthTokenResponse>("/api/auth/login", {
+    const auth = await apiRequest<AuthTokenResponse>("/api/v1/auth/login", {
       method: "POST",
       body: JSON.stringify(input),
       authenticated: false,
@@ -26,7 +26,7 @@ export const authService = {
   },
 
   me() {
-    return apiRequest<AuthUser>("/api/auth/me");
+    return apiRequest<AuthUser>("/api/v1/auth/me");
   },
 
   async restore() {
@@ -36,7 +36,7 @@ export const authService = {
 
   async logout() {
     try {
-      await apiRequest<void>("/api/auth/logout", {
+      await apiRequest<void>("/api/v1/auth/logout", {
         method: "POST",
         authenticated: false,
       });
