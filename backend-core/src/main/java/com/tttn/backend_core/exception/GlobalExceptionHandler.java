@@ -11,6 +11,7 @@ import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -31,6 +32,13 @@ public class GlobalExceptionHandler {
             ApiResponse.error(
                 ErrorCode.UNCATEGORIZED_EXCEPTION.getCode(),
                 ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage()));
+  }
+
+  @ExceptionHandler(value = NoHandlerFoundException.class)
+  public ResponseEntity<ApiResponse<Object>> handlingNoHandler(NoHandlerFoundException exception) {
+    ErrorCode errorCode = ErrorCode.ENDPOINT_NOT_FOUND;
+    return ResponseEntity.status(errorCode.getStatusCode())
+        .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
   }
 
   @ExceptionHandler(
