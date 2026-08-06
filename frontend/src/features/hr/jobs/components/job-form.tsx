@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, CheckCircle2, CircleAlert, Eye, Save, Send } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CircleAlert, Eye, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -75,7 +75,7 @@ export function HrJobForm({ profile, catalog, job }: { profile: SystemUser; cata
 
   return (
     <form className="space-y-6" onSubmit={submit(false)}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><Link href={job ? `/hr/jobs/${job.id}` : "/hr/jobs"} className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-brand"><ArrowLeft className="size-4" /> Quay lại</Link><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setPreviewOpen(true)}><Eye className="size-4" /> Xem trước</Button><Button type="submit" variant="secondary" loading={mutation.isPending}><Save className="size-4" />{job ? "Lưu thay đổi" : "Lưu bản nháp"}</Button>{!job || job.status === "DRAFT" ? <Button type="button" onClick={submit(true)} loading={mutation.isPending}><Send className="size-4" /> Lưu và mở tuyển</Button> : null}</div></div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><Link href={job ? `/hr/jobs/${job.id}` : "/hr/jobs"} className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-brand"><ArrowLeft className="size-4" /> Quay lại</Link><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setPreviewOpen(true)}><Eye className="size-4" /> Xem trước</Button><Button type="submit" variant="secondary" loading={mutation.isPending}><Save className="size-4" />{job ? "Lưu thay đổi" : "Lưu bản nháp"}</Button></div></div>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="admin-kicker text-brand">{job ? "Chỉnh sửa tin" : "Nhu cầu tuyển dụng mới"}</p>

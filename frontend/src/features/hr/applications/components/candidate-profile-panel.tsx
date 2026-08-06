@@ -12,7 +12,7 @@ export function CandidateProfilePanel({ application }: { application: HrApplicat
       <div className="grid gap-7 md:grid-cols-2"><ProfileSection icon={<GraduationCap className="size-4" />} title="Học vấn">{application.education.map((education) => <div key={`${education.school}-${education.period}`}><p className="text-sm font-semibold text-ink">{education.program}</p><p className="mt-1 text-xs text-muted">{education.school} · {education.period}</p></div>)}</ProfileSection><ProfileSection icon={<Languages className="size-4" />} title="Ngôn ngữ"><div className="flex flex-wrap gap-2">{application.languages.map((language) => <Badge key={language}>{language}</Badge>)}</div></ProfileSection></div>
       <ProfileSection title="Kỹ năng được nhận diện"><div className="space-y-4">{application.skillGroups.map((group) => <div key={group.group}><p className="mb-2 text-xs font-semibold text-muted">{group.group}</p><div className="flex flex-wrap gap-2">{group.skills.map((skill) => <Badge key={skill} tone="brand">{skill}</Badge>)}</div></div>)}</div></ProfileSection>
     </div>
-    <div className="border-t border-border bg-surface-soft/50 px-5 py-3 text-[11px] leading-5 text-muted">Trong bản demo, nội dung CV được mô phỏng bằng dữ liệu đã trích xuất. Khi có backend, tệp gốc sẽ dùng đường dẫn có kiểm soát quyền truy cập.</div>
+    <div className="border-t border-border bg-surface-soft/50 px-5 py-3 text-[11px] leading-5 text-muted">Nội dung trích xuất phụ thuộc vào kết quả xử lý AI; HR cần đối chiếu CV gốc trước khi quyết định.</div>
   </section>;
 }
 

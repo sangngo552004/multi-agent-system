@@ -14,5 +14,9 @@ public interface ApplicationMapper {
   @Mapping(source = "candidate.id", target = "candidateId")
   @Mapping(source = "candidate.fullName", target = "candidateName")
   @Mapping(source = "candidate.email", target = "candidateEmail")
+  @Mapping(source = "job.id", target = "jobId")
+  @Mapping(source = "job.title", target = "jobTitle")
+  @Mapping(source = "job.location", target = "jobLocation")
+  @Mapping(source = "job.departmentName", target = "departmentName")
   ApplicationResponse toResponse(Application application);
 }

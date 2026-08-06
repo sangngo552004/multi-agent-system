@@ -96,8 +96,13 @@ public class BatchEmailAsyncProcessor {
       outboxPayload.put("action", payload.get("action"));
       outboxPayload.put("subjectTemplate", payload.get("subjectTemplate"));
       outboxPayload.put("bodyTemplate", payload.get("bodyTemplate"));
-      // Mock email for now. In production, we fetch real emails.
-      outboxPayload.put("candidateEmail", "candidate-" + appId + "@example.com");
+      @SuppressWarnings("unchecked")
+      Map<String, String> candidateEmails = (Map<String, String>) payload.get("candidateEmails");
+      String candidateEmail = candidateEmails == null ? null : candidateEmails.get(appId);
+      if (candidateEmail == null || candidateEmail.isBlank()) {
+        throw new IllegalStateException("Candidate email is missing for application " + appId);
+      }
+      outboxPayload.put("candidateEmail", candidateEmail);
 
       OutboxEvent event =
           OutboxEvent.builder()

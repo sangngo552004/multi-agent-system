@@ -3,12 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, LayoutDashboard, LogOut, Menu } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { hrRouteLabels } from "@/config/navigation";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useHrProfile } from "@/features/hr/dashboard/dashboard.queries";
-import { HrNotificationMenu } from "@/features/hr/notifications/components/notification-menu";
 import { getInitials } from "@/lib/format";
 import { LanguageSwitcher } from "./language-switcher";
 
@@ -52,11 +50,10 @@ export function HrTopbar({ onOpenMenu }: { onOpenMenu: () => void }) {
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
         <LanguageSwitcher />
-        <HrNotificationMenu />
         <DropdownMenu>
           <DropdownMenuTrigger asChild><button className="flex cursor-pointer items-center gap-2 rounded-[9px] py-1 pl-1 pr-2 text-left transition-colors hover:bg-surface-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><span className="grid size-9 place-items-center rounded-[9px] bg-brand text-xs font-semibold text-white">{profile.data ? getInitials(profile.data.fullName) : "HR"}</span><span className="hidden xl:block"><span className="block max-w-40 truncate text-xs font-semibold text-ink">{name}</span><span className="block max-w-40 truncate text-[10px] text-muted">{profile.data?.jobTitle ?? "Nhân sự tuyển dụng"}</span></span><ChevronDown className="hidden size-3.5 text-muted xl:block" /></button></DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem asChild><Link href="/hr/dashboard"><LayoutDashboard className="size-4" /> Không gian tuyển dụng</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link href="/hr/jobs"><LayoutDashboard className="size-4" /> Không gian tuyển dụng</Link></DropdownMenuItem>
             <DropdownMenuSeparator className="my-1 h-px bg-border" />
             <DropdownMenuItem className="text-danger" onSelect={handleLogout}><LogOut className="size-4" /> Đăng xuất</DropdownMenuItem>
           </DropdownMenuContent>

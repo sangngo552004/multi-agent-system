@@ -23,10 +23,8 @@ const rejectionReasons = [
 ];
 
 function actionsFor(status: RecruitmentStatus): Action[] {
-  if (status === "PENDING") return [{ status: "REVIEWING", label: "Bắt đầu xem xét", description: "Đánh dấu hồ sơ đã được HR tiếp nhận và đang đánh giá." }, { status: "REJECTED", label: "Không phù hợp", description: "Kết thúc xử lý hồ sơ này với một lý do ngắn." }];
-  if (status === "REVIEWING") return [{ status: "SHORTLISTED", label: "Thêm vào danh sách ngắn", description: "Chọn ứng viên để tiếp tục trao đổi hoặc phỏng vấn bên ngoài hệ thống." }, { status: "REJECTED", label: "Không phù hợp", description: "Kết thúc xử lý hồ sơ này với một lý do ngắn." }];
-  if (status === "SHORTLISTED") return [{ status: "HIRED", label: "Đánh dấu đã tuyển", description: "Xác nhận ứng viên đã được chọn cho vị trí này." }, { status: "REJECTED", label: "Không phù hợp", description: "Kết thúc xử lý hồ sơ này với một lý do ngắn." }];
-  return [{ status: "REVIEWING", label: "Mở lại xem xét", description: "Hủy quyết định cuối và đưa hồ sơ trở lại bước đang xem xét." }];
+  if (status === "PENDING" || status === "REVIEWING") return [{ status: "SHORTLISTED", label: "Duyệt hồ sơ", description: "Đưa ứng viên vào danh sách ngắn." }, { status: "REJECTED", label: "Không phù hợp", description: "Đánh dấu hồ sơ không phù hợp." }];
+  return [];
 }
 
 export function ApplicationStatusActions({ application }: { application: HrApplicationDetail }) {

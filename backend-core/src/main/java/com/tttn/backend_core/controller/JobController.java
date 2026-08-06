@@ -15,6 +15,7 @@ import com.tttn.backend_core.service.AiParsingService;
 import com.tttn.backend_core.service.ApplicationService;
 import com.tttn.backend_core.service.JobService;
 import jakarta.validation.Valid;
+import java.security.Principal;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
@@ -45,9 +46,11 @@ public class JobController {
       @RequestParam(required = false) com.tttn.backend_core.entity.ApplicationStatus status,
       @RequestParam(required = false) com.tttn.backend_core.entity.AiProcessingStatus aiStatus,
       @RequestParam(required = false) Boolean needsReview,
-      Pageable pageable) {
+      Pageable pageable,
+      Principal principal) {
     return ApiResponse.success(
-        applicationService.getApplicationsByJob(id, status, aiStatus, needsReview, pageable));
+        applicationService.getApplicationsByJob(
+            id, status, aiStatus, needsReview, pageable, principal.getName()));
   }
 
   @PostMapping("/parse")
@@ -85,6 +88,16 @@ public class JobController {
   @ResponseStatus(HttpStatus.CREATED)
   public ApiResponse<JobResponse> duplicateJob(@PathVariable UUID id) {
     return ApiResponse.success(jobService.duplicateJob(id));
+  }
+
+  @PostMapping("/{id}/publish")
+  public ApiResponse<JobResponse> publishJob(@PathVariable UUID id, Principal principal) {
+    return ApiResponse.success(jobService.publishJob(id, principal.getName()));
+  }
+
+  @PostMapping("/{id}/close")
+  public ApiResponse<JobResponse> closeJob(@PathVariable UUID id, Principal principal) {
+    return ApiResponse.success(jobService.closeJob(id, principal.getName()));
   }
 
   @PutMapping("/{id}/competencies")

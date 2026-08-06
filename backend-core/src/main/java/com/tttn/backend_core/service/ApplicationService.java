@@ -36,13 +36,15 @@ public class ApplicationService {
       ApplicationStatus status,
       com.tttn.backend_core.entity.AiProcessingStatus aiStatus,
       Boolean needsReview,
-      Pageable pageable) {
+      Pageable pageable,
+      String hrEmail) {
 
     org.springframework.data.jpa.domain.Specification<Application> spec =
         (root, query, cb) -> {
           java.util.List<jakarta.persistence.criteria.Predicate> predicates =
               new java.util.ArrayList<>();
           predicates.add(cb.equal(root.get("job").get("id"), jobId));
+          predicates.add(cb.equal(root.join("job").join("hr").get("email"), hrEmail));
 
           if (status != null) {
             predicates.add(cb.equal(root.get("status"), status));
@@ -61,6 +63,37 @@ public class ApplicationService {
   }
 
   @Transactional(readOnly = true)
+  public Page<ApplicationResponse> findForHr(
+      String hrEmail,
+      UUID jobId,
+      ApplicationStatus status,
+      com.tttn.backend_core.entity.AiProcessingStatus aiStatus,
+      Boolean needsReview,
+      String search,
+      Pageable pageable) {
+    org.springframework.data.jpa.domain.Specification<Application> spec =
+        (root, query, cb) -> {
+          java.util.List<jakarta.persistence.criteria.Predicate> predicates =
+              new java.util.ArrayList<>();
+          predicates.add(cb.equal(root.join("job").join("hr").get("email"), hrEmail));
+          if (jobId != null) predicates.add(cb.equal(root.get("job").get("id"), jobId));
+          if (status != null) predicates.add(cb.equal(root.get("status"), status));
+          if (aiStatus != null) predicates.add(cb.equal(root.get("aiStatus"), aiStatus));
+          if (needsReview != null) predicates.add(cb.equal(root.get("needsReview"), needsReview));
+          if (search != null && !search.isBlank()) {
+            String value = "%" + search.trim().toLowerCase(java.util.Locale.ROOT) + "%";
+            predicates.add(
+                cb.or(
+                    cb.like(cb.lower(root.join("candidate").get("fullName")), value),
+                    cb.like(cb.lower(root.join("candidate").get("email")), value),
+                    cb.like(cb.lower(root.join("job").get("title")), value)));
+          }
+          return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+    return applicationRepository.findAll(spec, pageable).map(applicationMapper::toResponse);
+  }
+
+  @Transactional(readOnly = true)
   public ApplicationResponse getApplicationDetail(UUID id) {
     Application app =
         applicationRepository
@@ -70,12 +103,15 @@ public class ApplicationService {
     return applicationMapper.toResponse(app);
   }
 
+  @Transactional(readOnly = true)
+  public ApplicationResponse getApplicationDetail(UUID id, String hrEmail) {
+    Application application = findForHr(id, hrEmail);
+    return applicationMapper.toResponse(application);
+  }
+
   @Transactional
-  public void approveApplication(UUID id) {
-    Application application =
-        applicationRepository
-            .findById(id)
-            .orElseThrow(() -> new AppException(ErrorCode.APPLICATION_NOT_FOUND));
+  public void approveApplication(UUID id, String hrEmail) {
+    Application application = findForHr(id, hrEmail);
 
     application.setStatus(ApplicationStatus.SHORTLISTED);
     applicationRepository.save(application);
@@ -83,15 +119,25 @@ public class ApplicationService {
   }
 
   @Transactional
-  public void rejectApplication(UUID id) {
-    Application application =
-        applicationRepository
-            .findById(id)
-            .orElseThrow(() -> new AppException(ErrorCode.APPLICATION_NOT_FOUND));
+  public void rejectApplication(UUID id, String hrEmail) {
+    Application application = findForHr(id, hrEmail);
 
     application.setStatus(ApplicationStatus.REJECTED);
     applicationRepository.save(application);
     log.info("Application {} rejected (Status -> REJECTED)", id);
+  }
+
+  private Application findForHr(UUID id, String hrEmail) {
+    Application application =
+        applicationRepository
+            .findById(id)
+            .orElseThrow(() -> new AppException(ErrorCode.APPLICATION_NOT_FOUND));
+    if (application.getJob() == null
+        || application.getJob().getHr() == null
+        || !hrEmail.equalsIgnoreCase(application.getJob().getHr().getEmail())) {
+      throw new AppException(ErrorCode.UNAUTHORIZED);
+    }
+    return application;
   }
 
   @Transactional

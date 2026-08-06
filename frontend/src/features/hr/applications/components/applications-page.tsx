@@ -10,7 +10,6 @@ import { SearchInput } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { hrApplicationTableColumns } from "@/features/hr/applications/components/application-table-columns";
 import { HrApplicationsSkeleton } from "@/features/hr/applications/components/applications-skeleton";
-import { BatchEmailModal } from "@/features/hr/applications/components/batch-email-modal";
 import { useHrApplications } from "@/features/hr/applications/applications.queries";
 import type { HrApplicationDateRange, HrApplicationFilters, HrApplicationSort } from "@/features/hr/applications/applications.types";
 import { useHrJobs } from "@/features/hr/jobs/jobs.queries";
@@ -71,7 +70,6 @@ export function HrApplicationsPage() {
             <Select label="Vị trí" value={jobId} onValueChange={setJobId} options={[{ value: "ALL", label: "Tất cả vị trí" }, ...(jobs.data?.items.map((job) => ({ value: job.id, label: job.title })) ?? [])]} />
             <Select label="Trạng thái tuyển dụng" value={recruitmentStatus} onValueChange={(value) => setRecruitmentStatus(value as RecruitmentStatus | "ALL")} options={[{ value: "ALL", label: "Tất cả trạng thái" }, { value: "PENDING", label: "Mới nhận" }, { value: "REVIEWING", label: "Đang xem xét" }, { value: "SHORTLISTED", label: "Danh sách ngắn" }, { value: "REJECTED", label: "Không phù hợp" }, { value: "HIRED", label: "Đã tuyển" }]} />
             <Select label="Xử lý AI" value={aiStatus} onValueChange={(value) => setAiStatus(value as AiProcessingStatus | "ALL")} options={[{ value: "ALL", label: "Tất cả trạng thái AI" }, { value: "WAITING", label: "Đang chờ" }, { value: "PROCESSING", label: "Đang xử lý" }, { value: "COMPLETED", label: "Hoàn thành" }, { value: "FAILED", label: "Thất bại" }]} />
-            {jobId !== "ALL" && <BatchEmailModal jobId={jobId} />}
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/70 pt-3"><div className="flex flex-wrap gap-2"><Select label="Ngày nộp" value={dateRange} onValueChange={(value) => setDateRange(value as HrApplicationDateRange)} options={[{ value: "ALL", label: "Mọi thời điểm" }, { value: "7", label: "7 ngày gần đây" }, { value: "30", label: "30 ngày gần đây" }]} /><Select label="Mức lưu ý" value={review} onValueChange={(value) => setReview(value as "ALL" | "REQUIRED")} options={[{ value: "ALL", label: "Tất cả hồ sơ" }, { value: "REQUIRED", label: "Cần đối chiếu CV" }]} /><Select label="Sắp xếp" value={sort} onValueChange={(value) => setSort(value as HrApplicationSort)} options={[{ value: "SUBMITTED_DESC", label: "Nộp gần nhất" }, { value: "UPDATED_DESC", label: "Cập nhật gần nhất" }, { value: "SCORE_DESC", label: "Điểm cao đến thấp" }]} /></div><button type="button" onClick={clear} className="cursor-pointer text-xs font-semibold text-brand hover:underline">Xóa bộ lọc</button></div>
