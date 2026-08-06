@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class JobFamilyService {
   private final JobFamilyRepository jobFamilyRepository;
+  private final com.tttn.backend_core.mapper.MasterDataMapper masterDataMapper;
 
   @Transactional(readOnly = true)
   public Page<JobFamily> findAll(Predicate predicate, Pageable pageable) {
@@ -31,10 +32,7 @@ public class JobFamilyService {
 
   @Transactional
   public JobFamily createJobFamily(MasterDataRequest request) {
-    JobFamily entity = new JobFamily();
-    entity.setName(request.getName());
-    entity.setDescription(request.getDescription());
-    entity.setIsActive(true);
+    JobFamily entity = masterDataMapper.toJobFamily(request);
     return jobFamilyRepository.save(entity);
   }
 
@@ -47,8 +45,7 @@ public class JobFamilyService {
     if (!entity.getIsActive()) {
       throw new AppException(ErrorCode.JOB_FAMILY_NOT_FOUND);
     }
-    entity.setName(request.getName());
-    entity.setDescription(request.getDescription());
+    masterDataMapper.updateJobFamily(request, entity);
     return jobFamilyRepository.save(entity);
   }
 
@@ -64,5 +61,10 @@ public class JobFamilyService {
     entity.setIsActive(false);
     entity.setName(entity.getName() + " - deleted_" + System.currentTimeMillis());
     jobFamilyRepository.save(entity);
+  }
+
+  @Transactional(readOnly = true)
+  public java.util.List<JobFamily> getActiveJobFamilies() {
+    return jobFamilyRepository.findByIsActiveTrueOrderByNameAsc();
   }
 }

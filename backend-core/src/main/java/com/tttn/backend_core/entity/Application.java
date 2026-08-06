@@ -27,7 +27,7 @@ public class Application {
   private User candidate;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "job_id", nullable = false)
+  @JoinColumn(name = "job_id", nullable = true)
   private Job job;
 
   @Column(name = "resume_url", nullable = false)
@@ -78,6 +78,10 @@ public class Application {
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "scoring_breakdown", columnDefinition = "json")
   private Map<String, Object> scoringBreakdown;
+
+  @Column(name = "is_candidate_notified", nullable = false)
+  @Builder.Default
+  private Boolean isCandidateNotified = false;
 
   @CreationTimestamp
   @Column(name = "applied_at", updatable = false)

@@ -51,4 +51,35 @@ public class AiParsingService {
       throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
   }
+
+  public com.fasterxml.jackson.databind.JsonNode extractCv(
+      org.springframework.web.multipart.MultipartFile cvFile) {
+    String url = aiServiceUrl + "/extract-cv";
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+    org.springframework.util.MultiValueMap<String, Object> body =
+        new org.springframework.util.LinkedMultiValueMap<>();
+    body.add("file", cvFile.getResource());
+
+    HttpEntity<org.springframework.util.MultiValueMap<String, Object>> requestEntity =
+        new HttpEntity<>(body, headers);
+
+    try {
+      ResponseEntity<String> response =
+          restTemplate.postForEntity(url, requestEntity, String.class);
+      if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+        com.fasterxml.jackson.databind.ObjectMapper mapper =
+            new com.fasterxml.jackson.databind.ObjectMapper();
+        return mapper.readTree(response.getBody());
+      } else {
+        log.error("Failed to extract CV. Status code: {}", response.getStatusCode());
+        throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+      }
+    } catch (Exception e) {
+      log.error("Error communicating with AI Service for CV extraction: ", e);
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+    }
+  }
 }

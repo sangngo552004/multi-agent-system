@@ -12,7 +12,7 @@ export function handleApiError(error: unknown, t?: (key: string) => string) {
           toast.error(translatedMsg);
           return;
         }
-      } catch (_e) {
+      } catch {
         // Fallback
       }
     }

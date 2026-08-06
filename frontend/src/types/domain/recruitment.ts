@@ -18,7 +18,7 @@ export type SystemUser = {
   blockReason?: string;
 };
 
-export type JobStatus = "DRAFT" | "OPEN" | "PAUSED" | "CLOSED";
+export type JobStatus = "DRAFT" | "PUBLISHED" | "PAUSED" | "CLOSED";
 export type EmploymentType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
 
 export type JobCompetencyRequirement = {

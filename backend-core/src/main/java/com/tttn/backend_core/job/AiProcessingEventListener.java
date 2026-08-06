@@ -29,6 +29,7 @@ public class AiProcessingEventListener {
   private final AiProcessingRunRepository runRepository;
   private final AiProcessingStepRepository stepRepository;
   private final ApplicationRepository applicationRepository;
+  private final CandidateProfileRepository candidateProfileRepository;
   private final ActivityLogService activityLogService;
 
   @RabbitListener(queues = RabbitMQConfig.APPLICATION_EVENT_QUEUE)
@@ -109,6 +110,37 @@ public class AiProcessingEventListener {
     step.setFinishedAt(occurredAt);
     if (name == AiStepName.EXTRACTION) {
       updateMetrics(application, event);
+      if (event.hasNonNull("cv_data")) {
+        JsonNode cvDataNode = event.get("cv_data");
+        java.util.Map<String, Object> cvData =
+            objectMapper.convertValue(cvDataNode, java.util.Map.class);
+
+        // If this is a Job Application (job != null), we only store the cv_data in
+        // scoringBreakdown.
+        // We DO NOT update the CandidateProfile to avoid overwriting their master data.
+        if (application.getJob() != null) {
+          java.util.Map<String, Object> breakdown = application.getScoringBreakdown();
+          if (breakdown == null) {
+            breakdown = new java.util.HashMap<>();
+          }
+          breakdown.put("extracted_cv_data", cvData);
+          application.setScoringBreakdown(breakdown);
+          applicationRepository.save(application);
+        } else {
+          // Master Profile Upload (job == null): Update CandidateProfile
+          CandidateProfile profile =
+              candidateProfileRepository
+                  .findById(application.getCandidate().getId())
+                  .orElseGet(
+                      () -> CandidateProfile.builder().user(application.getCandidate()).build());
+
+          profile.setCvUrl(application.getResumeUrl());
+          profile.setRawCvData(cvData);
+          profile.setProfileData(profileDataFromCv(cvData));
+
+          candidateProfileRepository.save(profile);
+        }
+      }
     }
   }
 
@@ -130,6 +162,16 @@ public class AiProcessingEventListener {
     updateMetrics(application, event);
     if (event.hasNonNull("matchScore")) {
       application.setFitScore(event.get("matchScore").asDouble());
+    }
+    if (event.hasNonNull("careerPathResult")) {
+      java.util.Map<String, Object> scoringBreakdown = application.getScoringBreakdown();
+      if (scoringBreakdown == null) {
+        scoringBreakdown = new java.util.HashMap<>();
+      }
+      scoringBreakdown.put(
+          "career_path_result",
+          objectMapper.convertValue(event.get("careerPathResult"), java.util.Map.class));
+      application.setScoringBreakdown(scoringBreakdown);
     }
     activityLogService.recordAiProcessingTerminal(
         application.getId(), application.getCandidate().getFullName(), true, null);
@@ -173,6 +215,28 @@ public class AiProcessingEventListener {
     updateMetrics(application, event);
     activityLogService.recordAiProcessingTerminal(
         application.getId(), application.getCandidate().getFullName(), false, errorCode);
+  }
+
+  private java.util.Map<String, Object> profileDataFromCv(java.util.Map<String, Object> rawCvData) {
+    java.util.Map<String, Object> profileData = new java.util.LinkedHashMap<>();
+    java.util.List<String> profileFields =
+        java.util.List.of(
+            "personal_info",
+            "social_links",
+            "professional_metadata",
+            "skills",
+            "experience",
+            "education",
+            "projects",
+            "spoken_languages",
+            "certifications");
+    profileFields.forEach(
+        field -> {
+          if (rawCvData.containsKey(field)) {
+            profileData.put(field, rawCvData.get(field));
+          }
+        });
+    return profileData;
   }
 
   private void updateMetrics(Application application, JsonNode event) {

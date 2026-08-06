@@ -57,7 +57,7 @@ class AuthControllerTest {
 
     mockMvc
         .perform(
-            post("/api/auth/register")
+            post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isAccepted())
@@ -70,7 +70,7 @@ class AuthControllerTest {
     doNothing().when(authService).verifyRegistration("token-123");
 
     mockMvc
-        .perform(get("/api/auth/verify").param("token", "token-123"))
+        .perform(get("/api/v1/auth/verify").param("token", "token-123"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.code").value(1000))
         .andExpect(jsonPath("$.result").value("Xác nhận thành công. Bạn có thể đăng nhập."));
@@ -88,7 +88,7 @@ class AuthControllerTest {
 
     mockMvc
         .perform(
-            post("/api/auth/login")
+            post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -100,7 +100,9 @@ class AuthControllerTest {
   void testLoginRejectsMalformedJsonAsBadRequest() throws Exception {
     mockMvc
         .perform(
-            post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("{\"email\":"))
+            post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value(1001))
         .andExpect(jsonPath("$.message").value("Invalid request"));

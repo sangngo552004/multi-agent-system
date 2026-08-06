@@ -19,7 +19,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     if (!user) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
     } else if (user.role !== "ADMIN") {
-      router.replace(user.role === "HR" ? "/hr/dashboard" : "/candidate/dashboard");
+      router.replace(user.role === "HR" ? "/hr/dashboard" : "/profile");
     }
   }, [isLoading, pathname, router, user]);
 

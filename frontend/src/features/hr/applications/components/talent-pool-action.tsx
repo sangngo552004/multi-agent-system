@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { handleApiError } from "@/lib/api-error";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -17,6 +19,8 @@ import { useSaveTalentPoolEntry } from "@/features/hr/talent-pool/talent-pool.qu
 function defaultRetentionDate() { return new Date(Date.now() + 180 * 86_400_000).toISOString().slice(0, 10); }
 
 export function TalentPoolAction({ application }: { application: HrApplicationDetail }) {
+  const t = useTranslations();
+
   const [open, setOpen] = useState(false);
   const mutation = useSaveTalentPoolEntry();
   const form = useForm<TalentPoolFormValues>({ resolver: zodResolver(talentPoolFormSchema), defaultValues: { labelsText: "", note: "", retentionUntil: defaultRetentionDate() } });
@@ -25,7 +29,7 @@ export function TalentPoolAction({ application }: { application: HrApplicationDe
       await mutation.mutateAsync({ applicationId: application.id, labels: parseTalentLabels(values.labelsText), note: values.note, retentionUntil: values.retentionUntil });
       toast.success("Đã lưu vào kho ứng viên tiềm năng");
       setOpen(false);
-    } catch (error) { toast.error("Không thể lưu ứng viên", { description: error instanceof Error ? error.message : "Vui lòng thử lại." }); }
+    } catch (error) { handleApiError(error, t); }
   });
 
   if (application.talentPoolEntryId) return <section className="rounded-[12px] border border-success/20 bg-success/[0.035] p-5"><div className="flex gap-3"><CheckCircle2 className="size-5 shrink-0 text-success" /><div><h2 className="text-sm font-semibold text-ink">Đã có trong kho tiềm năng</h2><p className="mt-1 text-xs leading-5 text-muted">Bạn có thể cập nhật nhãn, ghi chú và hạn lưu tại trang quản lý kho.</p><Button asChild size="sm" variant="secondary" className="mt-3"><Link href="/hr/talent-pool">Mở kho ứng viên</Link></Button></div></div></section>;

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CareerLevelService {
   private final CareerLevelRepository careerLevelRepository;
+  private final com.tttn.backend_core.mapper.MasterDataMapper masterDataMapper;
 
   @Transactional(readOnly = true)
   public Page<CareerLevel> findAll(Predicate predicate, Pageable pageable) {
@@ -31,10 +32,7 @@ public class CareerLevelService {
 
   @Transactional
   public CareerLevel createCareerLevel(MasterDataRequest request) {
-    CareerLevel entity = new CareerLevel();
-    entity.setName(request.getName());
-    entity.setDescription(request.getDescription());
-    entity.setIsActive(true);
+    CareerLevel entity = masterDataMapper.toCareerLevel(request);
     return careerLevelRepository.save(entity);
   }
 
@@ -47,8 +45,7 @@ public class CareerLevelService {
     if (!entity.getIsActive()) {
       throw new AppException(ErrorCode.CAREER_LEVEL_NOT_FOUND);
     }
-    entity.setName(request.getName());
-    entity.setDescription(request.getDescription());
+    masterDataMapper.updateCareerLevel(request, entity);
     return careerLevelRepository.save(entity);
   }
 
@@ -64,5 +61,10 @@ public class CareerLevelService {
     entity.setIsActive(false);
     entity.setName(entity.getName() + " - deleted_" + System.currentTimeMillis());
     careerLevelRepository.save(entity);
+  }
+
+  @Transactional(readOnly = true)
+  public java.util.List<CareerLevel> getActiveCareerLevels() {
+    return careerLevelRepository.findByIsActiveTrueOrderByRankValueAsc();
   }
 }

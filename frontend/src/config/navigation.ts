@@ -33,14 +33,14 @@ export const hrPrimaryNavigation: NavigationItem[] = [
   { label: "Tổng quan", href: "/hr/dashboard", icon: Gauge, description: "Công việc cần xử lý" },
   { label: "Tin tuyển dụng", href: "/hr/jobs", icon: BriefcaseBusiness, description: "Vị trí đang phụ trách" },
   { label: "Ứng viên", href: "/hr/applications", icon: FileUser, description: "Hồ sơ ứng tuyển" },
-  { label: "Ứng viên tiềm năng", href: "/hr/talent-pool", icon: UsersRound, description: "Nguồn ứng viên nội bộ" },
+  { label: "Kho tri thức", href: "/hr/knowledge-base", icon: LibraryBig, description: "Danh mục và luật đối sánh" },
 ];
 
 export const hrRouteLabels: Record<string, string> = {
   dashboard: "Tổng quan",
   jobs: "Tin tuyển dụng",
   applications: "Ứng viên",
-  "talent-pool": "Ứng viên tiềm năng",
+  "knowledge-base": "Kho tri thức",
   new: "Tạo tin",
   edit: "Chỉnh sửa",
 };

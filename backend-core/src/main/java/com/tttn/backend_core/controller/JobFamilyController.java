@@ -2,6 +2,7 @@ package com.tttn.backend_core.controller;
 
 import com.querydsl.core.types.Predicate;
 import com.tttn.backend_core.dto.request.MasterDataRequest;
+import com.tttn.backend_core.dto.response.ApiResponse;
 import com.tttn.backend_core.entity.JobFamily;
 import com.tttn.backend_core.service.JobFamilyService;
 import jakarta.validation.Valid;
@@ -10,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.querydsl.binding.QuerydslPredicate;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,25 +22,27 @@ public class JobFamilyController {
   private final JobFamilyService jobFamilyService;
 
   @GetMapping
-  public Page<JobFamily> getJobFamilies(
+  public ApiResponse<Page<JobFamily>> getJobFamilies(
       @QuerydslPredicate(root = JobFamily.class) Predicate predicate, Pageable pageable) {
-    return jobFamilyService.findAll(predicate, pageable);
+    return ApiResponse.success(jobFamilyService.findAll(predicate, pageable));
   }
 
   @PostMapping
-  public ResponseEntity<JobFamily> createJobFamily(@Valid @RequestBody MasterDataRequest request) {
-    return ResponseEntity.ok(jobFamilyService.createJobFamily(request));
+  @ResponseStatus(HttpStatus.CREATED)
+  public ApiResponse<JobFamily> createJobFamily(@Valid @RequestBody MasterDataRequest request) {
+    return ApiResponse.success(jobFamilyService.createJobFamily(request));
   }
 
   @PutMapping("/{id}")
-  public ResponseEntity<JobFamily> updateJobFamily(
+  public ApiResponse<JobFamily> updateJobFamily(
       @PathVariable UUID id, @Valid @RequestBody MasterDataRequest request) {
-    return ResponseEntity.ok(jobFamilyService.updateJobFamily(id, request));
+    return ApiResponse.success(jobFamilyService.updateJobFamily(id, request));
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> deleteJobFamily(@PathVariable UUID id) {
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public ApiResponse<Void> deleteJobFamily(@PathVariable UUID id) {
     jobFamilyService.deleteJobFamily(id);
-    return ResponseEntity.ok().build();
+    return ApiResponse.success(null);
   }
 }

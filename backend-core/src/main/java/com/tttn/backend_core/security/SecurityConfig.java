@@ -30,13 +30,14 @@ public class SecurityConfig {
   private String allowedOrigins;
 
   private static final String[] PUBLIC_ENDPOINTS = {
-    "/api/auth/register",
-    "/api/auth/verify",
-    "/api/auth/login",
-    "/api/auth/refresh",
-    "/api/auth/logout",
+    "/api/v1/auth/register",
+    "/api/v1/auth/verify",
+    "/api/v1/auth/login",
+    "/api/v1/auth/refresh",
+    "/api/v1/auth/logout",
     "/swagger-ui/**",
-    "/v3/api-docs/**"
+    "/v3/api-docs/**",
+    "/uploads/**"
   };
 
   public SecurityConfig(
@@ -64,7 +65,21 @@ public class SecurityConfig {
                       .accessDeniedHandler(jwtAccessDeniedHandler))
           .authorizeHttpRequests(
               auth ->
-                  auth.requestMatchers(PUBLIC_ENDPOINTS).permitAll().anyRequest().authenticated())
+                  auth.requestMatchers(PUBLIC_ENDPOINTS)
+                      .permitAll()
+                      .requestMatchers(
+                          org.springframework.http.HttpMethod.GET,
+                          "/api/v1/jobs/**",
+                          "/api/v1/hr/knowledge-base/pedigrees")
+                      .permitAll()
+                      .requestMatchers("/api/v1/admin/**")
+                      .hasRole("ADMIN")
+                      .requestMatchers("/api/v1/hr/**")
+                      .hasRole("HR")
+                      .requestMatchers("/api/v1/candidate/**")
+                      .hasRole("CANDIDATE")
+                      .anyRequest()
+                      .authenticated())
           .sessionManagement(
               session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
           .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

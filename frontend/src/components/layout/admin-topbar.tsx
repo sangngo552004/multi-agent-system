@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/features/auth/auth-provider";
 import { getInitials } from "@/lib/format";
+import { LanguageSwitcher } from "./language-switcher";
 
 function Breadcrumbs() {
   const pathname = usePathname();
@@ -85,6 +86,7 @@ export function AdminTopbar({ onOpenMenu }: { onOpenMenu: () => void }) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        <LanguageSwitcher />
         <Link
           href="/admin/activity"
           className="relative inline-flex size-10 items-center justify-center rounded-[9px] text-muted transition-colors hover:bg-surface-soft hover:text-ink"

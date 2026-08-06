@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class InstitutionalRuleService {
   private final InstitutionalRuleRepository institutionalRuleRepository;
+  private final com.tttn.backend_core.mapper.MasterDataMapper masterDataMapper;
 
   @Transactional(readOnly = true)
   public Page<InstitutionalRule> findAll(Predicate predicate, Pageable pageable) {
@@ -31,14 +32,7 @@ public class InstitutionalRuleService {
 
   @Transactional
   public InstitutionalRule createRule(InstitutionalRuleRequest request) {
-    InstitutionalRule entity = new InstitutionalRule();
-    entity.setRuleCode(request.getRuleCode());
-    entity.setName(request.getName());
-    entity.setDescription(request.getDescription());
-    entity.setBonusPoints(request.getBonusPoints());
-    entity.setMaxImpactPercent(request.getMaxImpactPercent());
-    entity.setAppliesToDomain(request.getAppliesToDomain());
-    entity.setIsActive(true);
+    InstitutionalRule entity = masterDataMapper.toRule(request);
     return institutionalRuleRepository.save(entity);
   }
 
@@ -51,12 +45,7 @@ public class InstitutionalRuleService {
     if (!entity.getIsActive()) {
       throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
-    entity.setRuleCode(request.getRuleCode());
-    entity.setName(request.getName());
-    entity.setDescription(request.getDescription());
-    entity.setBonusPoints(request.getBonusPoints());
-    entity.setMaxImpactPercent(request.getMaxImpactPercent());
-    entity.setAppliesToDomain(request.getAppliesToDomain());
+    masterDataMapper.updateRule(request, entity);
     return institutionalRuleRepository.save(entity);
   }
 

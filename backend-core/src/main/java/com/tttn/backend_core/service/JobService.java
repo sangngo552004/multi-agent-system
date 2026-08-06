@@ -53,6 +53,23 @@ public class JobService {
         response.setId(job.getId());
         response.setStatus(job.getStatus());
         response.setUpdatedAt(job.getUpdatedAt());
+
+        // Fill fields that might be missing in older snapshots
+        if (response.getDepartmentName() == null) {
+          response.setDepartmentName(job.getDepartmentName());
+        }
+        if (response.getOpeningsCount() == null) {
+          response.setOpeningsCount(job.getOpeningsCount());
+        }
+        if (response.getCompetencies() == null) {
+          if (job.getRequiredCompetencies() != null) {
+            response.setCompetencies(
+                job.getRequiredCompetencies().stream()
+                    .map(jobMapper::toCompetencyResponse)
+                    .collect(Collectors.toList()));
+          }
+        }
+
         return response;
       } catch (Exception e) {
         // fallback to mapper if parsing fails
@@ -114,12 +131,13 @@ public class JobService {
   }
 
   @Transactional
-  public JobResponse publishJob(UUID id) {
+  public JobResponse publishJob(UUID id, String hrEmail) {
     Job job =
         jobRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
     if (job.getStatus() != JobStatus.DRAFT) {
       throw new AppException(ErrorCode.JOB_NOT_DRAFT);
     }
+    assertOwner(job, hrEmail);
     job.setStatus(JobStatus.PUBLISHED);
 
     JobResponse snapshotObj = jobMapper.toResponse(job);
@@ -133,9 +151,13 @@ public class JobService {
   }
 
   @Transactional
-  public JobResponse closeJob(UUID id) {
+  public JobResponse closeJob(UUID id, String hrEmail) {
     Job job =
         jobRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
+    assertOwner(job, hrEmail);
+    if (job.getStatus() != JobStatus.PUBLISHED && job.getStatus() != JobStatus.PAUSED) {
+      throw new AppException(ErrorCode.JOB_NOT_DRAFT);
+    }
     job.setStatus(JobStatus.CLOSED);
     return jobMapper.toResponse(jobRepository.save(job));
   }
@@ -263,6 +285,12 @@ public class JobService {
       if (applicantCount > 0) {
         throw new AppException(ErrorCode.CANNOT_UPDATE_PUBLISHED_JOB_WITH_APPLICANTS);
       }
+    }
+  }
+
+  private void assertOwner(Job job, String hrEmail) {
+    if (job.getHr() == null || !hrEmail.equalsIgnoreCase(job.getHr().getEmail())) {
+      throw new AppException(ErrorCode.UNAUTHORIZED);
     }
   }
 }

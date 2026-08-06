@@ -1,4 +1,5 @@
 import type { CvAnalysis } from "@/types/domain/cv-analysis";
+import { apiRequest } from "./http/api-client";
 
 export const candidateService = {
   extractCv: async (file: File): Promise<CvAnalysis> => {
@@ -17,5 +18,21 @@ export const candidateService = {
 
     const data = await response.json();
     return data;
+  },
+
+  getProfile: async (): Promise<unknown> => {
+    return apiRequest<unknown>("/api/v1/candidate/profile", { authenticated: true });
+  },
+
+  updateProfile: async (payload: unknown): Promise<unknown> => {
+    return apiRequest<unknown>("/api/v1/candidate/profile", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+      authenticated: true,
+    });
+  },
+
+  getMyApplications: async (): Promise<unknown[]> => {
+    return apiRequest<unknown[]>("/api/v1/candidate/applications", { authenticated: true });
   },
 };

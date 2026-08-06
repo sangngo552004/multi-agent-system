@@ -3,16 +3,20 @@
 import { useEffect, useState } from "react";
 import { Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { handleApiError } from "@/lib/api-error";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { fetchApi } from "@/services/http/api-client";
+import { apiRequest as fetchApi } from "@/services/http/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { hrQueryKeys } from "@/services/query-keys";
 
 export function BatchEmailModal({ jobId }: { jobId: string }) {
+  const t = useTranslations();
+
   const [open, setOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState("REJECTED");
   const [subject, setSubject] = useState("");
@@ -31,14 +35,14 @@ export function BatchEmailModal({ jobId }: { jobId: string }) {
       try {
         const res = await fetchApi<Record<string, unknown>>(`/applications/batch-email/${trackingId}`);
         setProgress({
-          total: res.totalCount || 0,
-          processed: res.processedCount || 0,
-          success: res.successCount || 0,
-          failed: res.failedCount || 0,
+          total: Number(res.totalCount) || 0,
+          processed: Number(res.processedCount) || 0,
+          success: Number(res.successCount) || 0,
+          failed: Number(res.failedCount) || 0,
         });
 
         // Nếu xong
-        if (res.status === "COMPLETED" || (res.totalCount > 0 && res.processedCount === res.totalCount)) {
+        if (res.status === "COMPLETED" || (Number(res.totalCount) > 0 && Number(res.processedCount) === Number(res.totalCount))) {
           setTrackingId(null);
           toast.success("Tiến trình gửi mail đã hoàn tất!");
           queryClient.invalidateQueries({ queryKey: hrQueryKeys.all });
@@ -60,8 +64,6 @@ export function BatchEmailModal({ jobId }: { jobId: string }) {
 
     setIsStarting(true);
     try {
-      // Vì mockup không có danh sách ID cụ thể, ta giả sử backend có API tự quét ứng viên theo JobId và Status
-      // Hoặc frontend phải truyền applicationIds. Để đơn giản, ta pass jobId và action.
       const res = await fetchApi<Record<string, unknown>>("/applications/batch-email", {
         method: "POST",
         body: JSON.stringify({
@@ -71,10 +73,10 @@ export function BatchEmailModal({ jobId }: { jobId: string }) {
           bodyTemplate: body
         }),
       });
-      setTrackingId(res.trackingId || res.id); // Lấy Tracking ID từ Backend
+      setTrackingId((res.trackingId as string) || (res.id as string));
       toast.info("Đã bắt đầu gửi mail...");
     } catch (error: unknown) {
-      toast.error((error as Error).message || "Không thể khởi tạo tiến trình gửi mail.");
+      handleApiError(error, t);
     } finally {
       setIsStarting(false);
     }
@@ -91,23 +93,16 @@ export function BatchEmailModal({ jobId }: { jobId: string }) {
       }
     }}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="hidden sm:flex">
+        <Button variant="secondary" className="hidden sm:flex">
           <Mail className="mr-2 size-4" /> Gửi Mail Hàng loạt
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Mail className="size-5 text-brand" />
-            Gửi Email Hàng loạt
-          </DialogTitle>
-        </DialogHeader>
-
+      <DialogContent title="Gửi Email Hàng loạt" className="max-w-md">
         {!trackingId && !isComplete ? (
           <div className="space-y-4 py-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-ink">Gửi đến nhóm ứng viên</label>
               <Select
+                label="Gửi đến nhóm ứng viên"
                 value={targetStatus}
                 onValueChange={setTargetStatus}
                 options={[

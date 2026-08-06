@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>AI Service cũng đọc endpoint GET này để load KB thay vì hardcode.
  */
 @RestController
-@RequestMapping("/api/knowledge-base")
+@RequestMapping("/api/v1/hr/knowledge-base")
 public class KnowledgeBaseController {
 
   private final PedigreeService pedigreeService;

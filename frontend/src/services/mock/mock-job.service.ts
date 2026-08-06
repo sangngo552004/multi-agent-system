@@ -25,7 +25,7 @@ export function getReadinessIssues(job: RecruitmentJob) {
 }
 
 function adminStatus(status: RecruitmentJob["status"]): JobStatus {
-  return status === "OPEN" ? "PUBLISHED" : status;
+  return status;
 }
 
 function toListItem(job: RecruitmentJob): JobListItem {

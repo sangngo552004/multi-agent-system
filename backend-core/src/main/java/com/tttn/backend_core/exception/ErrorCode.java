@@ -61,6 +61,9 @@ public enum ErrorCode {
   INVALID_DASHBOARD_RANGE(
       1043, "Dashboard rangeDays must be either 7 or 30", HttpStatus.BAD_REQUEST),
   INVALID_ADMIN_FILTER(1044, "Invalid admin list filter", HttpStatus.BAD_REQUEST),
+  INVALID_REQUEST(1045, "Invalid request", HttpStatus.BAD_REQUEST),
+  INVALID_FILE_FORMAT(1046, "Chỉ cho phép tải lên định dạng PDF", HttpStatus.BAD_REQUEST),
+  ENDPOINT_NOT_FOUND(1047, "Endpoint not found", HttpStatus.NOT_FOUND),
 
   // Job related errors
   JOB_NOT_FOUND(2001, "Job not found", HttpStatus.NOT_FOUND),
