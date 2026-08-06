@@ -35,7 +35,7 @@ public class CandidateProfileService {
     CandidateProfile profile =
         candidateProfileRepository
             .findById(userId)
-            .orElseGet(() -> CandidateProfile.builder().userId(userId).user(user).build());
+            .orElseGet(() -> CandidateProfile.builder().user(user).build());
 
     profile.setCvUrl(fileUrl);
 
@@ -48,29 +48,10 @@ public class CandidateProfileService {
               new com.fasterxml.jackson.core.type.TypeReference<
                   java.util.Map<String, Object>>() {});
       profile.setRawCvData(rawMap);
+      profile.setProfileData(profileDataFromCv(rawMap));
+      updateUserNameFromCv(user, rawMap);
     } catch (Exception e) {
       // Ignored if map fails
-    }
-
-    if (cvData.has("skills") && !cvData.get("skills").isNull()) {
-      profile.setSkills(
-          mapper.convertValue(
-              cvData.get("skills"),
-              new com.fasterxml.jackson.core.type.TypeReference<java.util.List<String>>() {}));
-    }
-    if (cvData.has("experience") && !cvData.get("experience").isNull()) {
-      profile.setExperience(
-          mapper.convertValue(
-              cvData.get("experience"),
-              new com.fasterxml.jackson.core.type.TypeReference<
-                  java.util.List<java.util.Map<String, Object>>>() {}));
-    }
-    if (cvData.has("education") && !cvData.get("education").isNull()) {
-      profile.setEducation(
-          mapper.convertValue(
-              cvData.get("education"),
-              new com.fasterxml.jackson.core.type.TypeReference<
-                  java.util.List<java.util.Map<String, Object>>>() {}));
     }
 
     candidateProfileRepository.save(profile);
@@ -86,7 +67,7 @@ public class CandidateProfileService {
     CandidateProfile profile =
         candidateProfileRepository
             .findById(user.getId())
-            .orElseGet(() -> CandidateProfile.builder().userId(user.getId()).user(user).build());
+            .orElseGet(() -> CandidateProfile.builder().user(user).build());
 
     return mapToResponse(user, profile);
   }
@@ -102,16 +83,13 @@ public class CandidateProfileService {
     CandidateProfile profile =
         candidateProfileRepository
             .findById(user.getId())
-            .orElseGet(() -> CandidateProfile.builder().userId(user.getId()).user(user).build());
+            .orElseGet(() -> CandidateProfile.builder().user(user).build());
 
-    if (request.getSkills() != null) {
-      profile.setSkills(request.getSkills());
+    if (request.getProfileData() != null) {
+      profile.setProfileData(request.getProfileData());
     }
-    if (request.getExperience() != null) {
-      profile.setExperience(request.getExperience());
-    }
-    if (request.getEducation() != null) {
-      profile.setEducation(request.getEducation());
+    if (request.getFullName() != null && !request.getFullName().isBlank()) {
+      user.setFullName(request.getFullName().trim());
     }
 
     CandidateProfile savedProfile = candidateProfileRepository.save(profile);
@@ -123,11 +101,43 @@ public class CandidateProfileService {
         .userId(user.getId())
         .email(user.getEmail())
         .fullName(user.getFullName())
-        .skills(profile.getSkills() != null ? profile.getSkills() : new java.util.ArrayList<>())
-        .experience(
-            profile.getExperience() != null ? profile.getExperience() : new java.util.ArrayList<>())
-        .education(
-            profile.getEducation() != null ? profile.getEducation() : new java.util.ArrayList<>())
+        .cvUrl(profile.getCvUrl())
+        .profileData(
+            profile.getProfileData() != null ? profile.getProfileData() : new java.util.HashMap<>())
         .build();
+  }
+
+  private java.util.Map<String, Object> profileDataFromCv(java.util.Map<String, Object> rawCvData) {
+    java.util.Map<String, Object> profileData = new java.util.LinkedHashMap<>();
+    java.util.List<String> profileFields =
+        java.util.List.of(
+            "personal_info",
+            "social_links",
+            "professional_metadata",
+            "skills",
+            "experience",
+            "education",
+            "projects",
+            "spoken_languages",
+            "certifications");
+    profileFields.forEach(
+        field -> {
+          if (rawCvData.containsKey(field)) {
+            profileData.put(field, rawCvData.get(field));
+          }
+        });
+    return profileData;
+  }
+
+  @SuppressWarnings("unchecked")
+  private void updateUserNameFromCv(User user, java.util.Map<String, Object> rawCvData) {
+    Object personalInfo = rawCvData.get("personal_info");
+    if (!(personalInfo instanceof java.util.Map<?, ?> personalInfoMap)) {
+      return;
+    }
+    Object name = personalInfoMap.get("name");
+    if (name instanceof String fullName && !fullName.isBlank()) {
+      user.setFullName(fullName.trim());
+    }
   }
 }

@@ -1,6 +1,5 @@
 package com.tttn.backend_core.dto.response;
 
-import java.util.Map;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +14,6 @@ public class CandidateProfileResponse {
   private UUID userId;
   private String email;
   private String fullName;
-  private java.util.List<String> skills;
-  private java.util.List<Map<String, Object>> experience;
-  private java.util.List<Map<String, Object>> education;
+  private String cvUrl;
+  private java.util.Map<String, Object> profileData;
 }

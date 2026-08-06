@@ -7,9 +7,10 @@ import { toast } from "sonner";
 interface CvUploaderProps {
   onUpload: (file: File) => Promise<void>;
   isUploading: boolean;
+  compact?: boolean;
 }
 
-export function CvUploader({ onUpload, isUploading }: CvUploaderProps) {
+export function CvUploader({ onUpload, isUploading, compact = false }: CvUploaderProps) {
   const [isDragActive, setIsDragActive] = useState(false);
 
   const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -26,13 +27,8 @@ export function CvUploader({ onUpload, isUploading }: CvUploaderProps) {
 
   async function processFile(file: File) {
     // Validate file type
-    const validTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/msword",
-    ];
-    if (!validTypes.includes(file.type)) {
-      toast.error("Vui lòng tải lên file PDF hoặc DOCX.");
+    if (file.type !== "application/pdf" || !file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Vui lòng chỉ tải lên file PDF.");
       return;
     }
 
@@ -71,6 +67,21 @@ export function CvUploader({ onUpload, isUploading }: CvUploaderProps) {
     }
   };
 
+  if (compact) {
+    return (
+      <label className={`inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-ink transition-colors ${isUploading ? "pointer-events-none opacity-70" : "cursor-pointer hover:bg-surface-soft"}`}>
+        <input
+          type="file"
+          accept=".pdf,application/pdf"
+          className="sr-only"
+          onChange={handleFileChange}
+          disabled={isUploading}
+        />
+        {isUploading ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
+        {isUploading ? "Đang xử lý CV..." : "Thay CV mới"}
+      </label>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-2xl mx-auto px-4 py-8">
@@ -79,8 +90,7 @@ export function CvUploader({ onUpload, isUploading }: CvUploaderProps) {
           Tải lên Hồ Sơ của bạn
         </h1>
         <p className="text-gray-600">
-          Tải lên CV (PDF hoặc DOCX) để hệ thống AI phân tích và trích xuất thông tin
-          một cách tự động.
+          Tải lên CV PDF để hệ thống tự động điền thông tin vào hồ sơ.
         </p>
       </div>
 
@@ -97,7 +107,7 @@ export function CvUploader({ onUpload, isUploading }: CvUploaderProps) {
       >
         <input
           type="file"
-          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".pdf,application/pdf"
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
           onChange={handleFileChange}
           disabled={isUploading}
@@ -107,11 +117,10 @@ export function CvUploader({ onUpload, isUploading }: CvUploaderProps) {
           <div className="flex flex-col items-center gap-4 text-indigo-600">
             <Loader2 className="w-12 h-12 animate-spin" />
             <div className="font-medium">
-              Đang phân tích bằng AI... Vui lòng đợi
+              Đang xử lý CV... Vui lòng đợi
             </div>
             <p className="text-sm text-indigo-400/80 max-w-xs mx-auto">
-              Hệ thống đang trích xuất kỹ năng, kinh nghiệm và tính toán độ phù hợp
-              từ CV của bạn.
+              Hệ thống đang cập nhật thông tin trong hồ sơ từ CV của bạn.
             </p>
           </div>
         ) : (
@@ -127,7 +136,7 @@ export function CvUploader({ onUpload, isUploading }: CvUploaderProps) {
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-400">
               <FileText className="w-4 h-4" />
-              <span>Hỗ trợ PDF, DOCX (Tối đa 5MB)</span>
+              <span>Chỉ hỗ trợ PDF (Tối đa 5MB)</span>
             </div>
           </div>
         )}

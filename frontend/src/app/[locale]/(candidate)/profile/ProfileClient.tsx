@@ -1,346 +1,164 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { candidateService } from "@/services/candidate.service";
-import { CandidateApplicationService } from "@/services/http/http-candidate-application.service";
+import React, { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import {
-  Loader2, User, Sparkles, FileText,
-  MapPin, Phone, Mail, Briefcase, GraduationCap,
-  Building, Calendar, CheckCircle2
-} from "lucide-react";
-import { CvUploader } from "./components/cv/CvUploader";
-import { toast } from "sonner";
-import { getInitials } from "@/lib/format";
+import { candidateService } from "@/services/candidate.service";
+import { CandidateApplicationService } from "@/services/http/http-candidate-application.service";
 import { useAuth } from "@/features/auth/auth-provider";
+import { getInitials } from "@/lib/format";
 import { useRouter } from "next/navigation";
+import {
+  Briefcase,
+  CheckCircle2,
+  ExternalLink,
+  FileText,
+  GraduationCap,
+  Languages,
+  Link as LinkIcon,
+  Loader2,
+  Plus,
+  Sparkles,
+  Trash2,
+  User,
+} from "lucide-react";
+import { toast } from "sonner";
+import { CvUploader } from "./components/cv/CvUploader";
+
+type ProfileItem = Record<string, unknown>;
+type CandidateProfile = {
+  fullName?: string;
+  email?: string;
+  cvUrl?: string;
+  profileData?: Record<string, unknown>;
+};
+
+const asRecord = (value: unknown): ProfileItem =>
+  value && typeof value === "object" && !Array.isArray(value) ? (value as ProfileItem) : {};
+const asItems = (value: unknown): ProfileItem[] => Array.isArray(value) ? value.map(asRecord) : [];
+const asStrings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+
+function Section({ title, icon, children, description }: { title: string; icon: React.ReactNode; children: React.ReactNode; description?: string }) {
+  return <section className="rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8"><div className="mb-6 flex items-start gap-3"><div className="rounded-xl bg-brand/10 p-2.5 text-brand">{icon}</div><div><h2 className="text-xl font-bold text-ink">{title}</h2>{description && <p className="mt-1 text-sm text-muted">{description}</p>}</div></div>{children}</section>;
+}
+
+function ItemActions({ onRemove }: { onRemove: () => void }) {
+  return <button type="button" onClick={onRemove} className="absolute right-3 top-3 rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600" aria-label="Xóa mục"><Trash2 className="size-4" /></button>;
+}
 
 export function ProfileClient() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace("/login?next=/profile");
-    }
-  }, [user, authLoading, router]);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<CandidateProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isUploadingCv, setIsUploadingCv] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [personal, setPersonal] = useState<ProfileItem>({});
+  const [metadata, setMetadata] = useState<ProfileItem>({});
+  const [links, setLinks] = useState<ProfileItem>({});
+  const [skills, setSkills] = useState<string[]>([]);
+  const [experience, setExperience] = useState<ProfileItem[]>([]);
+  const [education, setEducation] = useState<ProfileItem[]>([]);
+  const [projects, setProjects] = useState<ProfileItem[]>([]);
+  const [languages, setLanguages] = useState<ProfileItem[]>([]);
+  const [certifications, setCertifications] = useState<ProfileItem[]>([]);
 
-  const [formData, setFormData] = useState({
-    fullName: "",
-    phone: "",
-    address: "",
-  });
-
-  const fetchProfile = () => {
-    setLoading(true);
-    candidateService.getProfile()
-      .then((data) => {
-        setProfile(data);
-        setFormData({
-          fullName: data.fullName || "",
-          phone: data.phone || "",
-          address: data.address || "",
-        });
-      })
-      .catch((err) => {
-        console.error("Failed to fetch profile", err);
-      })
-      .finally(() => setLoading(false));
+  const hydrate = (data: CandidateProfile) => {
+    const source = data.profileData ?? {};
+    const extractedPersonal = asRecord(source.personal_info);
+    setProfile(data);
+    setFullName(data.fullName || String(extractedPersonal.name || ""));
+    setPersonal(extractedPersonal);
+    setMetadata(asRecord(source.professional_metadata));
+    setLinks(asRecord(source.social_links));
+    setSkills(asStrings(source.skills));
+    setExperience(asItems(source.experience));
+    setEducation(asItems(source.education));
+    setProjects(asItems(source.projects));
+    setLanguages(asItems(source.spoken_languages));
+    setCertifications(asItems(source.certifications));
   };
 
+  const fetchProfile = async () => {
+    setLoading(true);
+    try { hydrate(await candidateService.getProfile() as CandidateProfile); }
+    catch { toast.error("Không thể tải hồ sơ."); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { if (!authLoading && !user) router.replace("/login?next=/profile"); }, [authLoading, router, user]);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchProfile();
+    void fetchProfile();
+    // fetchProfile is intentionally called only when this page mounts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await candidateService.updateProfile({
-        fullName: formData.fullName,
-        phone: formData.phone,
-        address: formData.address,
-        skills: profile?.skills || {},
-        experience: profile?.experience || {},
-        education: profile?.education || {},
-      });
-      toast.success("Hồ sơ của bạn đã được lưu.");
-    } catch {
-      toast.error("Lỗi: Không thể cập nhật hồ sơ.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const updateItem = (setter: React.Dispatch<React.SetStateAction<ProfileItem[]>>, index: number, field: string, value: string) =>
+    setter((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item));
+  const removeItem = (setter: React.Dispatch<React.SetStateAction<ProfileItem[]>>, index: number) => setter((items) => items.filter((_, itemIndex) => itemIndex !== index));
+  const addItem = (setter: React.Dispatch<React.SetStateAction<ProfileItem[]>>, item: ProfileItem) => setter((items) => [...items, item]);
+  const text = (value: unknown) => typeof value === "string" ? value : "";
 
   const handleUploadCv = async (file: File) => {
     setIsUploadingCv(true);
     try {
-      toast.info("Đang xử lý CV bằng AI, vui lòng đợi trong khoảng 10 giây...", { duration: 10000 });
       await CandidateApplicationService.uploadMasterCv(file);
-
-      // Since it is synchronous now, the backend already processed everything
-      toast.success("Hồ sơ đã được cập nhật thành công từ CV!");
-      fetchProfile();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      if (error?.status === 429 || error?.response?.status === 429) {
-        toast.error("Bạn đã tải lên CV quá 100 lần trong 1 giờ. Vui lòng thử lại sau.");
-      } else {
-        toast.error("Có lỗi xảy ra khi tải CV lên.");
-      }
-    } finally {
-      setIsUploadingCv(false);
-    }
+      toast.success("Thông tin từ CV đã được điền vào hồ sơ. Bạn có thể rà soát và chỉnh sửa trước khi lưu.");
+      await fetchProfile();
+    } catch { toast.error("Không thể tải CV lên."); }
+    finally { setIsUploadingCv(false); }
   };
 
-  if (loading || authLoading || (!user && !authLoading)) {
-    return <div className="flex justify-center py-20"><Loader2 className="animate-spin size-8 text-brand" /></div>;
-  }
-
-  const renderSkills = () => {
-    if (!profile?.skills) return <p className="text-muted text-sm italic">Chưa có thông tin kỹ năng.</p>;
-
-    let allSkills: string[] = [];
-    if (Array.isArray(profile.skills)) {
-      allSkills = profile.skills;
-    } else if (typeof profile.skills === 'object') {
-       const { industry_knowledge_and_hard_skills, tools_and_software, soft_skills } = profile.skills;
-       if (industry_knowledge_and_hard_skills) allSkills.push(...industry_knowledge_and_hard_skills);
-       if (tools_and_software) allSkills.push(...tools_and_software);
-       if (soft_skills) allSkills.push(...soft_skills);
-    }
-
-    if (allSkills.length === 0) return <p className="text-muted text-sm italic">Chưa có thông tin kỹ năng.</p>;
-
-    return (
-      <div className="flex flex-wrap gap-2">
-        {allSkills.map((skill, index) => (
-          <Badge key={index} variant="secondary" className="px-3 py-1 bg-brand/10 text-brand hover:bg-brand/20 transition-colors">
-            {skill}
-          </Badge>
-        ))}
-      </div>
-    );
+  const handleSave = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    const profileData = {
+      ...(profile?.profileData ?? {}),
+      personal_info: { ...personal, name: fullName },
+      social_links: links,
+      professional_metadata: metadata,
+      skills,
+      experience,
+      education,
+      projects,
+      spoken_languages: languages,
+      certifications,
+    };
+    try {
+      const saved = await candidateService.updateProfile({ fullName, profileData }) as CandidateProfile;
+      hydrate(saved);
+      toast.success("Hồ sơ đã được lưu.");
+    } catch { toast.error("Không thể lưu hồ sơ."); }
+    finally { setSaving(false); }
   };
 
-  const renderExperience = () => {
-    if (!profile?.experience || !Array.isArray(profile.experience) || profile.experience.length === 0) {
-      return <p className="text-muted text-sm italic">Chưa có thông tin kinh nghiệm.</p>;
-    }
-    return (
-      <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
-        {profile.experience.map((exp: Record<string, unknown>, index: number) => (
-          <div key={index} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-surface-soft text-brand shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10">
-              <Briefcase className="size-4" />
-            </div>
-            <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="font-semibold text-ink text-lg">{exp.title || exp.role}</h3>
-              </div>
-              <div className="text-brand font-medium mb-3 flex items-center gap-1.5">
-                <Building className="size-4" />
-                {exp.company}
-              </div>
-              <div className="flex items-center gap-4 text-sm text-muted mb-4">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="size-3.5" />
-                  {exp.duration}
-                </div>
-              </div>
-              <p className="text-sm text-ink/80 leading-relaxed line-clamp-3">
-                {exp.description || exp.summary}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  if (loading || authLoading || !user) return <div className="flex justify-center py-20"><Loader2 className="size-8 animate-spin text-brand" /></div>;
 
-  const renderEducation = () => {
-    if (!profile?.education || !Array.isArray(profile.education) || profile.education.length === 0) {
-      return <p className="text-muted text-sm italic">Chưa có thông tin học vấn.</p>;
-    }
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {profile.education.map((edu: Record<string, unknown>, index: number) => (
-          <div key={index} className="bg-white p-5 rounded-2xl border border-border flex items-start gap-4 hover:border-brand/30 transition-colors shadow-sm">
-            <div className="p-3 bg-surface-soft rounded-xl text-brand shrink-0">
-              <GraduationCap className="size-6" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-ink line-clamp-2 leading-tight mb-1">{edu.degree}</h3>
-              <p className="text-brand text-sm font-medium mb-1">{edu.institution}</p>
-              <div className="flex items-center gap-1.5 text-xs text-muted">
-                <Calendar className="size-3" />
-                <span>{edu.year || edu.duration}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  return <main className="min-h-screen bg-canvas pb-14"><div className="border-b border-border bg-white"><div className="mx-auto max-w-5xl px-6 py-10 sm:px-8"><div className="flex flex-col gap-6 sm:flex-row sm:items-center"><div className="flex size-20 items-center justify-center rounded-3xl bg-brand/10 text-2xl font-bold text-brand">{getInitials(fullName || user.fullName || "User")}</div><div className="flex-1"><p className="text-sm font-semibold text-brand">Hồ sơ ứng viên</p><h1 className="mt-1 text-3xl font-bold text-ink">{fullName || "Hoàn thiện hồ sơ của bạn"}</h1><p className="mt-2 text-sm text-muted">Cập nhật đầy đủ thông tin để nhà tuyển dụng hiểu rõ hơn về bạn.</p></div></div></div></div>
+    <form onSubmit={handleSave} className="mx-auto max-w-5xl space-y-6 px-6 py-8 sm:px-8">
+      <div className="flex flex-col gap-4 rounded-2xl border border-brand/20 bg-brand/5 p-5 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><Sparkles className="mt-0.5 size-5 text-brand" /><div><p className="font-semibold text-ink">Hoàn thiện hồ sơ của bạn</p><p className="mt-1 text-sm text-muted">Rà soát và cập nhật thông tin để nhà tuyển dụng thấy hồ sơ chính xác nhất.</p></div></div><Button type="submit" loading={saving}><CheckCircle2 className="mr-2 size-4" />Lưu hồ sơ</Button></div>
 
-  return (
-    <div className="min-h-screen bg-canvas pb-12">
-      <div className="bg-white border-b border-border">
-        <div className="h-40 bg-gradient-to-r from-brand/20 via-brand/10 to-transparent relative">
-          <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-        </div>
-        <div className="max-w-[1000px] mx-auto px-6 sm:px-8 pb-8">
-          <div className="relative flex flex-col sm:flex-row sm:items-end gap-6 -mt-16">
-            <div className="h-32 w-32 rounded-3xl bg-white p-2 shadow-lg shrink-0">
-              <div className="w-full h-full rounded-2xl bg-brand/10 text-brand flex items-center justify-center text-4xl font-bold">
-                {getInitials(formData.fullName || user?.fullName || "User")}
-              </div>
-            </div>
-            <div className="flex-1 pb-2">
-              <h1 className="text-3xl font-bold text-ink mb-2">
-                {formData.fullName || user?.fullName || "Chưa cập nhật tên"}
-              </h1>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
-                <div className="flex items-center gap-1.5">
-                  <Mail className="size-4" />
-                  {profile?.email}
-                </div>
-                {formData.phone && (
-                  <div className="flex items-center gap-1.5">
-                    <Phone className="size-4" />
-                    {formData.phone}
-                  </div>
-                )}
-                {formData.address && (
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="size-4" />
-                    {formData.address}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Section title="Thông tin cá nhân" icon={<User className="size-5" />} description="Email tài khoản được giữ cố định; các thông tin khác có thể chỉnh sửa."><div className="grid gap-5 sm:grid-cols-2"><label className="space-y-2 text-sm font-semibold text-ink">Họ và tên<Input value={fullName} onChange={(event) => setFullName(event.target.value)} required /></label><label className="space-y-2 text-sm font-semibold text-ink">Email<Input value={profile?.email || ""} disabled className="bg-surface-soft" /></label><label className="space-y-2 text-sm font-semibold text-ink">Số điện thoại<Input value={text(personal.phone)} onChange={(event) => setPersonal({ ...personal, phone: event.target.value })} /></label><label className="space-y-2 text-sm font-semibold text-ink">Địa điểm<Input value={text(personal.location)} onChange={(event) => setPersonal({ ...personal, location: event.target.value })} /></label></div></Section>
 
-      <div className="max-w-[1000px] mx-auto px-6 sm:px-8 mt-8">
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="bg-white/50 backdrop-blur-sm border border-border p-1 w-full flex overflow-x-auto rounded-xl shadow-sm mb-6">
-            <TabsTrigger value="overview" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5">
-              <User className="size-4 mr-2" />
-              Thông tin cá nhân
-            </TabsTrigger>
-            <TabsTrigger value="ai-profile" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5">
-              <Sparkles className="size-4 mr-2 text-brand" />
-              Hồ sơ AI
-            </TabsTrigger>
-            <TabsTrigger value="cv" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm py-2.5">
-              <FileText className="size-4 mr-2" />
-              Quản lý CV
-            </TabsTrigger>
-          </TabsList>
+      <Section title="Định hướng nghề nghiệp" icon={<Sparkles className="size-5" />}><div className="grid gap-5 sm:grid-cols-2"><label className="space-y-2 text-sm font-semibold text-ink">Vai trò mong muốn<Input value={text(metadata.primary_role)} onChange={(event) => setMetadata({ ...metadata, primary_role: event.target.value })} placeholder="Ví dụ: Backend Developer" /></label><label className="space-y-2 text-sm font-semibold text-ink">Cấp độ<Input value={text(metadata.seniority_level)} onChange={(event) => setMetadata({ ...metadata, seniority_level: event.target.value })} placeholder="Ví dụ: Intern" /></label><label className="space-y-2 text-sm font-semibold text-ink sm:col-span-2">Tóm tắt chuyên môn<textarea value={text(metadata.candidate_summary)} onChange={(event) => setMetadata({ ...metadata, candidate_summary: event.target.value })} className="min-h-28 w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm outline-none focus:border-brand" placeholder="Giới thiệu ngắn về kinh nghiệm, điểm mạnh và định hướng của bạn." /></label></div></Section>
 
-          <TabsContent value="overview" className="mt-0">
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-border shadow-sm">
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-ink">Thông tin cơ bản</h2>
-                <p className="text-sm text-muted mt-1">Cập nhật thông tin cá nhân của bạn để nhà tuyển dụng dễ dàng liên hệ.</p>
-              </div>
-              <form onSubmit={handleSave} className="space-y-5 max-w-xl">
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-semibold text-ink">Email</label>
-                  <Input id="email" value={profile?.email || ""} disabled placeholder="name@example.com" className="bg-surface-soft text-muted font-medium" />
-                </div>
+      <Section title="Liên kết chuyên nghiệp" icon={<LinkIcon className="size-5" />}><div className="grid gap-5 sm:grid-cols-3"><label className="space-y-2 text-sm font-semibold text-ink">LinkedIn<Input value={text(links.linkedin)} onChange={(event) => setLinks({ ...links, linkedin: event.target.value })} placeholder="https://linkedin.com/in/..." /></label><label className="space-y-2 text-sm font-semibold text-ink">Portfolio / Website<Input value={text(links.portfolio_or_website)} onChange={(event) => setLinks({ ...links, portfolio_or_website: event.target.value })} placeholder="https://..." /></label><label className="space-y-2 text-sm font-semibold text-ink">GitHub / liên kết khác<Input value={text(links.github)} onChange={(event) => setLinks({ ...links, github: event.target.value })} placeholder="https://github.com/..." /></label></div></Section>
 
-                <div className="space-y-2">
-                  <label htmlFor="fullName" className="text-sm font-semibold text-ink">Họ và tên</label>
-                  <Input id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="VD: Nguyễn Văn A" required />
-                </div>
+      <Section title="Kỹ năng" icon={<Sparkles className="size-5" />} description="Nhập từng kỹ năng rồi nhấn Enter hoặc dấu phẩy để thêm."><input value={skills.join(", ")} onChange={(event) => setSkills(event.target.value.split(",").map((item) => item.trim()).filter(Boolean))} className="w-full rounded-xl border border-input px-3 py-2 text-sm outline-none focus:border-brand" placeholder="Java, Spring Boot, MySQL, Docker..." /><div className="mt-4 flex flex-wrap gap-2">{skills.map((skill) => <Badge key={skill} variant="secondary" className="bg-brand/10 text-brand">{skill}</Badge>)}</div></Section>
 
-                <div className="space-y-2">
-                  <label htmlFor="phone" className="text-sm font-semibold text-ink">Số điện thoại</label>
-                  <Input id="phone" name="phone" value={formData.phone} onChange={handleChange} placeholder="VD: 0912345678" />
-                </div>
+      <Section title="Kinh nghiệm làm việc" icon={<Briefcase className="size-5" />}><div className="space-y-4">{experience.map((item, index) => <div key={index} className="relative grid gap-3 rounded-xl border border-border p-4 sm:grid-cols-2"><ItemActions onRemove={() => removeItem(setExperience, index)} /><Input value={text(item.role || item.title)} onChange={(event) => updateItem(setExperience, index, "role", event.target.value)} placeholder="Vị trí" /><Input value={text(item.company)} onChange={(event) => updateItem(setExperience, index, "company", event.target.value)} placeholder="Công ty" /><Input value={text(item.duration)} onChange={(event) => updateItem(setExperience, index, "duration", event.target.value)} placeholder="Thời gian" /><Input value={text(item.technologies)} onChange={(event) => updateItem(setExperience, index, "technologies", event.target.value)} placeholder="Công nghệ sử dụng" /><textarea value={text(item.summary || item.description)} onChange={(event) => updateItem(setExperience, index, "summary", event.target.value)} className="min-h-24 rounded-xl border border-input px-3 py-2 text-sm sm:col-span-2" placeholder="Mô tả công việc hoặc thành tựu" /></div>)}</div><button type="button" onClick={() => addItem(setExperience, {})} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand"><Plus className="size-4" />Thêm kinh nghiệm</button></Section>
 
-                <div className="space-y-2">
-                  <label htmlFor="address" className="text-sm font-semibold text-ink">Địa chỉ</label>
-                  <Input id="address" name="address" value={formData.address} onChange={handleChange} placeholder="VD: Hà Nội, Việt Nam" />
-                </div>
+      <Section title="Học vấn" icon={<GraduationCap className="size-5" />}><div className="space-y-4">{education.map((item, index) => <div key={index} className="relative grid gap-3 rounded-xl border border-border p-4 sm:grid-cols-3"><ItemActions onRemove={() => removeItem(setEducation, index)} /><Input value={text(item.degree)} onChange={(event) => updateItem(setEducation, index, "degree", event.target.value)} placeholder="Bằng cấp / chuyên ngành" /><Input value={text(item.institution)} onChange={(event) => updateItem(setEducation, index, "institution", event.target.value)} placeholder="Trường / tổ chức" /><Input value={text(item.year || item.duration)} onChange={(event) => updateItem(setEducation, index, "year", event.target.value)} placeholder="Thời gian" /></div>)}</div><button type="button" onClick={() => addItem(setEducation, {})} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand"><Plus className="size-4" />Thêm học vấn</button></Section>
 
-                <div className="pt-4">
-                  <Button type="submit" loading={saving}>
-                    <CheckCircle2 className="size-4 mr-2" />
-                    Lưu thông tin
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </TabsContent>
+      <Section title="Dự án nổi bật" icon={<Briefcase className="size-5" />}><div className="space-y-4">{projects.map((item, index) => <div key={index} className="relative grid gap-3 rounded-xl border border-border p-4 sm:grid-cols-2"><ItemActions onRemove={() => removeItem(setProjects, index)} /><Input value={text(item.name)} onChange={(event) => updateItem(setProjects, index, "name", event.target.value)} placeholder="Tên dự án" /><Input value={text(item.role)} onChange={(event) => updateItem(setProjects, index, "role", event.target.value)} placeholder="Vai trò" /><Input value={text(item.url)} onChange={(event) => updateItem(setProjects, index, "url", event.target.value)} placeholder="Liên kết dự án" /><Input value={text(item.technologies)} onChange={(event) => updateItem(setProjects, index, "technologies", event.target.value)} placeholder="Công nghệ" /><textarea value={text(item.summary || item.description)} onChange={(event) => updateItem(setProjects, index, "summary", event.target.value)} className="min-h-24 rounded-xl border border-input px-3 py-2 text-sm sm:col-span-2" placeholder="Mô tả dự án và kết quả" /></div>)}</div><button type="button" onClick={() => addItem(setProjects, {})} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand"><Plus className="size-4" />Thêm dự án</button></Section>
 
-          <TabsContent value="ai-profile" className="mt-0 space-y-6">
-            <div className="bg-gradient-to-r from-brand/10 to-transparent p-6 rounded-2xl border border-brand/20 flex items-start gap-4">
-              <div className="p-3 bg-brand text-white rounded-xl shadow-md shrink-0">
-                <Sparkles className="size-6" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-brand mb-1">Hồ sơ được phân tích bởi AI</h2>
-                <p className="text-sm text-ink/80 leading-relaxed">
-                  Thông tin dưới đây được AI tự động trích xuất từ CV của bạn. Hãy đảm bảo tải lên CV mới nhất ở mục Quản lý CV để có hồ sơ nổi bật nhất.
-                </p>
-              </div>
-            </div>
+      <div className="grid gap-6 lg:grid-cols-2"><Section title="Ngôn ngữ" icon={<Languages className="size-5" />}><div className="space-y-3">{languages.map((item, index) => <div key={index} className="relative grid grid-cols-2 gap-3 rounded-xl border border-border p-3"><ItemActions onRemove={() => removeItem(setLanguages, index)} /><Input value={text(item.language)} onChange={(event) => updateItem(setLanguages, index, "language", event.target.value)} placeholder="Ngôn ngữ" /><Input value={text(item.proficiency)} onChange={(event) => updateItem(setLanguages, index, "proficiency", event.target.value)} placeholder="Trình độ" /></div>)}</div><button type="button" onClick={() => addItem(setLanguages, {})} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand"><Plus className="size-4" />Thêm ngôn ngữ</button></Section><Section title="Chứng chỉ" icon={<CheckCircle2 className="size-5" />}><div className="space-y-3">{certifications.map((item, index) => <div key={index} className="relative grid grid-cols-2 gap-3 rounded-xl border border-border p-3"><ItemActions onRemove={() => removeItem(setCertifications, index)} /><Input value={text(item.name)} onChange={(event) => updateItem(setCertifications, index, "name", event.target.value)} placeholder="Tên chứng chỉ" /><Input value={text(item.issuer || item.year)} onChange={(event) => updateItem(setCertifications, index, "issuer", event.target.value)} placeholder="Đơn vị cấp / năm" /></div>)}</div><button type="button" onClick={() => addItem(setCertifications, {})} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand"><Plus className="size-4" />Thêm chứng chỉ</button></Section></div>
 
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-border shadow-sm">
-              <h2 className="text-xl font-bold text-ink flex items-center gap-2 mb-6">
-                Kỹ năng chuyên môn
-              </h2>
-              {renderSkills()}
-            </div>
-
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-border shadow-sm">
-              <h2 className="text-xl font-bold text-ink flex items-center gap-2 mb-8">
-                Kinh nghiệm làm việc
-              </h2>
-              {renderExperience()}
-            </div>
-
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-border shadow-sm">
-              <h2 className="text-xl font-bold text-ink flex items-center gap-2 mb-6">
-                Học vấn
-              </h2>
-              {renderEducation()}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="cv" className="mt-0">
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-border shadow-sm">
-              <div className="max-w-2xl">
-                <h2 className="text-xl font-bold text-ink mb-2">Cập nhật hồ sơ bằng CV</h2>
-                <p className="text-sm text-muted mb-8 leading-relaxed">
-                  Hệ thống AI sẽ tự động đọc và phân tích CV của bạn (định dạng PDF) để điền vào phần Kỹ năng, Kinh nghiệm và Học vấn. Điều này giúp nhà tuyển dụng dễ dàng tìm thấy bạn hơn!
-                </p>
-                <CvUploader onUpload={handleUploadCv} isUploading={isUploadingCv} />
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
+      <Section title="Master CV" icon={<FileText className="size-5" />} description="Tải CV PDF để điền nhanh hồ sơ; bạn luôn có thể sửa nội dung sau đó.">{profile?.cvUrl ? <div className="flex flex-wrap items-center gap-3"><a href={profile.cvUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface-soft"><ExternalLink className="size-4" />Xem CV hiện hành</a><CvUploader onUpload={handleUploadCv} isUploading={isUploadingCv} compact /></div> : <CvUploader onUpload={handleUploadCv} isUploading={isUploadingCv} />}</Section>
+      <div className="sticky bottom-4 flex justify-end"><Button type="submit" loading={saving} className="shadow-lg"><CheckCircle2 className="mr-2 size-4" />Lưu toàn bộ hồ sơ</Button></div>
+    </form></main>;
 }

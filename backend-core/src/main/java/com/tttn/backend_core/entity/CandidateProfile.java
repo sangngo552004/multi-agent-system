@@ -23,22 +23,14 @@ public class CandidateProfile {
   @JoinColumn(name = "user_id")
   private User user;
 
-  @JdbcTypeCode(SqlTypes.JSON)
-  @Column(columnDefinition = "json")
-  private java.util.List<String> skills;
-
-  @JdbcTypeCode(SqlTypes.JSON)
-  @Column(columnDefinition = "json")
-  private java.util.List<Map<String, Object>> experience;
-
-  @JdbcTypeCode(SqlTypes.JSON)
-  @Column(columnDefinition = "json")
-  private java.util.List<Map<String, Object>> education;
-
   @Column(name = "cv_url")
   private String cvUrl;
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "raw_cv_data", columnDefinition = "json")
   private Map<String, Object> rawCvData;
+
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "profile_data", columnDefinition = "json")
+  private Map<String, Object> profileData;
 }

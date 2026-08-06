@@ -132,19 +132,11 @@ public class AiProcessingEventListener {
               candidateProfileRepository
                   .findById(application.getCandidate().getId())
                   .orElseGet(
-                      () ->
-                          CandidateProfile.builder()
-                              .userId(application.getCandidate().getId())
-                              .user(application.getCandidate())
-                              .build());
+                      () -> CandidateProfile.builder().user(application.getCandidate()).build());
 
-          profile.setSkills((java.util.List<String>) cvData.get("skills"));
-          profile.setExperience(
-              (java.util.List<java.util.Map<String, Object>>) cvData.get("experience"));
-          profile.setEducation(
-              (java.util.List<java.util.Map<String, Object>>) cvData.get("education"));
           profile.setCvUrl(application.getResumeUrl());
           profile.setRawCvData(cvData);
+          profile.setProfileData(profileDataFromCv(cvData));
 
           candidateProfileRepository.save(profile);
         }
@@ -223,6 +215,28 @@ public class AiProcessingEventListener {
     updateMetrics(application, event);
     activityLogService.recordAiProcessingTerminal(
         application.getId(), application.getCandidate().getFullName(), false, errorCode);
+  }
+
+  private java.util.Map<String, Object> profileDataFromCv(java.util.Map<String, Object> rawCvData) {
+    java.util.Map<String, Object> profileData = new java.util.LinkedHashMap<>();
+    java.util.List<String> profileFields =
+        java.util.List.of(
+            "personal_info",
+            "social_links",
+            "professional_metadata",
+            "skills",
+            "experience",
+            "education",
+            "projects",
+            "spoken_languages",
+            "certifications");
+    profileFields.forEach(
+        field -> {
+          if (rawCvData.containsKey(field)) {
+            profileData.put(field, rawCvData.get(field));
+          }
+        });
+    return profileData;
   }
 
   private void updateMetrics(Application application, JsonNode event) {
