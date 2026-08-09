@@ -3,9 +3,11 @@ package com.tttn.backend_core.service;
 import com.tttn.backend_core.dto.request.PedigreeRequest;
 import com.tttn.backend_core.dto.response.PedigreeResponse;
 import com.tttn.backend_core.entity.PedigreeEntity;
+import com.tttn.backend_core.entity.PedigreeEntityAlias;
 import com.tttn.backend_core.entity.PedigreeType;
 import com.tttn.backend_core.repository.PedigreeRepository;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -57,6 +59,8 @@ public class PedigreeService {
             .isActive(true)
             .build();
 
+    replaceAliases(entity, request.getAliases());
+
     return toResponse(pedigreeRepository.save(entity));
   }
 
@@ -69,6 +73,7 @@ public class PedigreeService {
     entity.setRank(request.getRank());
     entity.setDomain(request.getDomain() != null ? request.getDomain() : "ALL");
     entity.setCountry(request.getCountry() != null ? request.getCountry() : "VN");
+    replaceAliases(entity, request.getAliases());
     return toResponse(pedigreeRepository.save(entity));
   }
 
@@ -94,6 +99,36 @@ public class PedigreeService {
                     HttpStatus.NOT_FOUND, "Không tìm thấy tổ chức với id: " + id));
   }
 
+  private void replaceAliases(PedigreeEntity entity, List<String> requestedAliases) {
+    entity.getAliases().clear();
+    java.util.LinkedHashSet<String> aliases = new java.util.LinkedHashSet<>();
+    aliases.add(entity.getName());
+    if (requestedAliases != null) {
+      aliases.addAll(requestedAliases);
+    }
+    aliases.stream()
+        .filter(value -> value != null && !value.isBlank())
+        .map(String::trim)
+        .forEach(
+            value ->
+                entity
+                    .getAliases()
+                    .add(
+                        PedigreeEntityAlias.builder()
+                            .pedigreeEntity(entity)
+                            .alias(value)
+                            .normalizedAlias(normalize(value))
+                            .build()));
+  }
+
+  private String normalize(String value) {
+    return java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFD)
+        .replaceAll("\\p{M}", "")
+        .toLowerCase(Locale.ROOT)
+        .replaceAll("[^a-z0-9]+", " ")
+        .trim();
+  }
+
   private PedigreeResponse toResponse(PedigreeEntity e) {
     return PedigreeResponse.builder()
         .id(e.getId())
@@ -102,6 +137,7 @@ public class PedigreeService {
         .rank(e.getRank())
         .domain(e.getDomain())
         .country(e.getCountry())
+        .aliases(e.getAliases().stream().map(PedigreeEntityAlias::getAlias).toList())
         .isActive(e.getIsActive())
         .createdAt(e.getCreatedAt())
         .build();

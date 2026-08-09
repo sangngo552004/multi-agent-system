@@ -3,6 +3,8 @@ package com.tttn.backend_core.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -45,6 +47,10 @@ public class InstitutionalRule {
   @Column(columnDefinition = "TEXT")
   private String description;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "pedigree_group_id")
+  private PedigreeGroup pedigreeGroup;
+
   /**
    * Điểm bonus thô (0–100) được cộng vào bonus_score khi rule triggered. Tác động thực tế vào
    * overall = bonus_points * (max_impact_percent / 100).
@@ -69,6 +75,15 @@ public class InstitutionalRule {
   @Column(name = "is_active", nullable = false)
   @Builder.Default
   private Boolean isActive = true;
+
+  /** UI-only applicability filter. Matcher executes only rules selected by the Job. */
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(
+      name = "rule_job_families",
+      joinColumns = @JoinColumn(name = "rule_id"),
+      inverseJoinColumns = @JoinColumn(name = "job_family_id"))
+  @Builder.Default
+  private List<JobFamily> jobFamilies = new ArrayList<>();
 
   @CreationTimestamp
   @Column(name = "created_at", updatable = false)

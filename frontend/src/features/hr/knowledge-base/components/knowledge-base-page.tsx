@@ -2,11 +2,12 @@
 
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BrainCircuit, Briefcase, GraduationCap, Scale } from "lucide-react";
+import { BrainCircuit, Briefcase, Building2, GraduationCap, Layers3, Scale } from "lucide-react";
 import { CompetencyTable } from "./competency-table";
 import { RuleTable } from "./rule-table";
 import { JobFamilyTable } from "./job-family-table";
 import { CareerLevelTable } from "./career-level-table";
+import { PedigreeCatalog } from "./pedigree-catalog";
 
 export function KnowledgeBasePage() {
    // We need to add this to vi.json
@@ -23,9 +24,11 @@ export function KnowledgeBasePage() {
       </header>
 
       <Tabs defaultValue="competencies" className="w-full">
-        <TabsList className="mb-6 grid w-full max-w-2xl grid-cols-4">
+        <TabsList className="mb-6 grid w-full grid-cols-3 sm:max-w-4xl sm:grid-cols-6">
           <TabsTrigger value="competencies" className="flex items-center gap-2"><BrainCircuit className="size-4" /> Kỹ năng</TabsTrigger>
           <TabsTrigger value="rules" className="flex items-center gap-2"><Scale className="size-4" /> Luật thưởng</TabsTrigger>
+          <TabsTrigger value="organizations" className="flex items-center gap-2"><Building2 className="size-4" /> Tổ chức</TabsTrigger>
+          <TabsTrigger value="groups" className="flex items-center gap-2"><Layers3 className="size-4" /> Nhóm đối chiếu</TabsTrigger>
           <TabsTrigger value="job-families" className="flex items-center gap-2"><Briefcase className="size-4" /> Nhóm nghề</TabsTrigger>
           <TabsTrigger value="career-levels" className="flex items-center gap-2"><GraduationCap className="size-4" /> Cấp bậc</TabsTrigger>
         </TabsList>
@@ -35,6 +38,8 @@ export function KnowledgeBasePage() {
         <TabsContent value="rules" className="outline-none">
           <RuleTable />
         </TabsContent>
+        <TabsContent value="organizations" className="outline-none"><PedigreeCatalog mode="organizations" /></TabsContent>
+        <TabsContent value="groups" className="outline-none"><PedigreeCatalog mode="groups" /></TabsContent>
         <TabsContent value="job-families" className="outline-none">
           <JobFamilyTable />
         </TabsContent>

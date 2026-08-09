@@ -4,7 +4,6 @@ const requiredText = (label: string, minimum = 2) => z.string().trim().min(minim
 
 export const hrJobFormSchema = z.object({
   title: requiredText("Tên vị trí"),
-  departmentName: requiredText("Đơn vị"),
   location: requiredText("Địa điểm"),
   employmentType: z.enum(["FULL_TIME", "PART_TIME", "INTERNSHIP", "CONTRACT"]),
   openingsCount: z.number().int().min(1, "Số lượng tuyển tối thiểu là 1.").max(100, "Số lượng tuyển quá lớn."),
@@ -26,6 +25,10 @@ export const hrJobFormSchema = z.object({
   const ids = value.competencies.map((item) => item.competencyId);
   if (new Set(ids).size !== ids.length) {
     context.addIssue({ code: "custom", path: ["competencies"], message: "Không được chọn trùng năng lực." });
+  }
+  const totalWeight = value.competencies.reduce((sum, item) => sum + item.weight, 0);
+  if (value.competencies.length > 0 && Math.abs(totalWeight - 100) > 0.001) {
+    context.addIssue({ code: "custom", path: ["competencies"], message: `Tổng trọng số phải bằng 100% (hiện tại ${totalWeight}%).` });
   }
 });
 

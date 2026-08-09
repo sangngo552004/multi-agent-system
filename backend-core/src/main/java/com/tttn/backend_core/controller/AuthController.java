@@ -12,6 +12,8 @@ import jakarta.validation.Valid;
 import java.security.Principal;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@Slf4j
 public class AuthController {
 
   private final AuthService authService;
@@ -54,11 +57,37 @@ public class AuthController {
   }
 
   @RateLimit(action = "LOGIN", maxRequests = 5, duration = 1, unit = ChronoUnit.MINUTES)
-  @PostMapping("/login")
-  public ApiResponse<AuthResponse> login(
+  @PostMapping("/candidate/login")
+  public ApiResponse<AuthResponse> candidateLogin(
       @Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-    AuthResponse auth = authService.login(request);
+    log.info("Candidate login request received: email={}", request.getEmail());
+    AuthResponse auth =
+        authService.login(request, List.of(com.tttn.backend_core.entity.Role.CANDIDATE));
     setRefreshCookie(response, auth.getRefreshToken(), Duration.ofDays(7));
+    log.info("Candidate login succeeded: email={}", auth.getEmail());
+    return ApiResponse.success(auth);
+  }
+
+  @RateLimit(action = "LOGIN", maxRequests = 5, duration = 1, unit = ChronoUnit.MINUTES)
+  @PostMapping("/hr/login")
+  public ApiResponse<AuthResponse> hrLogin(
+      @Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+    log.info("HR login request received: email={}", request.getEmail());
+    AuthResponse auth = authService.login(request, List.of(com.tttn.backend_core.entity.Role.HR));
+    setRefreshCookie(response, auth.getRefreshToken(), Duration.ofDays(7));
+    log.info("HR login succeeded: email={}", auth.getEmail());
+    return ApiResponse.success(auth);
+  }
+
+  @RateLimit(action = "LOGIN", maxRequests = 5, duration = 1, unit = ChronoUnit.MINUTES)
+  @PostMapping("/admin/login")
+  public ApiResponse<AuthResponse> adminLogin(
+      @Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+    log.info("Admin login request received: email={}", request.getEmail());
+    AuthResponse auth =
+        authService.login(request, List.of(com.tttn.backend_core.entity.Role.ADMIN));
+    setRefreshCookie(response, auth.getRefreshToken(), Duration.ofDays(7));
+    log.info("Admin login succeeded: email={}", auth.getEmail());
     return ApiResponse.success(auth);
   }
 

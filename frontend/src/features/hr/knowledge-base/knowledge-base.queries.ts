@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest as fetchApi } from "@/services/http/api-client";
-import type { CareerLevel, Competency, InstitutionalRule, JobFamily } from "./knowledge-base.types";
+import type { CareerLevel, Competency, InstitutionalRule, JobFamily, PedigreeEntity, PedigreeGroup } from "./knowledge-base.types";
 import type { CareerLevelFormValues, CompetencyFormValues, InstitutionalRuleFormValues, JobFamilyFormValues } from "./knowledge-base.schema";
 import { hrQueryKeys } from "@/services/query-keys";
 
@@ -16,6 +16,8 @@ export const kbQueryKeys = {
   jobFamilies: () => [...kbQueryKeys.all, "jobFamilies"] as const,
   careerLevels: () => [...kbQueryKeys.all, "careerLevels"] as const,
   rules: () => [...kbQueryKeys.all, "rules"] as const,
+  pedigrees: () => [...kbQueryKeys.all, "pedigrees"] as const,
+  pedigreeGroups: () => [...kbQueryKeys.all, "pedigree-groups"] as const,
 };
 
 // --- Competencies ---
@@ -84,6 +86,12 @@ export function useDeleteCareerLevel() {
 // --- Rules ---
 export function useRules() {
   return useQuery({ queryKey: kbQueryKeys.rules(), queryFn: async () => (await fetchApi<PageResult<InstitutionalRule>>(hrPath("/rules?size=1000"))).content });
+}
+export function usePedigrees() {
+  return useQuery({ queryKey: kbQueryKeys.pedigrees(), queryFn: () => fetchApi<PedigreeEntity[]>(hrPath("/knowledge-base/pedigrees")) });
+}
+export function usePedigreeGroups() {
+  return useQuery({ queryKey: kbQueryKeys.pedigreeGroups(), queryFn: () => fetchApi<PedigreeGroup[]>(hrPath("/knowledge-base/pedigree-groups")) });
 }
 export function useSaveRule() {
   const queryClient = useQueryClient();

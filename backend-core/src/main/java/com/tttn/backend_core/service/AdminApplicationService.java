@@ -401,6 +401,28 @@ public class AdminApplicationService {
     snapshot.put(
         "required_competencies",
         job.getRequiredCompetencies().stream().map(this::competencySnapshot).toList());
+    snapshot.put(
+        "institutional_rules",
+        job.getInstitutionalRules().stream()
+            .filter(
+                rule -> rule.getPedigreeGroup() != null && Boolean.TRUE.equals(rule.getIsActive()))
+            .map(
+                rule -> {
+                  Map<String, Object> item = new LinkedHashMap<>();
+                  item.put("rule_id", rule.getId().toString());
+                  item.put("rule_code", rule.getRuleCode());
+                  item.put("name", rule.getName());
+                  item.put("evidence_source", rule.getPedigreeGroup().getEvidenceSource().name());
+                  item.put(
+                      "eligible_entity_ids",
+                      rule.getPedigreeGroup().getMembers().stream()
+                          .map(member -> member.getId().toString())
+                          .toList());
+                  item.put("bonus_points", rule.getBonusPoints());
+                  item.put("max_impact_percent", rule.getMaxImpactPercent());
+                  return item;
+                })
+            .toList());
     return snapshot;
   }
 

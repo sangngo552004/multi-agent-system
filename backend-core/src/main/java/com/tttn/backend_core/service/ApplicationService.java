@@ -302,6 +302,28 @@ public class ApplicationService {
       }
       snapshot.put("required_competencies", competencies);
 
+      java.util.List<java.util.Map<String, Object>> rules = new java.util.ArrayList<>();
+      for (com.tttn.backend_core.entity.InstitutionalRule rule :
+          application.getJob().getInstitutionalRules()) {
+        if (rule.getPedigreeGroup() == null || !Boolean.TRUE.equals(rule.getIsActive())) {
+          continue;
+        }
+        java.util.Map<String, Object> item = new java.util.LinkedHashMap<>();
+        item.put("rule_id", rule.getId().toString());
+        item.put("rule_code", rule.getRuleCode());
+        item.put("name", rule.getName());
+        item.put("evidence_source", rule.getPedigreeGroup().getEvidenceSource().name());
+        item.put(
+            "eligible_entity_ids",
+            rule.getPedigreeGroup().getMembers().stream()
+                .map(member -> member.getId().toString())
+                .toList());
+        item.put("bonus_points", rule.getBonusPoints());
+        item.put("max_impact_percent", rule.getMaxImpactPercent());
+        rules.add(item);
+      }
+      snapshot.put("institutional_rules", rules);
+
       java.util.List<String> requiredSkills =
           application.getJob().getRequiredCompetencies().stream()
               .map(jc -> jc.getCompetency().getName())

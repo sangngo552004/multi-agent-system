@@ -1,7 +1,6 @@
-import difflib
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from google import genai
 from google.genai import types
@@ -11,9 +10,16 @@ from app.agents.jd_parser_agent.master_data import (
     get_career_levels,
     get_competencies,
     get_job_families,
+    get_rules,
 )
 from app.core.config import settings
-from app.core.schemas import JDCompetency, JDJobInfo, JDParseRequest, JDParseResponse
+from app.core.schemas import (
+    JDCompetencyProposal,
+    JDJobInfo,
+    JDParseRequest,
+    JDParseResponse,
+    JDRuleSuggestion,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,27 +32,10 @@ class LLM_JD_Extraction(BaseModel):
     description: str
     requirements: str
     benefits: str
-    jobFamilyName: Optional[str]
-    careerLevelName: Optional[str]
-    skills: List[str]
-
-
-def _fuzzy_match(
-    query: str, candidates: List[Dict[str, Any]], name_key: str = "name"
-) -> Optional[str]:
-    """Find the ID of the best matching candidate using simple fuzzy matching."""
-    if not query or not candidates:
-        return None
-
-    names = [c.get(name_key, "") for c in candidates]
-    matches = difflib.get_close_matches(query, names, n=1, cutoff=0.6)
-
-    if matches:
-        best_name = matches[0]
-        for c in candidates:
-            if c.get(name_key) == best_name:
-                return c.get("id")
-    return None
+    jobFamilyId: Optional[str]
+    careerLevelId: Optional[str]
+    competencyProposals: List[JDCompetencyProposal]
+    suggestedRuleIds: List[str] = []
 
 
 async def parse_jd_with_llm(request: JDParseRequest) -> JDParseResponse:
@@ -56,6 +45,10 @@ async def parse_jd_with_llm(request: JDParseRequest) -> JDParseResponse:
     """
     client = genai.Client(api_key=settings.GOOGLE_API_KEY)
 
+    job_families = get_job_families()
+    career_levels = get_career_levels()
+    competencies = get_competencies()
+    rules = get_rules()
     prompt = f"""
     You are an expert HR system assistant. Extract the following information from the Job Description text.
     Please extract:
@@ -67,7 +60,13 @@ async def parse_jd_with_llm(request: JDParseRequest) -> JDParseResponse:
     - benefits: the benefits offered
     - jobFamilyName: the general category/family of this job (e.g. Software Engineering, Marketing, HR)
     - careerLevelName: the level of the job (e.g. Junior, Senior, Manager, Director)
-    - skills: a list of string representing the technical and soft skills required for the job.
+    - competencyProposals: use competencyId ONLY from the supplied catalog when it exists; otherwise set status=PROPOSED_NEW and competencyId=null.
+    - suggestedRuleIds: choose ONLY IDs from the supplied active rule catalog.
+
+    COMPETENCY CATALOG: {json.dumps(competencies, ensure_ascii=False)}
+    JOB FAMILY CATALOG: {json.dumps(job_families, ensure_ascii=False)}
+    CAREER LEVEL CATALOG: {json.dumps(career_levels, ensure_ascii=False)}
+    ACTIVE RULE CATALOG: {json.dumps(rules, ensure_ascii=False)}
 
     Job Description:
     ----------------
@@ -92,46 +91,14 @@ async def parse_jd_with_llm(request: JDParseRequest) -> JDParseResponse:
         logger.error(f"LLM Error during JD Parsing: {e}")
         raise ValueError("Failed to parse JD using LLM.") from e
 
-    # Now we perform semantic/fuzzy matching against Master Data Cache
-    job_families = get_job_families()
-    career_levels = get_career_levels()
-    competencies = get_competencies()
-
-    # Match Job Family
-    job_family_id = _fuzzy_match(extracted_data.get("jobFamilyName"), job_families)
-
-    # Match Career Level
-    career_level_id = _fuzzy_match(extracted_data.get("careerLevelName"), career_levels)
-
-    # Match Competencies
-    matched_competencies = []
-    extracted_skills = extracted_data.get("skills", [])
-
-    # Create a fast lookup dict for exact matches first
-    comp_name_dict = {c.get("name").lower(): c for c in competencies if c.get("name")}
-
-    for skill in extracted_skills:
-        skill_lower = skill.lower()
-        matched_id = None
-
-        # 1. Exact match
-        if skill_lower in comp_name_dict:
-            matched_id = comp_name_dict[skill_lower].get("id")
-        else:
-            # 2. Fuzzy match
-            matched_id = _fuzzy_match(skill, competencies)
-
-        if matched_id:
-            # Avoid duplicates
-            if not any(c.competencyId == matched_id for c in matched_competencies):
-                matched_competencies.append(
-                    JDCompetency(
-                        competencyId=matched_id,
-                        weight=10.0,  # Default weight
-                        requiredLevel=3,  # Default level
-                        isMandatory=True,  # Default to true for extracted skills
-                    )
-                )
+    valid_competency_ids = {item.get("id") for item in competencies}
+    proposals = []
+    for item in extracted_data.get("competencyProposals", []):
+        proposal = JDCompetencyProposal(**item)
+        if proposal.competencyId and proposal.competencyId not in valid_competency_ids:
+            proposal.competencyId = None
+            proposal.status = "PROPOSED_NEW"
+        proposals.append(proposal)
 
     # Assemble final response
     job_info = JDJobInfo(
@@ -141,8 +108,16 @@ async def parse_jd_with_llm(request: JDParseRequest) -> JDParseResponse:
         description=extracted_data.get("description", ""),
         requirements=extracted_data.get("requirements", ""),
         benefits=extracted_data.get("benefits", ""),
-        jobFamilyId=job_family_id,
-        careerLevelId=career_level_id,
+        jobFamilyId=extracted_data.get("jobFamilyId"),
+        careerLevelId=extracted_data.get("careerLevelId"),
     )
 
-    return JDParseResponse(jobInfo=job_info, competencies=matched_competencies)
+    valid_rule_ids = {item.get("id") for item in rules}
+    suggested_rules = [
+        JDRuleSuggestion(ruleId=item, reason="Suggested by JD parser")
+        for item in extracted_data.get("suggestedRuleIds", [])
+        if item in valid_rule_ids
+    ]
+    return JDParseResponse(
+        jobInfo=job_info, competencyProposals=proposals, suggestedRules=suggested_rules
+    )

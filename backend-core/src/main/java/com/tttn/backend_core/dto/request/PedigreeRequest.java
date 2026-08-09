@@ -5,6 +5,7 @@ import com.tttn.backend_core.entity.PedigreeType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 import lombok.Data;
 
 @Data
@@ -26,4 +27,6 @@ public class PedigreeRequest {
 
   @Size(max = 10)
   private String country = "VN";
+
+  private List<String> aliases = List.of();
 }

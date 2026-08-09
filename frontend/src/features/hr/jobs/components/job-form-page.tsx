@@ -20,6 +20,6 @@ export function HrEditJobFormPage({ jobId }: { jobId: string }) {
   const job = useHrJob(jobId);
   if (profile.isPending || catalog.isPending || job.isPending) return <HrJobDetailSkeleton />;
   if (profile.isError || catalog.isError || job.isError) { const error = profile.error ?? catalog.error ?? job.error; return <ErrorState title="Không thể chỉnh sửa tin" description={error?.message} onRetry={() => { void profile.refetch(); void catalog.refetch(); void job.refetch(); }} />; }
-  if (job.data.status === "CLOSED") return <ErrorState title="Tin đã đóng" description="Tin đã đóng không thể chỉnh sửa. Bạn có thể nhân bản từ trang chi tiết để tạo một bản nháp mới." />;
+  if (job.data.status !== "DRAFT") return <ErrorState title="Tin đã được mở hoặc đóng" description="Tin tuyển dụng sau khi mở không thể chỉnh sửa để giữ nguyên nội dung đã công bố. Bạn có thể đóng tin hoặc nhân bản thành bản nháp từ trang chi tiết." />;
   return <HrJobForm profile={profile.data} catalog={catalog.data} job={job.data} />;
 }

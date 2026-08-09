@@ -26,19 +26,74 @@ function toHrJob(job: Record<string, unknown>): HrJobDetail {
   };
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value != null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function asRecords(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value) ? value.map(asRecord) : [];
+}
+
+function toTextList(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
+}
+
 function toHrApplication(item: Record<string, unknown>): HrApplicationDetail {
   const status = item.status === "PENDING_HR_REVIEW" ? "PENDING" : item.status as HrApplicationDetail["recruitmentStatus"];
   const aiStatus = item.aiStatus as HrApplicationDetail["aiStatus"];
   const score = item.fitScore == null ? undefined : Number(item.fitScore);
+  const persisted = asRecord(item.scoringBreakdown);
+  const cvData = asRecord(persisted.extracted_cv_data);
+  const matching = asRecord(persisted.matching_result);
+  const metadata = asRecord(cvData.professional_metadata);
+  const processingLog = asRecord(cvData.processing_log);
+  const categorizedSkills = asRecord(cvData.categorized_skills);
+  const scoreDetails = asRecords(asRecord(matching.scoring_breakdown).competency_scores);
+  const scoreByCompetency = new Map(scoreDetails.map((detail) => [String(detail.competency_id), detail]));
+  const competencyEvidence = asRecords(matching.evidence_matrix).map((evidence) => {
+    const detail = scoreByCompetency.get(String(evidence.competency_id)) ?? {};
+    const meets = Boolean(evidence.meets_requirement);
+    const confidence = String(evidence.confidence ?? "LOW").toUpperCase() as "HIGH" | "MEDIUM" | "LOW";
+    return {
+      competencyId: String(evidence.competency_id ?? ""),
+      name: String(evidence.competency_name ?? detail.competency_name ?? "Năng lực chưa xác định"),
+      requiredLevel: Number(detail.required_level ?? 0),
+      weight: Number(detail.weight ?? 0),
+      mandatory: Boolean(detail.is_mandatory),
+      evidence: String(evidence.evidence ?? "Không có thông tin trong CV."),
+      confidence: ["HIGH", "MEDIUM", "LOW"].includes(confidence) ? confidence : "LOW",
+      evidenceStatus: meets ? "SUPPORTED" : confidence === "MEDIUM" ? "PARTIAL" : "NOT_FOUND",
+    };
+  });
+  const skillGroups = [
+    ["Kỹ năng chuyên môn", categorizedSkills.industry_knowledge_and_hard_skills],
+    ["Công cụ & phần mềm", categorizedSkills.tools_and_software],
+    ["Kỹ năng mềm", categorizedSkills.soft_skills],
+  ].map(([group, skills]) => ({ group: String(group), skills: toTextList(skills) })).filter((group) => group.skills.length > 0);
   return {
     id: String(item.id), candidateId: String(item.candidateId), candidateName: String(item.candidateName ?? ""), candidateEmail: String(item.candidateEmail ?? ""),
     jobId: String(item.jobId), jobTitle: String(item.jobTitle ?? ""), jobLocation: String(item.jobLocation ?? ""), departmentName: String(item.departmentName ?? ""),
     recruitmentStatus: status, aiStatus, submittedAt: String(item.appliedAt ?? ""), updatedAt: String(item.updatedAt ?? ""),
     matchScore: score, aiConfidence: Number(item.aiConfidence ?? 0), needsReview: Boolean(item.needsReview),
-    extractionMethod: "TEXT_LAYER", extractionWarnings: [], errorCode: item.aiErrorCode as HrApplicationDetail["errorCode"], errorMessage: item.aiErrorMessage as string | undefined,
-    canRetry: false, personalSummary: String(item.aiFeedback ?? "Chưa có nhận xét AI."), skillGroups: [], experiences: [], education: [], languages: [],
-    scoreBreakdown: undefined, matchedSkills: [], missingSkills: [], growthAreas: [], careerPath: [],
-    competencyEvidence: [], histories: [], notes: [], careerPathStatus: "NOT_STARTED", talentPoolConsent: false,
+    extractionMethod: processingLog.ocr_used ? "OCR" : "TEXT_LAYER", extractionWarnings: toTextList(cvData.warnings), errorCode: item.aiErrorCode as HrApplicationDetail["errorCode"], errorMessage: item.aiErrorMessage as string | undefined,
+    canRetry: false, personalSummary: String(metadata.candidate_summary ?? item.aiFeedback ?? "Chưa có nhận xét AI."), skillGroups,
+    experiences: asRecords(cvData.experience).map((experience) => ({
+      company: String(experience.company ?? "Chưa xác định"), role: String(experience.position ?? experience.title ?? "Chưa xác định"),
+      period: String(experience.duration ?? [experience.start_date, experience.end_date].filter(Boolean).join(" – ") ?? ""),
+      summary: String(experience.summary ?? experience.description ?? ""),
+    })),
+    education: asRecords(cvData.education).map((education) => ({
+      school: String(education.institution ?? "Chưa xác định"), program: String(education.degree ?? "Chưa xác định"), period: String(education.year ?? ""),
+    })),
+    languages: asRecords(cvData.spoken_languages).map((language) => [language.language, language.proficiency].filter(Boolean).join(" · ")),
+    scoreBreakdown: matching.overall_score === undefined ? undefined : { hardSkills: Number(matching.hard_skill_score ?? 0), softSkills: Number(matching.soft_skill_score ?? 0), experience: Number(matching.experience_score ?? 0) },
+    matchedSkills: asRecords(matching.matched_criteria).map((criterion) => String(criterion.skill ?? "")).filter(Boolean),
+    missingSkills: asRecords(matching.missing_criteria).map((criterion) => String(criterion.skill ?? "")).filter(Boolean),
+    aiRecommendation: String(matching.hr_recommendation ?? "") || undefined,
+    growthAreas: asRecords(matching.missing_criteria).map((criterion) => String(criterion.reason ?? criterion.skill ?? "")).filter(Boolean), careerPath: [],
+    competencyEvidence, histories: [], notes: [], careerPathStatus: "NOT_STARTED", talentPoolConsent: false,
   };
 }
 
@@ -113,6 +168,7 @@ export const httpHrService: HrService = {
       benefits: input.values.benefitsText.join('\n'),
       jobFamilyId: input.values.jobFamilyId,
       careerLevelId: input.values.careerLevelId,
+      expiredAt: input.values.expiresAt ? `${input.values.expiresAt}T23:59:59` : undefined,
     };
 
     let savedJob: Record<string, unknown>;

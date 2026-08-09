@@ -40,6 +40,7 @@ _cache_loaded_at: float = 0.0
 #     mà không cần sửa code này
 # ─────────────────────────────────────────────────────────────────────────────
 _lookup_cache: dict[str, dict[str, str]] = {}
+_alias_cache: dict[str, dict] = {}
 
 # Cache competency level descriptions (immutable, chỉ load 1 lần)
 _level_desc_cache: dict[tuple[str, int], Optional[str]] = {}
@@ -113,6 +114,24 @@ def get_competency_level_description(competency_id: str, level: int) -> Optional
     return result
 
 
+def normalize_organization_name(value: str) -> str:
+    import re
+    import unicodedata
+
+    normalized = unicodedata.normalize("NFD", value or "")
+    normalized = "".join(
+        char for char in normalized if unicodedata.category(char) != "Mn"
+    )
+    return re.sub(r"[^a-z0-9]+", " ", normalized.lower()).strip()
+
+
+def resolve_pedigree_entity(value: str) -> Optional[dict]:
+    """Resolve an extracted organization name to its canonical KB entity."""
+    if not _alias_cache or _is_cache_stale():
+        _load_and_build()
+    return _alias_cache.get(normalize_organization_name(value))
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Internal helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -138,7 +157,7 @@ def _load_raw(force: bool = False) -> None:
         return  # Cache còn sống, không gọi lại
 
     try:
-        url = f"{settings.BACKEND_BASE_URL}/api/knowledge-base/pedigrees"
+        url = f"{settings.BACKEND_BASE_URL}/api/v1/hr/knowledge-base/pedigrees"
         with httpx.Client(timeout=5.0) as client:
             response = client.get(url)
             response.raise_for_status()
@@ -162,12 +181,13 @@ def _build_lookup() -> None:
     Không có if/elif — tự xử lý mọi entity_type.
     Thêm type mới vào DB → tự xuất hiện trong dict mà không cần sửa code.
     """
-    global _lookup_cache
+    global _lookup_cache, _alias_cache
 
     if not _pedigree_cache:
         return  # Giữ nguyên cache cũ (hoặc rỗng → fallback về hardcode)
 
     new_lookup: dict[str, dict[str, str]] = {}
+    new_aliases: dict[str, dict] = {}
     for entity in _pedigree_cache:
         etype = entity.get("type", "UNKNOWN")
         name_lower = entity.get("name", "").lower()
@@ -176,26 +196,44 @@ def _build_lookup() -> None:
         # setdefault: tạo dict rỗng nếu type chưa có, rồi insert
         # → không cần if/elif cho UNIVERSITY, COMPANY, AGENCY, hay bất kỳ type mới
         new_lookup.setdefault(etype, {})[name_lower] = rank
+        resolved = {
+            "id": str(entity.get("id", "")),
+            "name": entity.get("name", ""),
+            "type": etype,
+        }
+        for alias in [entity.get("name", ""), *entity.get("aliases", [])]:
+            key = normalize_organization_name(alias)
+            if key:
+                new_aliases[key] = resolved
 
     _lookup_cache = new_lookup
+    _alias_cache = new_aliases
     logger.debug(
         "KB lookup built: " + ", ".join(f"{t}={len(v)}" for t, v in new_lookup.items())
     )
 
 
 def _fetch_competency_level(competency_id: str, level: int) -> Optional[str]:
-    """Gọi API backend để lấy label+description của một bậc năng lực."""
+    """Read level descriptions from the public AI master-data catalog."""
     try:
-        url = f"{settings.BACKEND_BASE_URL}/api/competencies/{competency_id}/levels/{level}"
+        url = f"{settings.BACKEND_BASE_URL}/api/v1/ai/master-data"
         with httpx.Client(timeout=3.0) as client:
             response = client.get(url)
-            if response.status_code == 404:
-                return None
             response.raise_for_status()
-            data = response.json().get("result", {})
-            label = data.get("label", "")
-            desc = data.get("description", "")
-            return f"{label}: {desc}" if label and desc else (label or desc or None)
+            competencies = response.json().get("result", {}).get("competencies", [])
+            for competency in competencies:
+                for item in competency.get("levels", []):
+                    label = item.get("label", "")
+                    desc = item.get("description", "")
+                    value = (
+                        f"{label}: {desc}"
+                        if label and desc
+                        else (label or desc or None)
+                    )
+                    _level_desc_cache[
+                        (str(competency.get("id")), int(item.get("level", 0)))
+                    ] = value
+            return _level_desc_cache.get((competency_id, level))
 
     except Exception as e:
         logger.debug(

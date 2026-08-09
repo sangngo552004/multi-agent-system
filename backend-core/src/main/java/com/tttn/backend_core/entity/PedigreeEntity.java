@@ -2,6 +2,8 @@ package com.tttn.backend_core.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -62,6 +64,10 @@ public class PedigreeEntity {
   @Column(name = "is_active", nullable = false)
   @Builder.Default
   private Boolean isActive = true;
+
+  @OneToMany(mappedBy = "pedigreeEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  private List<PedigreeEntityAlias> aliases = new ArrayList<>();
 
   @CreationTimestamp
   @Column(name = "created_at", updatable = false)

@@ -8,6 +8,8 @@ import com.tttn.backend_core.entity.QInstitutionalRule;
 import com.tttn.backend_core.exception.AppException;
 import com.tttn.backend_core.exception.ErrorCode;
 import com.tttn.backend_core.repository.InstitutionalRuleRepository;
+import com.tttn.backend_core.repository.JobFamilyRepository;
+import com.tttn.backend_core.repository.PedigreeGroupRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class InstitutionalRuleService {
   private final InstitutionalRuleRepository institutionalRuleRepository;
+  private final PedigreeGroupRepository pedigreeGroupRepository;
+  private final JobFamilyRepository jobFamilyRepository;
   private final com.tttn.backend_core.mapper.MasterDataMapper masterDataMapper;
 
   @Transactional(readOnly = true)
@@ -33,6 +37,7 @@ public class InstitutionalRuleService {
   @Transactional
   public InstitutionalRule createRule(InstitutionalRuleRequest request) {
     InstitutionalRule entity = masterDataMapper.toRule(request);
+    applyRelations(entity, request);
     return institutionalRuleRepository.save(entity);
   }
 
@@ -46,6 +51,7 @@ public class InstitutionalRuleService {
       throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
     masterDataMapper.updateRule(request, entity);
+    applyRelations(entity, request);
     return institutionalRuleRepository.save(entity);
   }
 
@@ -61,5 +67,16 @@ public class InstitutionalRuleService {
     entity.setIsActive(false);
     entity.setRuleCode(entity.getRuleCode() + "_deleted_" + System.currentTimeMillis());
     institutionalRuleRepository.save(entity);
+  }
+
+  private void applyRelations(InstitutionalRule entity, InstitutionalRuleRequest request) {
+    entity.setPedigreeGroup(
+        pedigreeGroupRepository
+            .findById(request.getPedigreeGroupId())
+            .orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION)));
+    entity.setJobFamilies(
+        request.getJobFamilyIds() == null
+            ? java.util.List.of()
+            : jobFamilyRepository.findAllById(request.getJobFamilyIds()));
   }
 }

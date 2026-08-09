@@ -15,6 +15,8 @@ public interface CompetencyRepository
 
   List<Competency> findAllByOrderByNameAsc();
 
+  List<Competency> findByIsActiveTrueOrderByNameAsc();
+
   @Query(
       "select count(c) > 0 from Competency c "
           + "where lower(c.name) = lower(:name) and (:excludedId is null or c.id <> :excludedId)")

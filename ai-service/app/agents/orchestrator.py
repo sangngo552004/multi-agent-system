@@ -190,10 +190,17 @@ async def match_node(state: AgentState) -> dict:
     start_time = time.perf_counter()
     logger.info("--- MATCH NODE: %s ---", state["application_id"])
 
+    try:
+        job_configuration = JobConfiguration(**state["job_data"])
+    except Exception as exc:
+        logger.warning("Invalid job snapshot; using legacy matching fallback: %s", exc)
+        job_configuration = None
+
     request = MatchRequest(
         application_id=state["application_id"],
         cv_data=state["cv_data"],
         job_data=state["job_data"],
+        job_configuration=job_configuration,
         hr_preferences=state["hr_preferences"],
     )
 

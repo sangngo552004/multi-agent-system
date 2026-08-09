@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 _job_families: List[Dict[str, Any]] = []
 _career_levels: List[Dict[str, Any]] = []
 _competencies: List[Dict[str, Any]] = []
+_rules: List[Dict[str, Any]] = []
 _cache_loaded_at: float = 0.0
 
 
@@ -33,6 +34,11 @@ def get_competencies() -> List[Dict[str, Any]]:
     return _competencies
 
 
+def get_rules() -> List[Dict[str, Any]]:
+    _ensure_loaded()
+    return _rules
+
+
 def warmup_master_data():
     logger.info("Warming up JD Parser Master Data...")
     _load_raw(force=True)
@@ -44,36 +50,20 @@ def _ensure_loaded():
 
 
 def _load_raw(force: bool = False):
-    global _job_families, _career_levels, _competencies, _cache_loaded_at
+    global _job_families, _career_levels, _competencies, _rules, _cache_loaded_at
 
     if not force and _job_families and not _is_cache_stale():
         return
 
     try:
         with httpx.Client(timeout=10.0) as client:
-            # Load Job Families
-            resp_jf = client.get(
-                f"{settings.BACKEND_BASE_URL}/api/v1/hr/job-families?size=1000"
-            )
-            if resp_jf.status_code == 200:
-                data = resp_jf.json().get("result", {})
-                _job_families = data.get("content", [])
-
-            # Load Career Levels
-            resp_cl = client.get(
-                f"{settings.BACKEND_BASE_URL}/api/v1/hr/career-levels?size=1000"
-            )
-            if resp_cl.status_code == 200:
-                data = resp_cl.json().get("result", {})
-                _career_levels = data.get("content", [])
-
-            # Load Competencies
-            resp_comp = client.get(
-                f"{settings.BACKEND_BASE_URL}/api/v1/hr/competencies?size=2000"
-            )
-            if resp_comp.status_code == 200:
-                data = resp_comp.json().get("result", {})
-                _competencies = data.get("content", [])
+            response = client.get(f"{settings.BACKEND_BASE_URL}/api/v1/ai/master-data")
+            response.raise_for_status()
+            data = response.json().get("result", {})
+            _job_families = data.get("jobFamilies", [])
+            _career_levels = data.get("careerLevels", [])
+            _competencies = data.get("competencies", [])
+            _rules = data.get("rules", [])
 
         _cache_loaded_at = time.time()
         logger.info(

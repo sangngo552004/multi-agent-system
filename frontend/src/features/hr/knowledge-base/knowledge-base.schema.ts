@@ -32,6 +32,8 @@ export const institutionalRuleSchema = z.object({
   bonusPoints: z.number().min(0, "Điểm cộng không được âm").max(100, "Điểm cộng tối đa là 100"),
   maxImpactPercent: z.number().min(0, "Phần trăm ảnh hưởng không được âm").max(100, "Phần trăm tối đa là 100"),
   appliesToDomain: requiredText("Lĩnh vực áp dụng"),
+  pedigreeGroupId: z.string().uuid("Hãy chọn nhóm đối chiếu"),
+  jobFamilyIds: z.array(z.string()).default([]),
 });
 
 export type InstitutionalRuleFormValues = z.infer<typeof institutionalRuleSchema>;

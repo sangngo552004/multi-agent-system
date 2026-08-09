@@ -1,6 +1,7 @@
 package com.tttn.backend_core.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -83,12 +84,12 @@ class AuthControllerTest {
     request.setPassword("password");
 
     AuthResponse response =
-        new AuthResponse("access", "refresh", UUID.randomUUID(), "test@test.com", "HR");
-    when(authService.login(any(LoginRequest.class))).thenReturn(response);
+        new AuthResponse("access", "refresh", UUID.randomUUID(), "test@test.com", "CANDIDATE");
+    when(authService.login(any(LoginRequest.class), anyList())).thenReturn(response);
 
     mockMvc
         .perform(
-            post("/api/v1/auth/login")
+            post("/api/v1/auth/candidate/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -100,7 +101,7 @@ class AuthControllerTest {
   void testLoginRejectsMalformedJsonAsBadRequest() throws Exception {
     mockMvc
         .perform(
-            post("/api/v1/auth/login")
+            post("/api/v1/auth/candidate/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":"))
         .andExpect(status().isBadRequest())

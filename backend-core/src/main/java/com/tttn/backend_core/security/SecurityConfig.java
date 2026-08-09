@@ -33,6 +33,9 @@ public class SecurityConfig {
     "/api/v1/auth/register",
     "/api/v1/auth/verify",
     "/api/v1/auth/login",
+    "/api/v1/auth/candidate/login",
+    "/api/v1/auth/hr/login",
+    "/api/v1/auth/admin/login",
     "/api/v1/auth/refresh",
     "/api/v1/auth/logout",
     "/swagger-ui/**",
@@ -70,7 +73,8 @@ public class SecurityConfig {
                       .requestMatchers(
                           org.springframework.http.HttpMethod.GET,
                           "/api/v1/jobs/**",
-                          "/api/v1/hr/knowledge-base/pedigrees")
+                          "/api/v1/hr/knowledge-base/pedigrees",
+                          "/api/v1/ai/master-data")
                       .permitAll()
                       .requestMatchers("/api/v1/admin/**")
                       .hasRole("ADMIN")
