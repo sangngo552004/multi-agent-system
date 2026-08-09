@@ -15,8 +15,28 @@ type AuthTokenResponse = {
 };
 
 export const authService = {
-  async login(input: LoginInput) {
-    const auth = await apiRequest<AuthTokenResponse>("/api/v1/auth/login", {
+  async candidateLogin(input: LoginInput) {
+    const auth = await apiRequest<AuthTokenResponse>("/api/v1/auth/candidate/login", {
+      method: "POST",
+      body: JSON.stringify(input),
+      authenticated: false,
+    });
+    setAccessToken(auth.token);
+    return this.me();
+  },
+
+  async hrLogin(input: LoginInput) {
+    const auth = await apiRequest<AuthTokenResponse>("/api/v1/auth/hr/login", {
+      method: "POST",
+      body: JSON.stringify(input),
+      authenticated: false,
+    });
+    setAccessToken(auth.token);
+    return this.me();
+  },
+
+  async adminLogin(input: LoginInput) {
+    const auth = await apiRequest<AuthTokenResponse>("/api/v1/auth/admin/login", {
       method: "POST",
       body: JSON.stringify(input),
       authenticated: false,

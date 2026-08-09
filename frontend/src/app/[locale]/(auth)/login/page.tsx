@@ -29,7 +29,7 @@ type LoginFormValues = z.infer<ReturnType<typeof getLoginSchema>>;
 export default function LoginPage() {
   const router = useRouter();
   const t = useTranslations("Auth");
-  const { login } = useAuth();
+  const { candidateLogin } = useAuth();
   const [error, setError] = useState("");
 
   const loginSchema = getLoginSchema(t);
@@ -49,7 +49,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setError("");
     try {
-      const user = await login({ email: data.email, password: data.password });
+      const user = await candidateLogin({ email: data.email, password: data.password });
       const requestedPath = new URLSearchParams(window.location.search).get("next");
       const safeAdminPath =
         user.role === "ADMIN" && requestedPath?.startsWith("/admin/")

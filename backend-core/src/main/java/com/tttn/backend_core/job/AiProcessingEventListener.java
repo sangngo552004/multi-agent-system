@@ -110,8 +110,10 @@ public class AiProcessingEventListener {
     step.setFinishedAt(occurredAt);
     if (name == AiStepName.EXTRACTION) {
       updateMetrics(application, event);
-      if (event.hasNonNull("cv_data")) {
-        JsonNode cvDataNode = event.get("cv_data");
+      // Events use camelCase like the Core -> AI command. Accept the previous
+      // snake_case spelling during a rolling deployment.
+      JsonNode cvDataNode = event.hasNonNull("cvData") ? event.get("cvData") : event.get("cv_data");
+      if (cvDataNode != null && !cvDataNode.isNull()) {
         java.util.Map<String, Object> cvData =
             objectMapper.convertValue(cvDataNode, java.util.Map.class);
 
@@ -141,6 +143,19 @@ public class AiProcessingEventListener {
           candidateProfileRepository.save(profile);
         }
       }
+    }
+    if (name == AiStepName.MATCHING && event.hasNonNull("matchResult")) {
+      java.util.Map<String, Object> breakdown = application.getScoringBreakdown();
+      if (breakdown == null) {
+        breakdown = new java.util.HashMap<>();
+      }
+      // Keep the complete result (evidence matrix, recommendation, criteria
+      // and deterministic score breakdown) so a score is explainable to HR.
+      breakdown.put(
+          "matching_result",
+          objectMapper.convertValue(event.get("matchResult"), java.util.Map.class));
+      application.setScoringBreakdown(breakdown);
+      applicationRepository.save(application);
     }
   }
 

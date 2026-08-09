@@ -3,6 +3,8 @@ package com.tttn.backend_core.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
 import lombok.Data;
 
 @Data
@@ -23,4 +25,9 @@ public class InstitutionalRuleRequest {
 
   @NotBlank(message = "DOMAIN_REQUIRED")
   private String appliesToDomain;
+
+  @NotNull(message = "PEDIGREE_GROUP_REQUIRED")
+  private UUID pedigreeGroupId;
+
+  private List<UUID> jobFamilyIds = List.of();
 }

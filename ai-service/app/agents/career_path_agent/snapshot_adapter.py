@@ -27,7 +27,7 @@ def build_candidate_snapshot(
         skills=list(cv.skills),
         experience=[item.model_copy(deep=True) for item in cv.experience],
         education=[item.model_copy(deep=True) for item in cv.education],
-        certifications=list(cv.certifications),
+        certifications=[item.name for item in cv.certifications if item.name],
         confidence_scores=cv.confidence_scores.model_copy(deep=True),
         warnings=list(cv.warnings),
         snapshot_version=snapshot_version,
@@ -43,7 +43,9 @@ def build_matching_snapshot(
 
     return CareerPathMatchingSnapshot(
         status=matching.status,
-        evidence_matrix=[item.model_copy(deep=True) for item in matching.evidence_matrix],
+        evidence_matrix=[
+            item.model_copy(deep=True) for item in matching.evidence_matrix
+        ],
         matched_criteria=[
             item.model_copy(deep=True) for item in matching.matched_criteria
         ],

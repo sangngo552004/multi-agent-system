@@ -9,6 +9,7 @@ import { handleApiError } from "@/lib/api-error";
 import { Button } from "@/components/ui/button";
 import { useChangeHrJobStatus, useDuplicateHrJob } from "@/features/hr/jobs/jobs.queries";
 import type { HrJobDetail } from "@/features/hr/jobs/jobs.types";
+import { BatchEmailModal } from "@/features/hr/applications/components/batch-email-modal";
 
 export function HrJobLifecycleActions({ job }: { job: HrJobDetail }) {
   const router = useRouter();
@@ -30,8 +31,9 @@ export function HrJobLifecycleActions({ job }: { job: HrJobDetail }) {
   };
 
   return <div className="flex flex-wrap items-center justify-end gap-2">
-    {job.status !== "CLOSED" ? <Button asChild variant="secondary" size="sm"><Link href={`/hr/jobs/${job.id}/edit`}><Edit3 className="size-4" /> Chỉnh sửa</Link></Button> : null}
+    {job.status === "DRAFT" ? <Button asChild variant="secondary" size="sm"><Link href={`/hr/jobs/${job.id}/edit`}><Edit3 className="size-4" /> Chỉnh sửa</Link></Button> : null}
     {job.status === "DRAFT" ? <Button size="sm" loading={changeStatus.isPending} onClick={() => change("PUBLISHED")}>Mở tuyển</Button> : null}
+    {job.status === "PUBLISHED" ? <BatchEmailModal jobId={job.id} /> : null}
     {job.status === "PUBLISHED" ? <Button variant="ghost" size="sm" loading={changeStatus.isPending} onClick={() => change("CLOSED")}><Square className="size-4" /> Đóng tin</Button> : null}
     {job.status === "CLOSED" ? <Button size="sm" onClick={duplicateJob} loading={duplicate.isPending}><Copy className="size-4" /> Nhân bản thành bản nháp</Button> : null}
   </div>;

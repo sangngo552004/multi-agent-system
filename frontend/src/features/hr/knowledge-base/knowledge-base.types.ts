@@ -29,5 +29,11 @@ export type InstitutionalRule = {
   bonusPoints: number;
   maxImpactPercent: number;
   appliesToDomain: string;
+  pedigreeGroup?: { id: string; name: string; code: string; evidenceSource: EvidenceSource };
+  jobFamilies?: JobFamily[];
   isActive: boolean;
 };
+
+export type EvidenceSource = "EXPERIENCE" | "EDUCATION" | "CERTIFICATION" | "GPA";
+export type PedigreeEntity = { id: string; name: string; type: "UNIVERSITY" | "COMPANY" | "AGENCY"; aliases: string[]; isActive: boolean };
+export type PedigreeGroup = { id: string; code: string; name: string; evidenceSource: EvidenceSource; isActive: boolean; memberIds: string[] };

@@ -7,6 +7,15 @@ export const hrEmploymentTypeLabels: Record<EmploymentType, string> = {
   CONTRACT: "Hợp đồng",
 };
 
+export const hrWorkLocationOptions = [
+  "TP. Hồ Chí Minh",
+  "Hà Nội",
+  "Đà Nẵng",
+  "Cần Thơ",
+  "Làm việc từ xa",
+  "Hybrid",
+];
+
 export const hrJobStatusTabs: Array<{ value: JobStatus | "ALL"; label: string }> = [
   { value: "ALL", label: "Tất cả" },
   { value: "DRAFT", label: "Bản nháp" },

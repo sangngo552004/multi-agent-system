@@ -17,6 +17,7 @@ from typing import Optional
 from app.core.config import settings
 from app.core.schemas import (
     CategorizedSkills,
+    CertificationItem,
     ConfidenceScores,
     CVExtractionResponse,
     EducationItem,
@@ -98,7 +99,9 @@ Return a JSON object with this exact structure:
         {{
             "degree": "Degree name or null",
             "institution": "School/university name or null",
-            "year": "Graduation year or null"
+            "year": "Graduation year or null",
+            "gpa": "numeric GPA or null",
+            "gpa_scale": "numeric scale such as 4.0 or 10.0 or null"
         }}
     ],
     "projects": [
@@ -114,7 +117,9 @@ Return a JSON object with this exact structure:
             "url": "Project url or null"
         }}
     ],
-    "certifications": ["cert1", "cert2"]
+    "certifications": [
+        {"name": "certificate name", "issuer": "issuing organization or null", "credential_id": "id or null", "issued_at": "YYYY-MM or null", "expires_at": "YYYY-MM or null"}
+    ]
 }}
 
 CV TEXT:
@@ -204,7 +209,9 @@ class GeminiProvider:
             return result
 
         except asyncio.TimeoutError as err:
-            raise ValueError(f"Gemini API timeout after {settings.LLM_TIMEOUT_SECONDS}s") from err
+            raise ValueError(
+                f"Gemini API timeout after {settings.LLM_TIMEOUT_SECONDS}s"
+            ) from err
 
 
 # ── Rate Limiting ─────────────────────────────────────────────────────
@@ -324,9 +331,6 @@ def _parse_llm_json(text: str) -> Optional[dict]:
         raise ValueError(f"Could not extract valid JSON. Error: {e}") from e
 
 
-
-
-
 def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionResponse:
     """Convert raw LLM JSON output to CVExtractionResponse."""
     personal = data.get("personal_info", {})
@@ -351,7 +355,7 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
     social_links = SocialLinks(
         linkedin=social.get("linkedin"),
         portfolio_or_website=social.get("portfolio_or_website"),
-        other_links=social.get("other_links", [])
+        other_links=social.get("other_links", []),
     )
 
     professional_metadata = ProfessionalMetadata(
@@ -359,21 +363,23 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
         seniority_level=metadata.get("seniority_level"),
         total_years_of_experience=float(metadata.get("total_years_of_experience", 0.0)),
         candidate_summary=metadata.get("candidate_summary"),
-        industries=metadata.get("industries", [])
+        industries=metadata.get("industries", []),
     )
 
     categorized_skills = CategorizedSkills(
-        industry_knowledge_and_hard_skills=cat_skills.get("industry_knowledge_and_hard_skills", []),
+        industry_knowledge_and_hard_skills=cat_skills.get(
+            "industry_knowledge_and_hard_skills", []
+        ),
         tools_and_software=cat_skills.get("tools_and_software", []),
-        soft_skills=cat_skills.get("soft_skills", [])
+        soft_skills=cat_skills.get("soft_skills", []),
     )
 
     spoken_languages = [
         LanguageProficiency(
-            language=lang.get("language", ""),
-            proficiency=lang.get("proficiency")
+            language=lang.get("language", ""), proficiency=lang.get("proficiency")
         )
-        for lang in spoken if isinstance(lang, dict) and "language" in lang
+        for lang in spoken
+        if isinstance(lang, dict) and "language" in lang
     ]
 
     experience = [
@@ -390,7 +396,7 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
             responsibilities=exp.get("responsibilities", []),
             achievements=exp.get("achievements", []),
             technologies=exp.get("technologies", []),
-            business_domain=exp.get("business_domain")
+            business_domain=exp.get("business_domain"),
         )
         for exp in experience_raw
         if isinstance(exp, dict)
@@ -401,6 +407,8 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
             degree=edu.get("degree"),
             institution=edu.get("institution"),
             year=edu.get("year"),
+            gpa=edu.get("gpa"),
+            gpa_scale=edu.get("gpa_scale"),
         )
         for edu in education_raw
         if isinstance(edu, dict)
@@ -416,7 +424,7 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
             team_size=proj.get("team_size"),
             duration=proj.get("duration"),
             achievements=proj.get("achievements", []),
-            url=proj.get("url")
+            url=proj.get("url"),
         )
         for proj in projects_raw
         if isinstance(proj, dict)
@@ -453,7 +461,13 @@ def _convert_llm_output(data: dict, fallback_reason: str) -> CVExtractionRespons
         experience=experience,
         education=education,
         projects=projects,
-        certifications=[c for c in certifications if isinstance(c, str)],
+        certifications=[
+            CertificationItem(name=item)
+            if isinstance(item, str)
+            else CertificationItem(**item)
+            for item in certifications
+            if isinstance(item, (str, dict))
+        ],
         confidence_scores=ConfidenceScores(overall=0.8),
         processing_log=ProcessingLog(
             extraction_method="llm",

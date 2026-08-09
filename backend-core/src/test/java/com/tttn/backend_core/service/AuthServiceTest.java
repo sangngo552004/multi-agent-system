@@ -18,6 +18,7 @@ import com.tttn.backend_core.repository.UserRepository;
 import com.tttn.backend_core.security.JwtUtils;
 import io.jsonwebtoken.Claims;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -105,7 +106,7 @@ class AuthServiceTest {
     when(jwtUtils.generateRefreshToken(any(User.class))).thenReturn("refresh-token");
     when(jwtUtils.parseClaims("refresh-token")).thenReturn(claims);
 
-    AuthResponse response = authService.login(request);
+    AuthResponse response = authService.login(request, List.of(Role.CANDIDATE));
 
     assertNotNull(response);
     assertEquals("access-token", response.getToken());
@@ -123,7 +124,8 @@ class AuthServiceTest {
 
     when(valueOperations.increment(anyString())).thenReturn(1L);
 
-    AppException ex = assertThrows(AppException.class, () -> authService.login(request));
+    AppException ex =
+        assertThrows(AppException.class, () -> authService.login(request, List.of(Role.CANDIDATE)));
     assertEquals(ErrorCode.UNAUTHENTICATED, ex.getErrorCode());
   }
 }

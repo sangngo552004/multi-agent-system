@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # ── Enums ──────────────────────────────────────────────────────────────
 
@@ -104,6 +104,16 @@ class EducationItem(BaseModel):
     degree: Optional[str] = None
     institution: Optional[str] = None
     year: Optional[str] = None
+    gpa: Optional[float] = None
+    gpa_scale: Optional[float] = None
+
+
+class CertificationItem(BaseModel):
+    name: Optional[str] = None
+    issuer: Optional[str] = None
+    credential_id: Optional[str] = None
+    issued_at: Optional[str] = None
+    expires_at: Optional[str] = None
 
 
 class ProcessingLog(BaseModel):
@@ -142,7 +152,14 @@ class CVExtractionResponse(BaseModel):
     experience: list[ExperienceItem] = Field(default_factory=list)
     education: list[EducationItem] = Field(default_factory=list)
     projects: list[ProjectItem] = Field(default_factory=list)
-    certifications: list[str] = Field(default_factory=list)
+    certifications: list[CertificationItem] = Field(default_factory=list)
+
+    @field_validator("certifications", mode="before")
+    @classmethod
+    def normalize_legacy_certifications(cls, value):
+        if not isinstance(value, list):
+            return []
+        return [{"name": item} if isinstance(item, str) else item for item in value]
 
     confidence_scores: ConfidenceScores = Field(default_factory=ConfidenceScores)
     warnings: list[str] = Field(default_factory=list)
@@ -265,6 +282,7 @@ class CompetencyScoreDetail(BaseModel):
     competency_name: str
     category: str
     weight: float
+    required_level: int
     earned_weight: float
     multiplier: float = Field(description="Hệ số confidence: 1.0 / 0.8 / 0.3 / 0.0")
     meets_requirement: bool
@@ -749,13 +767,23 @@ class JDJobInfo(BaseModel):
     careerLevelId: Optional[str] = None
 
 
-class JDCompetency(BaseModel):
-    competencyId: str
-    weight: float
-    requiredLevel: int
-    isMandatory: bool
+class JDCompetencyProposal(BaseModel):
+    competencyId: Optional[str] = None
+    name: str
+    category: str = "HARD_SKILL"
+    requiredLevel: int = Field(default=3, ge=1, le=5)
+    weight: float = Field(default=10.0, gt=0, le=100)
+    isMandatory: bool = False
+    reason: str = ""
+    status: Literal["MATCHED", "PROPOSED_NEW"] = "MATCHED"
+
+
+class JDRuleSuggestion(BaseModel):
+    ruleId: str
+    reason: str = ""
 
 
 class JDParseResponse(BaseModel):
     jobInfo: JDJobInfo
-    competencies: list[JDCompetency] = Field(default_factory=list)
+    competencyProposals: list[JDCompetencyProposal] = Field(default_factory=list)
+    suggestedRules: list[JDRuleSuggestion] = Field(default_factory=list)

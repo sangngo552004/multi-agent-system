@@ -19,7 +19,9 @@ import {
 type AuthContextValue = {
   user: AuthUser | null;
   isLoading: boolean;
-  login: (input: LoginInput) => Promise<AuthUser>;
+  candidateLogin: (input: LoginInput) => Promise<AuthUser>;
+  hrLogin: (input: LoginInput) => Promise<AuthUser>;
+  adminLogin: (input: LoginInput) => Promise<AuthUser>;
   logout: () => Promise<void>;
 };
 
@@ -55,8 +57,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [queryClient]);
 
-  const login = useCallback(async (input: LoginInput) => {
-    const authenticatedUser = await authService.login(input);
+  const candidateLogin = useCallback(async (input: LoginInput) => {
+    const authenticatedUser = await authService.candidateLogin(input);
+    queryClient.clear();
+    setUser(authenticatedUser);
+    return authenticatedUser;
+  }, [queryClient]);
+
+  const hrLogin = useCallback(async (input: LoginInput) => {
+    const authenticatedUser = await authService.hrLogin(input);
+    queryClient.clear();
+    setUser(authenticatedUser);
+    return authenticatedUser;
+  }, [queryClient]);
+
+  const adminLogin = useCallback(async (input: LoginInput) => {
+    const authenticatedUser = await authService.adminLogin(input);
     queryClient.clear();
     setUser(authenticatedUser);
     return authenticatedUser;
@@ -72,8 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [queryClient]);
 
   const value = useMemo(
-    () => ({ user, isLoading, login, logout }),
-    [isLoading, login, logout, user],
+    () => ({ user, isLoading, candidateLogin, hrLogin, adminLogin, logout }),
+    [isLoading, candidateLogin, hrLogin, adminLogin, logout, user],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

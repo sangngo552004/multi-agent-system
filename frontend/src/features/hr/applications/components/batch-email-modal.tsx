@@ -13,6 +13,7 @@ import { Select } from "@/components/ui/select";
 import { apiRequest as fetchApi } from "@/services/http/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { hrQueryKeys } from "@/services/query-keys";
+import { useHrApplications } from "@/features/hr/applications/applications.queries";
 
 export function BatchEmailModal({ jobId }: { jobId: string }) {
   const t = useTranslations();
@@ -26,6 +27,10 @@ export function BatchEmailModal({ jobId }: { jobId: string }) {
   const [isStarting, setIsStarting] = useState(false);
 
   const queryClient = useQueryClient();
+  const applications = useHrApplications({ jobId });
+  const recipientIds = (applications.data ?? [])
+    .filter((application) => application.recruitmentStatus === targetStatus)
+    .map((application) => application.id);
 
   // Polling logic
   useEffect(() => {
@@ -33,7 +38,7 @@ export function BatchEmailModal({ jobId }: { jobId: string }) {
 
     const poll = async () => {
       try {
-        const res = await fetchApi<Record<string, unknown>>(`/applications/batch-email/${trackingId}`);
+        const res = await fetchApi<Record<string, unknown>>(`/api/v1/hr/applications/batch-email/${trackingId}`);
         setProgress({
           total: Number(res.totalCount) || 0,
           processed: Number(res.processedCount) || 0,
@@ -61,19 +66,25 @@ export function BatchEmailModal({ jobId }: { jobId: string }) {
       toast.error("Vui lòng nhập Tiêu đề và Nội dung email.");
       return;
     }
+    if (!recipientIds.length) {
+      toast.error("Không có ứng viên phù hợp với nhóm nhận đã chọn.");
+      return;
+    }
 
     setIsStarting(true);
     try {
-      const res = await fetchApi<Record<string, unknown>>("/applications/batch-email", {
+      const res = await fetchApi<string>("/api/v1/hr/applications/batch-email", {
         method: "POST",
         body: JSON.stringify({
-          jobId,
+          applicationIds: recipientIds,
           action: targetStatus === "HIRED" ? "INVITE" : "REJECT",
           subjectTemplate: subject,
           bodyTemplate: body
         }),
       });
-      setTrackingId((res.trackingId as string) || (res.id as string));
+      const trackingId = res.match(/Tracking ID:\s*([\w-]+)/)?.[1];
+      if (!trackingId) throw new Error("Không nhận được mã theo dõi gửi email.");
+      setTrackingId(trackingId);
       toast.info("Đã bắt đầu gửi mail...");
     } catch (error: unknown) {
       handleApiError(error, t);
@@ -111,6 +122,7 @@ export function BatchEmailModal({ jobId }: { jobId: string }) {
                 ]}
               />
             </div>
+            <p className="text-xs text-muted">{applications.isPending ? "Đang tải ứng viên..." : `${recipientIds.length} ứng viên sẽ nhận email.`}</p>
             <div>
               <label className="mb-1 block text-sm font-medium text-ink">Tiêu đề Email</label>
               <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Vd: Thông báo kết quả ứng tuyển..." />

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useJobFamilies, usePedigreeGroups } from "../knowledge-base.queries";
 
 import { institutionalRuleSchema, type InstitutionalRuleFormValues } from "../knowledge-base.schema";
 import { useSaveRule } from "../knowledge-base.queries";
@@ -19,12 +20,16 @@ export function RuleFormModal({
   isOpen,
   onClose,
   initialData,
+  onSaved,
 }: {
   isOpen: boolean;
   onClose: () => void;
   initialData: InstitutionalRule | null;
+  onSaved?: (rule: InstitutionalRule) => void;
 }) {
   const saveMutation = useSaveRule();
+  const { data: groups = [] } = usePedigreeGroups();
+  const { data: jobFamilies = [] } = useJobFamilies();
 
   const form = useForm<InstitutionalRuleFormValues>({
     resolver: zodResolver(institutionalRuleSchema),
@@ -35,6 +40,8 @@ export function RuleFormModal({
       bonusPoints: 0,
       maxImpactPercent: 20,
       appliesToDomain: "ALL",
+      pedigreeGroupId: "",
+      jobFamilyIds: [],
     },
   });
 
@@ -48,16 +55,19 @@ export function RuleFormModal({
           bonusPoints: initialData.bonusPoints,
           maxImpactPercent: initialData.maxImpactPercent,
           appliesToDomain: initialData.appliesToDomain,
+          pedigreeGroupId: initialData.pedigreeGroup?.id ?? "",
+          jobFamilyIds: initialData.jobFamilies?.map((item) => item.id) ?? [],
         });
       } else {
-        form.reset({ ruleCode: "", name: "", description: "", bonusPoints: 0, maxImpactPercent: 20, appliesToDomain: "ALL" });
+        form.reset({ ruleCode: "", name: "", description: "", bonusPoints: 0, maxImpactPercent: 20, appliesToDomain: "ALL", pedigreeGroupId: "", jobFamilyIds: [] });
       }
     }
   }, [isOpen, initialData, form]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await saveMutation.mutateAsync({ id: initialData?.id, data: values });
+      const saved = await saveMutation.mutateAsync({ id: initialData?.id, data: values });
+      onSaved?.(saved);
       toast.success(initialData ? "Cập nhật thành công" : "Thêm mới thành công");
       onClose();
     } catch (error: unknown) {
@@ -78,12 +88,9 @@ export function RuleFormModal({
               <Input {...form.register("ruleCode")} placeholder="VD: TIER_1_SCHOOL" disabled={!!initialData} />
               {form.formState.errors.ruleCode && <p className="mt-1 text-xs text-danger">{form.formState.errors.ruleCode.message}</p>}
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-ink">Lĩnh vực áp dụng</label>
-              <Input {...form.register("appliesToDomain")} placeholder="VD: ALL, IT, HR..." />
-              {form.formState.errors.appliesToDomain && <p className="mt-1 text-xs text-danger">{form.formState.errors.appliesToDomain.message}</p>}
-            </div>
+            <div><label className="mb-1 block text-sm font-medium text-ink">Nhóm đối chiếu</label><select className="h-10 w-full rounded-[9px] border border-border-strong bg-surface px-3 text-sm" {...form.register("pedigreeGroupId")}><option value="">Chọn nhóm tổ chức…</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name} · {group.evidenceSource}</option>)}</select>{form.formState.errors.pedigreeGroupId && <p className="mt-1 text-xs text-danger">{form.formState.errors.pedigreeGroupId.message}</p>}</div>
           </div>
+          <div><label className="mb-1 block text-sm font-medium text-ink">Gợi ý khi tạo Job</label><p className="mb-2 text-xs text-muted">Chỉ dùng để lọc Rule trên giao diện; không làm AI tự áp dụng Rule.</p><div className="flex flex-wrap gap-2">{jobFamilies.map((family) => <label key={family.id} className="flex items-center gap-1.5 text-sm text-muted"><input type="checkbox" value={family.id} {...form.register("jobFamilyIds")} />{family.name}</label>)}</div></div>
           <div>
             <label className="mb-1 block text-sm font-medium text-ink">Tên hiển thị</label>
             <Input {...form.register("name")} placeholder="Nhập tên quy tắc" />

@@ -12,7 +12,7 @@ Thay đổi so với version cũ:
 import logging
 from typing import Optional
 
-from app.agents.matcher_agent import knowledge_base
+from app.agents.matcher_agent import kb_loader
 from app.core.schemas import (
     CompetencyEvidence,
     CompetencyScoreDetail,
@@ -148,6 +148,7 @@ class DeterministicScoringEngine:
                     competency_name=comp.name,
                     category=comp.category,
                     weight=comp.weight,
+                    required_level=comp.required_level,
                     earned_weight=contrib,
                     multiplier=multiplier,
                     meets_requirement=meets,
@@ -179,23 +180,17 @@ class DeterministicScoringEngine:
                 rule.get("max_impact_percent", 20.0)
             )  # % overall tối đa ảnh hưởng
 
-            triggered_by, rank, rank_multiplier = self._evaluate_rule(
-                rule_code=rule_code,
-                domain=job_config.job_family,
-                cv_data=cv_data,
-            )
+            triggered_by = self._evaluate_rule(rule=rule, cv_data=cv_data)
 
             if triggered_by:
-                # Bonus thực tế = bonus_points × hệ số rank × (max_impact / 100)
-                actual_impact = (
-                    bonus_points * rank_multiplier * (max_impact_pct / 100.0)
-                )
-                bonus_total += bonus_points * rank_multiplier
+                # The Job-selected rule already defines its eligible entities; no domain/tier inference.
+                actual_impact = bonus_points * (max_impact_pct / 100.0)
+                bonus_total += bonus_points
                 overall_delta += actual_impact
 
                 logger.info(
-                    f"Rule '{rule_code}' triggered by '{triggered_by}' (rank={rank}). "
-                    f"bonus_points={bonus_points}, rank_multiplier={rank_multiplier:.1f}, "
+                    f"Rule '{rule_code}' triggered by '{triggered_by}'. "
+                    f"bonus_points={bonus_points}, "
                     f"actual_impact=+{actual_impact:.2f}"
                 )
 
@@ -203,7 +198,7 @@ class DeterministicScoringEngine:
                     RuleTriggered(
                         rule_code=rule_code,
                         rule_name=rule_name,
-                        bonus_added=round(bonus_points * rank_multiplier, 2),
+                        bonus_added=round(bonus_points, 2),
                         actual_impact=round(actual_impact, 2),
                         triggered_by=triggered_by,
                     )
@@ -223,61 +218,40 @@ class DeterministicScoringEngine:
 
         return raw_scores
 
-    def _evaluate_rule(
-        self,
-        rule_code: str,
-        domain: str,
-        cv_data: dict,
-    ) -> tuple[Optional[str], str, float]:
-        """
-        Đánh giá một rule và trả về (triggered_by_name, rank, rank_multiplier).
-        Nếu rule không trigger, trả về (None, "UNKNOWN", 0.0).
-        """
-        rule_code_upper = rule_code.upper()
+    def _evaluate_rule(self, rule: dict, cv_data: dict) -> Optional[str]:
+        """Evaluate a selected Job rule against the explicitly configured CV field."""
+        source = str(rule.get("evidence_source", "")).upper()
+        eligible_ids = {str(item) for item in rule.get("eligible_entity_ids", [])}
 
-        if "SCHOOL" in rule_code_upper or "UNIVERSITY" in rule_code_upper:
-            # Kiểm tra tất cả trường trong education của CV
-            for edu in cv_data.get("education", []):
-                institution = edu.get("institution", "")
-                rank, _ = knowledge_base.check_university_tier(institution)
-                rank_multiplier = PEDIGREE_RANK_MULTIPLIER.get(rank, 0.0)
+        if source == "GPA":
+            threshold = rule.get("threshold")
+            if threshold is None:
+                return None
+            for education in cv_data.get("education", []):
+                if education.get("gpa") is not None and float(
+                    education["gpa"]
+                ) >= float(threshold):
+                    return f"GPA {education['gpa']}"
+            return None
 
-                # Chỉ trigger nếu rank phù hợp với rule
-                if self._rank_matches_rule(rule_code_upper, rank):
-                    return (institution, rank, rank_multiplier)
+        if source == "EXPERIENCE":
+            values = [item.get("company", "") for item in cv_data.get("experience", [])]
+        elif source == "EDUCATION":
+            values = [
+                item.get("institution", "") for item in cv_data.get("education", [])
+            ]
+        elif source == "CERTIFICATION":
+            values = [
+                item.get("issuer", "") for item in cv_data.get("certifications", [])
+            ]
+        else:
+            return None
 
-        elif "COMPANY" in rule_code_upper:
-            # Kiểm tra tất cả công ty trong experience của CV
-            for exp in cv_data.get("experience", []):
-                company = exp.get("company", "")
-                rank, _ = knowledge_base.check_company_tier(company, domain)
-                rank_multiplier = PEDIGREE_RANK_MULTIPLIER.get(rank, 0.0)
-
-                if self._rank_matches_rule(rule_code_upper, rank):
-                    return (company, rank, rank_multiplier)
-
-        return (None, "UNKNOWN", 0.0)
-
-    @staticmethod
-    def _rank_matches_rule(rule_code_upper: str, rank: str) -> bool:
-        """
-        Kiểm tra rank của tổ chức có match với tiêu chí của rule không.
-
-        Ví dụ:
-          rule INTERNATIONAL_SCHOOL_BONUS → chỉ match rank INTERNATIONAL
-          rule TIER_1_SCHOOL_BONUS        → match INTERNATIONAL hoặc TIER_1
-          rule TIER_2_SCHOOL_BONUS        → match INTERNATIONAL, TIER_1, hoặc TIER_2
-        """
-        if rank == "UNKNOWN":
-            return False
-        if "INTERNATIONAL" in rule_code_upper:
-            return rank == "INTERNATIONAL"
-        if "TIER_1" in rule_code_upper:
-            return rank in ("INTERNATIONAL", "TIER_1")
-        if "TIER_2" in rule_code_upper:
-            return rank in ("INTERNATIONAL", "TIER_1", "TIER_2")
-        # Rule chung (không chỉ định tier): trigger với bất kỳ rank nào
-        return rank != "UNKNOWN"
+        for value in values:
+            entity = kb_loader.resolve_pedigree_entity(value)
+            if entity and entity["id"] in eligible_ids:
+                return entity["name"]
+        return None
 
 
 scoring_engine = DeterministicScoringEngine()

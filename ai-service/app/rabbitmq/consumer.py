@@ -327,6 +327,10 @@ async def _process_application(channel, request: ApplicationProcessRequest):
             "STEP_COMPLETED",
             step="EXTRACTION",
             message="CV extraction completed.",
+            # Core persists this immutable extraction snapshot for HR review and
+            # for the later matching audit trail.  Metrics alone are not enough
+            # to explain what the model actually read from the CV.
+            cvData=cv_data.model_dump(mode="json"),
             **extraction_metrics,
         )
 
@@ -371,6 +375,9 @@ async def _process_application(channel, request: ApplicationProcessRequest):
             message="Job matching completed.",
             matchScore=match_result.overall_score,
             needsReview=state["needs_human_review"],
+            # Preserve evidence, missing criteria, deterministic score details,
+            # and HR recommendation instead of only returning the aggregate.
+            matchResult=match_result.model_dump(mode="json"),
         )
 
     should_build_career_path = (

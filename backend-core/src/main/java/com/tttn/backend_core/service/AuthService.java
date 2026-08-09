@@ -13,13 +13,16 @@ import com.tttn.backend_core.repository.UserRepository;
 import com.tttn.backend_core.security.JwtUtils;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 public class AuthService {
 
   private final UserRepository userRepository;
@@ -96,7 +99,7 @@ public class AuthService {
               .email(request.getEmail())
               .passwordHash(request.getPassword()) // Already encoded
               .fullName(request.getFullName())
-              .role(request.getRole())
+              .role(com.tttn.backend_core.entity.Role.CANDIDATE)
               .isActive(true)
               .build();
 
@@ -109,17 +112,32 @@ public class AuthService {
   }
 
   @Transactional
-  public AuthResponse login(LoginRequest request) {
+  public AuthResponse login(
+      LoginRequest request, List<com.tttn.backend_core.entity.Role> allowedRoles) {
     String email = request.getEmail();
     String lockoutKey = "login:lockout:" + email;
     String attemptsKey = "login:attempts:" + email;
 
+    log.info("Login flow started: email={}, allowedRoles={}", email, allowedRoles);
+
     // Check if account is locked
     if (Boolean.TRUE.equals(redisTemplate.hasKey(lockoutKey))) {
+      log.warn("Login rejected because account is locked: email={}", email);
       throw new AppException(ErrorCode.ACCOUNT_LOCKED);
     }
 
     User user = userRepository.findByEmail(email).orElse(null);
+
+    if (user == null) {
+      log.warn("Login failed because user was not found: email={}", email);
+    } else {
+      log.info(
+          "Login user found: email={}, userId={}, role={}, active={}",
+          email,
+          user.getId(),
+          user.getRole(),
+          user.isActive());
+    }
 
     boolean isPasswordMatch =
         user != null && passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
@@ -137,6 +155,16 @@ public class AuthService {
             .opsForValue()
             .set(lockoutKey, "locked", Duration.ofMinutes(LOCKOUT_DURATION_MINUTES));
         redisTemplate.delete(attemptsKey);
+        log.warn(
+            "Login failed due to invalid credentials and account was locked: email={}, attempts={}",
+            email,
+            attempts);
+      } else {
+        log.warn(
+            "Login failed due to invalid credentials: email={}, userFound={}, attempts={}",
+            email,
+            user != null,
+            attempts);
       }
 
       throw new AppException(
@@ -145,7 +173,18 @@ public class AuthService {
 
     // Password is correct, check active status
     if (!user.isActive()) {
+      log.warn(
+          "Login rejected because account is inactive: email={}, userId={}", email, user.getId());
       throw new AppException(ErrorCode.ACCOUNT_INACTIVE);
+    }
+
+    if (!allowedRoles.contains(user.getRole())) {
+      log.warn(
+          "Login rejected because role is not allowed: email={}, actualRole={}, allowedRoles={}",
+          email,
+          user.getRole(),
+          allowedRoles);
+      throw new AppException(ErrorCode.UNAUTHORIZED);
     }
 
     // Reset failed attempts on successful login
@@ -156,6 +195,8 @@ public class AuthService {
     refreshTokenService.store(user, jwtUtils.parseClaims(refreshToken));
     user.setLastActiveAt(LocalDateTime.now());
     userRepository.save(user);
+
+    log.info("Login succeeded: email={}, userId={}, role={}", email, user.getId(), user.getRole());
 
     return new AuthResponse(
         accessToken, refreshToken, user.getId(), user.getEmail(), user.getRole().name());

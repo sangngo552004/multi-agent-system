@@ -71,6 +71,58 @@ select:disabled,
   text-transform: uppercase;
 }
 
+/* PTIT Careers HR uses the shared white/red foundation. These rules retire the
+   older green feature panels while keeping status colours semantic. */
+.hr-shell {
+  --canvas: #fff8f8;
+  --surface: #ffffff;
+  --surface-soft: #fff0f0;
+  --ink: #292021;
+  --muted: #756366;
+  --faint: #a99699;
+  --border: #f0d9da;
+  --border-strong: #dfbec0;
+  --brand: #da251d;
+  --brand-hover: #b91d17;
+  --accent: #e76545;
+  --signal: #fde1df;
+  --info: #c13d37;
+}
+
+.ptit-hr-content {
+  min-height: calc(100vh - 72px);
+  background:
+    radial-gradient(circle at 92% 0%, rgba(218, 37, 29, 0.09), transparent 25rem),
+    linear-gradient(180deg, #fffdfd 0%, var(--canvas) 60%, #fffafa 100%);
+}
+
+.hr-shell .bg-\[\#f2f5ef\] {
+  background-color: #fff1f1 !important;
+}
+
+.hr-shell .bg-\[\#13291f\],
+.hr-shell .bg-\[\#102a21\] {
+  background-color: var(--surface) !important;
+  color: var(--ink) !important;
+  border-color: var(--border) !important;
+}
+
+.hr-shell .bg-\[\#13291f\] .text-white,
+.hr-shell .bg-\[\#102a21\] .text-white {
+  color: var(--ink) !important;
+}
+
+.hr-shell .bg-\[\#13291f\] .text-signal,
+.hr-shell .bg-\[\#102a21\] .text-signal {
+  color: var(--brand) !important;
+}
+
+.hr-shell .bg-\[\#13291f\] .bg-signal,
+.hr-shell .bg-\[\#102a21\] .bg-signal {
+  background-color: color-mix(in srgb, var(--brand) 10%, white) !important;
+  color: var(--brand) !important;
+}
+
 ::selection {
   background: color-mix(in srgb, var(--signal) 68%, white);
   color: var(--ink);

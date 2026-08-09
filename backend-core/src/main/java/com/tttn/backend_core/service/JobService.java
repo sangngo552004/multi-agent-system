@@ -208,6 +208,7 @@ public class JobService {
     Job job =
         jobRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
     validateJobEditable(job);
+    validateCompetencyWeights(requests);
 
     job.getRequiredCompetencies().clear();
 
@@ -236,6 +237,16 @@ public class JobService {
 
     jobRepository.save(job);
     return jobMapper.toResponse(job);
+  }
+
+  private void validateCompetencyWeights(List<JobCompetencyRequest> requests) {
+    if (requests == null || requests.isEmpty()) {
+      return;
+    }
+    double total = requests.stream().mapToDouble(JobCompetencyRequest::getWeight).sum();
+    if (Math.abs(total - 100.0) > 0.001) {
+      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+    }
   }
 
   @Transactional
