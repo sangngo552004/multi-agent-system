@@ -102,7 +102,7 @@ public class JobController {
 
   @PutMapping("/{id}/competencies")
   public ApiResponse<JobResponse> updateJobCompetencies(
-      @PathVariable UUID id, @Valid @RequestBody List<JobCompetencyRequest> requests) {
+      @PathVariable UUID id, @RequestBody List<@Valid JobCompetencyRequest> requests) {
     return ApiResponse.success(jobService.updateJobCompetencies(id, requests));
   }
 

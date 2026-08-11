@@ -123,8 +123,60 @@ public class ApplicationService {
     Application application = findForHr(id, hrEmail);
 
     application.setStatus(ApplicationStatus.REJECTED);
+    application.setIsCandidateNotified(false);
     applicationRepository.save(application);
+    if (!hasActiveAiRun(application.getId())) {
+      createAiProcessingTask(
+          application,
+          com.tttn.backend_core.entity.AiRunTrigger.HR_REJECTION,
+          application.getJob().getHr(),
+          true);
+    } else {
+      log.info(
+          "Application {} was rejected while AI was active; Career Path will be recovered after the active run",
+          id);
+    }
     log.info("Application {} rejected (Status -> REJECTED)", id);
+  }
+
+  @org.springframework.scheduling.annotation.Scheduled(
+      fixedDelayString = "${ai.processing.rejected-career-path-delay-ms:5000}")
+  @Transactional
+  public void recoverRejectedApplicationsAwaitingCareerPath() {
+    for (Application application :
+        applicationRepository.findByStatusAndIsCandidateNotifiedFalse(ApplicationStatus.REJECTED)) {
+      if (hasCandidateCareerPath(application)) {
+        application.setIsCandidateNotified(true);
+        continue;
+      }
+      if (application.getAiStatus() == com.tttn.backend_core.entity.AiProcessingStatus.WAITING
+          || application.getAiStatus() == com.tttn.backend_core.entity.AiProcessingStatus.PROCESSING
+          || hasActiveAiRun(application.getId())) {
+        continue;
+      }
+      createAiProcessingTask(
+          application,
+          com.tttn.backend_core.entity.AiRunTrigger.HR_REJECTION,
+          application.getJob().getHr(),
+          true);
+      log.info("Recovered Career Path processing for rejected application {}", application.getId());
+    }
+  }
+
+  private boolean hasCandidateCareerPath(Application application) {
+    if (application.getScoringBreakdown() == null) {
+      return false;
+    }
+    Object result = application.getScoringBreakdown().get("career_path_result");
+    return result instanceof java.util.Map<?, ?> map && map.get("candidate_view") != null;
+  }
+
+  private boolean hasActiveAiRun(UUID applicationId) {
+    return runRepository.existsByApplication_IdAndStatusIn(
+        applicationId,
+        java.util.List.of(
+            com.tttn.backend_core.entity.AiProcessingStatus.WAITING,
+            com.tttn.backend_core.entity.AiProcessingStatus.PROCESSING));
   }
 
   private Application findForHr(UUID id, String hrEmail) {
@@ -220,16 +272,33 @@ public class ApplicationService {
   }
 
   private void createAiProcessingTask(Application application) {
+    createAiProcessingTask(
+        application,
+        com.tttn.backend_core.entity.AiRunTrigger.CANDIDATE_SUBMIT,
+        application.getCandidate(),
+        false);
+  }
+
+  private void createAiProcessingTask(
+      Application application,
+      com.tttn.backend_core.entity.AiRunTrigger trigger,
+      com.tttn.backend_core.entity.User requestedBy,
+      boolean forceCareerPath) {
     java.time.LocalDateTime acceptedAt = java.time.LocalDateTime.now();
+    int attempt =
+        runRepository
+            .findTopByApplication_IdOrderByAttemptDesc(application.getId())
+            .map(previous -> previous.getAttempt() + 1)
+            .orElse(1);
     com.tttn.backend_core.entity.AiProcessingRun run =
         runRepository.save(
             com.tttn.backend_core.entity.AiProcessingRun.builder()
                 .application(application)
-                .attempt(1)
+                .attempt(attempt)
                 .status(com.tttn.backend_core.entity.AiProcessingStatus.WAITING)
-                .trigger(com.tttn.backend_core.entity.AiRunTrigger.CANDIDATE_SUBMIT)
+                .trigger(trigger)
                 .idempotencyKey(UUID.randomUUID().toString())
-                .requestedBy(application.getCandidate())
+                .requestedBy(requestedBy)
                 .acceptedAt(acceptedAt)
                 .build());
 
@@ -267,6 +336,14 @@ public class ApplicationService {
     message.put("runId", run.getId().toString());
     message.put("fileUrl", application.getResumeUrl());
     message.put("callbackQueue", "ai.application.process.events");
+    if (forceCareerPath) {
+      message.put("forceCareerPath", true);
+      message.put("decisionOutcome", "REJECTED");
+      message.put("decisionSource", "HR");
+      application.setAiStatus(com.tttn.backend_core.entity.AiProcessingStatus.WAITING);
+      application.setAiErrorCode(null);
+      application.setAiErrorMessage(null);
+    }
 
     java.util.Map<String, Object> snapshot = new java.util.LinkedHashMap<>();
     if (application.getJob() != null) {

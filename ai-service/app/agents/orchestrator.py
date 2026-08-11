@@ -55,6 +55,9 @@ class AgentState(TypedDict):
 
     # Flags
     needs_human_review: bool
+    force_career_path: bool
+    decision_outcome: str | None
+    decision_source: str | None
 
     # Telemetry Metrics
     telemetry: dict | None
@@ -123,11 +126,17 @@ def build_career_path_request_from_state(state: AgentState) -> CareerPathRequest
     )
 
     # Decision Snapshot based on match result
+    forced_outcome = state.get("decision_outcome")
     outcome = (
-        DecisionOutcome.REJECTED
-        if match_result.status == "REJECTED"
-        else DecisionOutcome.PENDING_REVIEW
+        DecisionOutcome(forced_outcome)
+        if forced_outcome
+        else (
+            DecisionOutcome.REJECTED
+            if match_result.status == "REJECTED"
+            else DecisionOutcome.PENDING_REVIEW
+        )
     )
+    source = DecisionSource(state.get("decision_source") or "AUTO_POLICY")
 
     reason_code = (
         "REJECTED" if outcome == DecisionOutcome.REJECTED else "DEVELOPMENT_REQUIRED"
@@ -136,8 +145,8 @@ def build_career_path_request_from_state(state: AgentState) -> CareerPathRequest
     decision = DecisionSnapshot(
         decision_id=f"dec_{state['application_id']}",
         outcome=outcome,
-        is_final=True,
-        source=DecisionSource.AUTO_POLICY,
+        is_final=outcome != DecisionOutcome.PENDING_REVIEW,
+        source=source,
         reason_codes=[reason_code],
         related_competency_ids=[],
         policy_version="policy-1.0",
@@ -147,6 +156,9 @@ def build_career_path_request_from_state(state: AgentState) -> CareerPathRequest
     policy = PlanningPolicy(
         version="policy-1.0",
         applicable_reason_codes=["REJECTED", "DEVELOPMENT_REQUIRED"],
+        allow_candidate_auto_delivery=(
+            source == DecisionSource.HR and outcome == DecisionOutcome.REJECTED
+        ),
     )
 
     return CareerPathRequest(
@@ -207,7 +219,9 @@ async def match_node(state: AgentState) -> dict:
     result = await matching_agent.evaluate_async(request)
     elapsed_ms = int((time.perf_counter() - start_time) * 1000)
 
-    needs_review = result.is_high_potential or result.overall_score >= 50.0
+    needs_review = result.status != "REJECTED" and (
+        result.is_high_potential or result.overall_score >= 50.0
+    )
 
     telemetry = dict(state.get("telemetry") or {})
     telemetry["match_ms"] = elapsed_ms
@@ -296,6 +310,7 @@ async def init_checkpointer():
                 conninfo=settings.DATABASE_URL,
                 max_size=20,
                 kwargs={"autocommit": True},
+                open=False,
             )
             await _postgres_pool.open()
             _postgres_checkpointer = AsyncPostgresSaver(_postgres_pool)

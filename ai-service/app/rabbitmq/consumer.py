@@ -254,6 +254,9 @@ async def _process_application(channel, request: ApplicationProcessRequest):
         "match_result": None,
         "career_path_result": None,
         "needs_human_review": False,
+        "force_career_path": request.force_career_path,
+        "decision_outcome": request.decision_outcome,
+        "decision_source": request.decision_source,
         "telemetry": {},
     }
 
@@ -310,14 +313,20 @@ async def _process_application(channel, request: ApplicationProcessRequest):
             "needsReview": cv_data.status != ExtractionStatus.SUCCESS,
         }
         if cv_data.status == ExtractionStatus.FAILED:
+            llm_failed = "llm_extraction_failed" in cv_data.warnings
+            error_message = (
+                "AI could not extract structured data from the CV."
+                if llm_failed
+                else "The CV file is invalid or unreadable."
+            )
             _publish_application_event(
                 channel,
                 request,
                 "RUN_FAILED",
                 step="EXTRACTION",
-                message="The CV file is invalid or unreadable.",
-                errorCode="INVALID_FILE",
-                errorMessage="The CV file is invalid or unreadable.",
+                message=error_message,
+                errorCode="AI_EXTRACTION_FAILED" if llm_failed else "INVALID_FILE",
+                errorMessage=error_message,
                 **extraction_metrics,
             )
             return
@@ -382,8 +391,14 @@ async def _process_application(channel, request: ApplicationProcessRequest):
 
     should_build_career_path = (
         settings.CAREER_PATH_ENABLED
-        and not state["needs_human_review"]
         and not request.skip_matching
+        and (
+            request.force_career_path
+            or (
+                not state["needs_human_review"]
+                and match_result.status == "REJECTED"
+            )
+        )
     )
     if should_build_career_path:
         _publish_application_event(
@@ -411,11 +426,16 @@ async def _process_application(channel, request: ApplicationProcessRequest):
             message="Career path generation was not required.",
         )
 
+    career_path_result = state.get("career_path_result")
     final_metrics = {
         **extraction_metrics,
         "matchScore": match_result.overall_score,
         "needsReview": state["needs_human_review"],
-        "careerPathResult": state.get("career_path_result", {}),
+        "careerPathResult": (
+            career_path_result.model_dump(mode="json")
+            if career_path_result is not None
+            else None
+        ),
     }
     _publish_application_event(
         channel,

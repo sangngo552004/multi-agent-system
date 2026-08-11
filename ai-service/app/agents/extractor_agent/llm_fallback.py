@@ -118,7 +118,7 @@ Return a JSON object with this exact structure:
         }}
     ],
     "certifications": [
-        {"name": "certificate name", "issuer": "issuing organization or null", "credential_id": "id or null", "issued_at": "YYYY-MM or null", "expires_at": "YYYY-MM or null"}
+        {{"name": "certificate name", "issuer": "issuing organization or null", "credential_id": "id or null", "issued_at": "YYYY-MM or null", "expires_at": "YYYY-MM or null"}}
     ]
 }}
 

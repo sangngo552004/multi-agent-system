@@ -113,9 +113,16 @@ public class CandidateApplicationController {
                         || displayStatus == ApplicationStatus.REJECTED_FINAL) {
                       if (app.getScoringBreakdown() != null
                           && app.getScoringBreakdown().containsKey("career_path_result")) {
-                        careerPathAdvice =
-                            (Map<String, Object>)
-                                app.getScoringBreakdown().get("career_path_result");
+                        Object result = app.getScoringBreakdown().get("career_path_result");
+                        if (result instanceof Map<?, ?> resultMap
+                            && resultMap.get("candidate_view") instanceof Map<?, ?> candidateView) {
+                          careerPathAdvice =
+                              candidateView.entrySet().stream()
+                                  .filter(entry -> entry.getKey() instanceof String)
+                                  .collect(
+                                      Collectors.toMap(
+                                          entry -> (String) entry.getKey(), Map.Entry::getValue));
+                        }
                       }
                     }
                   }

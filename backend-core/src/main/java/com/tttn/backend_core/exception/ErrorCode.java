@@ -87,7 +87,11 @@ public enum ErrorCode {
   CANNOT_UPDATE_PUBLISHED_JOB_WITH_APPLICANTS(
       2018,
       "Cannot update a published job that already has applicants. Please duplicate the job instead.",
-      HttpStatus.BAD_REQUEST);
+      HttpStatus.BAD_REQUEST),
+  DUPLICATE_JOB_COMPETENCY(
+      2019, "A competency can only be configured once per job", HttpStatus.BAD_REQUEST),
+  INVALID_COMPETENCY_WEIGHT_TOTAL(
+      2020, "The total competency weight must equal 100", HttpStatus.BAD_REQUEST);
 
   private final int code;
   private final String message;

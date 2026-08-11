@@ -1,6 +1,7 @@
 package com.tttn.backend_core.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tttn.backend_core.dto.request.JobCompetencyRequest;
 import com.tttn.backend_core.dto.request.JobFilterRequest;
 import com.tttn.backend_core.dto.request.JobRequest;
@@ -21,11 +22,17 @@ import com.tttn.backend_core.repository.InstitutionalRuleRepository;
 import com.tttn.backend_core.repository.JobFamilyRepository;
 import com.tttn.backend_core.repository.JobRepository;
 import com.tttn.backend_core.repository.UserRepository;
+import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class JobService {
 
   private final JobRepository jobRepository;
@@ -44,12 +52,19 @@ public class JobService {
   private final ApplicationRepository applicationRepository;
   private final JobMapper jobMapper;
   private final ObjectMapper objectMapper;
+  private ObjectMapper snapshotObjectMapper;
+
+  @PostConstruct
+  void configureSnapshotObjectMapper() {
+    snapshotObjectMapper = objectMapper.copy().registerModule(new JavaTimeModule());
+  }
 
   private JobResponse getResponse(Job job) {
     if ((job.getStatus() == JobStatus.PUBLISHED || job.getStatus() == JobStatus.CLOSED)
         && job.getSnapshotData() != null) {
       try {
-        JobResponse response = objectMapper.readValue(job.getSnapshotData(), JobResponse.class);
+        JobResponse response =
+            snapshotObjectMapper.readValue(job.getSnapshotData(), JobResponse.class);
         response.setId(job.getId());
         response.setStatus(job.getStatus());
         response.setUpdatedAt(job.getUpdatedAt());
@@ -142,12 +157,14 @@ public class JobService {
 
     JobResponse snapshotObj = jobMapper.toResponse(job);
     try {
-      job.setSnapshotData(objectMapper.writeValueAsString(snapshotObj));
+      job.setSnapshotData(snapshotObjectMapper.writeValueAsString(snapshotObj));
     } catch (Exception e) {
+      log.error("Failed to serialize snapshot while publishing job {}", id, e);
       throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
     }
 
-    return getResponse(jobRepository.save(job));
+    jobRepository.flush();
+    return getResponse(job);
   }
 
   @Transactional
@@ -159,7 +176,8 @@ public class JobService {
       throw new AppException(ErrorCode.JOB_NOT_DRAFT);
     }
     job.setStatus(JobStatus.CLOSED);
-    return jobMapper.toResponse(jobRepository.save(job));
+    jobRepository.flush();
+    return jobMapper.toResponse(job);
   }
 
   @Transactional
@@ -210,32 +228,37 @@ public class JobService {
     validateJobEditable(job);
     validateCompetencyWeights(requests);
 
-    job.getRequiredCompetencies().clear();
-
-    if (requests != null) {
-      List<JobCompetency> newCompetencies =
-          requests.stream()
-              .map(
-                  req -> {
-                    Competency competency =
-                        competencyRepository
-                            .findById(req.getCompetencyId())
-                            .orElseThrow(() -> new AppException(ErrorCode.COMPETENCY_NOT_FOUND));
-
-                    JobCompetency jc = new JobCompetency();
-                    jc.setJob(job);
-                    jc.setCompetency(competency);
-                    jc.setWeight(req.getWeight());
-                    jc.setRequiredLevel(req.getRequiredLevel());
-                    jc.setIsMandatory(req.getIsMandatory());
-                    return jc;
-                  })
-              .collect(Collectors.toList());
-
-      job.getRequiredCompetencies().addAll(newCompetencies);
+    List<JobCompetencyRequest> requestedCompetencies = requests == null ? List.of() : requests;
+    Map<UUID, JobCompetency> existingByCompetencyId = new HashMap<>();
+    for (JobCompetency existing : job.getRequiredCompetencies()) {
+      existingByCompetencyId.put(existing.getCompetency().getId(), existing);
     }
 
-    jobRepository.save(job);
+    Set<UUID> requestedIds =
+        requestedCompetencies.stream()
+            .map(JobCompetencyRequest::getCompetencyId)
+            .collect(Collectors.toSet());
+    job.getRequiredCompetencies()
+        .removeIf(existing -> !requestedIds.contains(existing.getCompetency().getId()));
+
+    for (JobCompetencyRequest request : requestedCompetencies) {
+      JobCompetency jobCompetency = existingByCompetencyId.get(request.getCompetencyId());
+      if (jobCompetency == null) {
+        Competency competency =
+            competencyRepository
+                .findById(request.getCompetencyId())
+                .orElseThrow(() -> new AppException(ErrorCode.COMPETENCY_NOT_FOUND));
+        jobCompetency = new JobCompetency();
+        jobCompetency.setJob(job);
+        jobCompetency.setCompetency(competency);
+        job.getRequiredCompetencies().add(jobCompetency);
+      }
+      jobCompetency.setWeight(request.getWeight());
+      jobCompetency.setRequiredLevel(request.getRequiredLevel());
+      jobCompetency.setIsMandatory(request.getIsMandatory());
+    }
+
+    jobRepository.flush();
     return jobMapper.toResponse(job);
   }
 
@@ -243,9 +266,16 @@ public class JobService {
     if (requests == null || requests.isEmpty()) {
       return;
     }
+    Set<UUID> competencyIds = new HashSet<>();
+    for (JobCompetencyRequest request : requests) {
+      if (!competencyIds.add(request.getCompetencyId())) {
+        throw new AppException(ErrorCode.DUPLICATE_JOB_COMPETENCY);
+      }
+    }
+
     double total = requests.stream().mapToDouble(JobCompetencyRequest::getWeight).sum();
     if (Math.abs(total - 100.0) > 0.001) {
-      throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+      throw new AppException(ErrorCode.INVALID_COMPETENCY_WEIGHT_TOTAL);
     }
   }
 

@@ -188,6 +188,10 @@ public class AiProcessingEventListener {
           objectMapper.convertValue(event.get("careerPathResult"), java.util.Map.class));
       application.setScoringBreakdown(scoringBreakdown);
     }
+    if (run.getTrigger() == AiRunTrigger.HR_REJECTION
+        && application.getStatus() == ApplicationStatus.REJECTED) {
+      application.setIsCandidateNotified(true);
+    }
     activityLogService.recordAiProcessingTerminal(
         application.getId(), application.getCandidate().getFullName(), true, null);
   }
@@ -227,6 +231,10 @@ public class AiProcessingEventListener {
     application.setAiStatus(AiProcessingStatus.FAILED);
     application.setAiErrorCode(errorCode);
     application.setAiErrorMessage(errorMessage);
+    if (run.getTrigger() == AiRunTrigger.HR_REJECTION
+        && application.getStatus() == ApplicationStatus.REJECTED) {
+      application.setIsCandidateNotified(true);
+    }
     updateMetrics(application, event);
     activityLogService.recordAiProcessingTerminal(
         application.getId(), application.getCandidate().getFullName(), false, errorCode);
