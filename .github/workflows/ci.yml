@@ -54,14 +54,27 @@ jobs:
       run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=sangngo552004_multi-agent-system -Dsonar.organization=sangngo552004 -Dsonar.host.url=https://sonarcloud.io
       working-directory: ./backend-core
       env:
-        SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5433/tttn_db
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-    - name: Print Test Logs
+    - name: Print Surefire diagnostics
       if: failure()
-      run: cat target/surefire-reports/*.txt || true
+      run: |
+        find target/surefire-reports -maxdepth 1 -type f -print || true
+        for report in target/surefire-reports/*.{txt,xml,dump,dumpstream}; do
+          [ -f "$report" ] || continue
+          echo "===== $report ====="
+          cat "$report"
+        done
       working-directory: ./backend-core
+
+    - name: Upload Surefire diagnostics
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-surefire-reports
+        path: backend-core/target/surefire-reports
+        if-no-files-found: warn
 
     - name: Debug JaCoCo
       if: always()
