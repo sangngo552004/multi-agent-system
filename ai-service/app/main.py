@@ -4,8 +4,10 @@ Provides REST endpoints for CV extraction and health checks,
 plus optional RabbitMQ consumer for async processing.
 """
 
+import asyncio
 import logging
 import os
+import sys
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -27,6 +29,12 @@ from app.core.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Psycopg async does not support Windows' default Proactor event loop. Set this
+# before Uvicorn starts its loop so the optional Postgres checkpointer works in
+# local Windows development as well as in containers.
+if sys.platform == "win32" and hasattr(asyncio, "WindowsSelectorEventLoopPolicy"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 # ── Logging setup ──────────────────────────────────────────────────
@@ -166,7 +174,8 @@ def model_health():
         "llm_model": settings.LLM_MODEL_NAME,
         "rabbitmq_enabled": settings.RABBITMQ_ENABLED,
         "checkpointer_type": settings.CHECKPOINTER_TYPE,
-        "tracing_enabled": settings.LANGCHAIN_TRACING_V2,
+        "tracing_enabled": settings.langsmith_tracing_enabled,
+        "tracing_project": settings.langsmith_project,
         "metrics_logging_enabled": settings.ENABLE_METRICS_LOGGING,
     }
 

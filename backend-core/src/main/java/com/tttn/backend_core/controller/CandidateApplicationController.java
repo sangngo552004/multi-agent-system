@@ -30,7 +30,7 @@ public class CandidateApplicationController {
   private final UserRepository userRepository;
 
   @PostMapping("/jobs/{jobId}/apply")
-  @RateLimit(action = "apply_job", maxRequests = 3, duration = 1, unit = ChronoUnit.DAYS)
+  @RateLimit(action = "apply_job_v2", maxRequests = 20, duration = 1, unit = ChronoUnit.HOURS)
   public ApiResponse<CandidateApplicationResponse> applyForJob(
       @PathVariable UUID jobId, @RequestParam("cvFile") MultipartFile cvFile, Principal principal) {
 
@@ -64,7 +64,11 @@ public class CandidateApplicationController {
   }
 
   @PostMapping("/jobs/{jobId}/apply-master")
-  @RateLimit(action = "apply_job_master", maxRequests = 3, duration = 1, unit = ChronoUnit.DAYS)
+  @RateLimit(
+      action = "apply_job_master_v2",
+      maxRequests = 20,
+      duration = 1,
+      unit = ChronoUnit.HOURS)
   public ApiResponse<CandidateApplicationResponse> applyWithMasterCv(
       @PathVariable UUID jobId, Principal principal) {
 
@@ -113,9 +117,16 @@ public class CandidateApplicationController {
                         || displayStatus == ApplicationStatus.REJECTED_FINAL) {
                       if (app.getScoringBreakdown() != null
                           && app.getScoringBreakdown().containsKey("career_path_result")) {
-                        careerPathAdvice =
-                            (Map<String, Object>)
-                                app.getScoringBreakdown().get("career_path_result");
+                        Object result = app.getScoringBreakdown().get("career_path_result");
+                        if (result instanceof Map<?, ?> resultMap
+                            && resultMap.get("candidate_view") instanceof Map<?, ?> candidateView) {
+                          careerPathAdvice =
+                              candidateView.entrySet().stream()
+                                  .filter(entry -> entry.getKey() instanceof String)
+                                  .collect(
+                                      Collectors.toMap(
+                                          entry -> (String) entry.getKey(), Map.Entry::getValue));
+                        }
                       }
                     }
                   }

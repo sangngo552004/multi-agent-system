@@ -6,10 +6,72 @@ import { toast } from "sonner";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { handleApiError } from "@/lib/api-error";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { hrWorkLocationOptions } from "@/features/hr/jobs/jobs.constants";
 import { apiRequest as fetchApi } from "@/services/http/api-client";
 import type { HrJobFormValues } from "../jobs.schema";
+
+type AiJobInfo = {
+  title?: string;
+  location?: string;
+  employmentType?: string;
+  description?: string;
+  requirements?: string;
+  benefits?: string;
+  jobFamilyId?: string | null;
+  careerLevelId?: string | null;
+};
+
+type AiCompetencyProposal = {
+  competencyId?: string | null;
+  name: string;
+  category?: string;
+  requiredLevel?: number;
+  weight?: number;
+  isMandatory?: boolean;
+  reason?: string;
+  status: "MATCHED" | "PROPOSED_NEW";
+};
+
+type AiRuleSuggestion = {
+  ruleId: string;
+  reason?: string;
+};
+
+type AiParseResult = {
+  jobInfo: AiJobInfo;
+  competencyProposals: AiCompetencyProposal[];
+  suggestedRules: AiRuleSuggestion[];
+};
+
+const supportedEmploymentTypes = new Set<HrJobFormValues["employmentType"]>([
+  "FULL_TIME",
+  "PART_TIME",
+  "INTERNSHIP",
+  "CONTRACT",
+]);
+
+function toLines(value: string) {
+  return value
+    .split("\n")
+    .map((line) => line.replace(/^\s*[-*]\s*/, "").trim())
+    .filter(Boolean);
+}
+
+function balanceWeights(items: AiCompetencyProposal[]) {
+  if (!items.length) return items;
+  const total = items.reduce((sum, item) => sum + Math.max(Number(item.weight ?? 10), 0), 0);
+  const basis = total || items.length;
+  let allocated = 0;
+  return items.map((item, index) => {
+    const weight = index === items.length - 1
+      ? Number((100 - allocated).toFixed(2))
+      : Number(((Math.max(Number(item.weight ?? 10), 0) / basis) * 100).toFixed(2));
+    allocated += weight;
+    return { ...item, weight };
+  });
+}
 
 export function JobAiParserModal() {
   const t = useTranslations();
@@ -18,8 +80,8 @@ export function JobAiParserModal() {
 
   const [open, setOpen] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
-  const [review, setReview] = useState<Record<string, unknown> | null>(null);
-  const [selectedCompetencies, setSelectedCompetencies] = useState<Array<Record<string, unknown>>>([]);
+  const [review, setReview] = useState<AiParseResult | null>(null);
+  const [selectedCompetencies, setSelectedCompetencies] = useState<AiCompetencyProposal[]>([]);
   const [selectedRuleIds, setSelectedRuleIds] = useState<string[]>([]);
   const [selectedNewNames, setSelectedNewNames] = useState<string[]>([]);
 
@@ -39,15 +101,17 @@ export function JobAiParserModal() {
 
     setIsParsing(true);
     try {
-      const result = await fetchApi<Record<string, unknown>>("/api/v1/hr/jobs/parse", {
+      const result = await fetchApi<AiParseResult>("/api/v1/hr/jobs/parse", {
         method: "POST",
         body: JSON.stringify({ text: sourceText }),
       });
 
       setReview(result);
-      const proposals = Array.isArray(result.competencyProposals) ? result.competencyProposals as Array<Record<string, unknown>> : [];
-      setSelectedCompetencies(proposals.filter((item) => item.status === "MATCHED" && item.competencyId));
-      setSelectedRuleIds((Array.isArray(result.suggestedRules) ? result.suggestedRules as Array<Record<string, unknown>> : []).map((item) => String(item.ruleId)));
+      const proposals = Array.isArray(result.competencyProposals) ? result.competencyProposals : [];
+      setSelectedCompetencies(
+        balanceWeights(proposals.filter((item) => item.status === "MATCHED" && item.competencyId)),
+      );
+      setSelectedRuleIds((Array.isArray(result.suggestedRules) ? result.suggestedRules : []).map((item) => item.ruleId));
       setSelectedNewNames([]);
     } catch (error: unknown) {
       handleApiError(error, t);
@@ -57,21 +121,27 @@ export function JobAiParserModal() {
   };
 
   const applyReview = async () => {
-      const result = review ?? {};
-      const jobInfo = result.jobInfo as Record<string, unknown> | undefined;
-      if (jobInfo?.title) setValue("title", String(jobInfo.title), { shouldValidate: true, shouldDirty: true });
-      if (jobInfo?.description) setValue("description", String(jobInfo.description), { shouldValidate: true, shouldDirty: true });
-      if (jobInfo?.requirements) {
-        setValue("requirementsText", String(jobInfo.requirements).split("\n").filter(Boolean), { shouldValidate: true, shouldDirty: true });
+    if (!review) return;
+
+    try {
+      const { jobInfo } = review;
+      if (jobInfo.title) setValue("title", jobInfo.title, { shouldValidate: true, shouldDirty: true });
+      if (jobInfo.location && hrWorkLocationOptions.includes(jobInfo.location)) {
+        setValue("location", jobInfo.location, { shouldValidate: true, shouldDirty: true });
       }
-      if (jobInfo?.benefits) {
-        setValue("benefitsText", String(jobInfo.benefits).split("\n").filter(Boolean), { shouldValidate: true, shouldDirty: true });
+      if (jobInfo.employmentType && supportedEmploymentTypes.has(jobInfo.employmentType as HrJobFormValues["employmentType"])) {
+        setValue("employmentType", jobInfo.employmentType as HrJobFormValues["employmentType"], { shouldValidate: true, shouldDirty: true });
       }
-      const matched = selectedCompetencies.map((item) => ({ competencyId: String(item.competencyId), name: String(item.name), requiredLevel: Number(item.requiredLevel ?? 3), weight: Number(item.weight ?? 10), mandatory: Boolean(item.isMandatory) }));
-      const proposals = Array.isArray(result.competencyProposals) ? result.competencyProposals as Array<Record<string, unknown>> : [];
-      const newProposals = proposals.filter((item) => item.status === "PROPOSED_NEW" && selectedNewNames.includes(String(item.name)));
+      if (jobInfo.description) setValue("description", jobInfo.description, { shouldValidate: true, shouldDirty: true });
+      if (jobInfo.requirements) setValue("requirementsText", toLines(jobInfo.requirements), { shouldValidate: true, shouldDirty: true });
+      if (jobInfo.benefits) setValue("benefitsText", toLines(jobInfo.benefits), { shouldValidate: true, shouldDirty: true });
+      if (jobInfo.jobFamilyId) setValue("jobFamilyId", jobInfo.jobFamilyId, { shouldValidate: true, shouldDirty: true });
+      if (jobInfo.careerLevelId) setValue("careerLevelId", jobInfo.careerLevelId, { shouldValidate: true, shouldDirty: true });
+
+      const matched = selectedCompetencies.map((item) => ({ competencyId: String(item.competencyId), name: item.name, requiredLevel: Number(item.requiredLevel ?? 3), weight: Number(item.weight ?? 10), mandatory: Boolean(item.isMandatory) }));
+      const newProposals = review.competencyProposals.filter((item) => item.status === "PROPOSED_NEW" && selectedNewNames.includes(item.name));
       for (const item of newProposals) {
-        const created = await fetchApi<{ id: string; name: string }>("/api/v1/hr/competencies", { method: "POST", body: JSON.stringify({ name: String(item.name), category: String(item.category ?? "HARD_SKILL"), description: String(item.reason || `Năng lực được HR duyệt từ JD: ${item.name}`) }) });
+        const created = await fetchApi<{ id: string; name: string }>("/api/v1/hr/competencies", { method: "POST", body: JSON.stringify({ name: item.name, category: item.category ?? "HARD_SKILL", description: item.reason || `Năng lực được HR duyệt từ JD: ${item.name}` }) });
         matched.push({ competencyId: created.id, name: created.name, requiredLevel: Number(item.requiredLevel ?? 3), weight: Number(item.weight ?? 10), mandatory: Boolean(item.isMandatory) });
       }
       if (matched.length) setValue("competencies", matched, { shouldValidate: true, shouldDirty: true });
@@ -79,6 +149,9 @@ export function JobAiParserModal() {
 
       toast.success("Đã áp dụng các đề xuất được xác nhận vào Job Form.");
       setOpen(false);
+    } catch (error: unknown) {
+      handleApiError(error, t);
+    }
   };
 
   return (
@@ -90,11 +163,11 @@ export function JobAiParserModal() {
       </DialogTrigger>
       <DialogContent title="AI kiểm tra và chuẩn hóa nội dung" className="max-w-xl">
         <div className="space-y-4 py-4">
-          {!review ? <p className="text-sm leading-6 text-muted">AI sẽ đọc trực tiếp phần mô tả, yêu cầu và quyền lợi bạn đã nhập để chuẩn hóa nội dung. Hãy điền cụ thể trách nhiệm, kinh nghiệm, kỹ năng và quyền lợi để kết quả trích xuất chính xác hơn.</p> : <ReviewSummary result={review} selected={selectedCompetencies} onChange={setSelectedCompetencies} ruleIds={selectedRuleIds} onRulesChange={setSelectedRuleIds} newNames={selectedNewNames} onNewNamesChange={setSelectedNewNames} />}
+          {!review ? <p className="text-sm leading-6 text-muted">AI sẽ đọc trực tiếp phần mô tả, yêu cầu và quyền lợi bạn đã nhập để chuẩn hóa nội dung. Hãy điền cụ thể trách nhiệm, kinh nghiệm, kỹ năng và quyền lợi để kết quả trích xuất chính xác hơn.</p> : <ReviewSummary result={review} selected={selectedCompetencies} onChange={setSelectedCompetencies} onToggle={(items) => setSelectedCompetencies(balanceWeights(items))} ruleIds={selectedRuleIds} onRulesChange={setSelectedRuleIds} newNames={selectedNewNames} onNewNamesChange={setSelectedNewNames} />}
           <div className="rounded-[9px] border border-border bg-surface-soft p-3 text-xs text-muted">Nguồn dữ liệu hiện có: {sourceText ? `${sourceText.length} ký tự` : "chưa có nội dung"}</div>
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="ghost" onClick={() => { setReview(null); setOpen(false); }}>Hủy</Button>
-            {review ? <Button type="button" onClick={applyReview}>Áp dụng đề xuất</Button> : <Button type="button" onClick={handleParse} loading={isParsing}>{isParsing ? <><Loader2 className="mr-2 size-4 animate-spin" /> Đang phân tích...</> : <><Sparkles className="mr-2 size-4" /> Phân tích ngay</>}</Button>}
+            {review ? <Button type="button" onClick={applyReview}>Áp dụng đề xuất</Button> : <Button type="button" onClick={handleParse} loading={isParsing} disabled={!sourceText.trim()} title={!sourceText.trim() ? "Nhập mô tả, yêu cầu hoặc quyền lợi để phân tích." : undefined}>{isParsing ? <><Loader2 className="mr-2 size-4 animate-spin" /> Đang phân tích...</> : <><Sparkles className="mr-2 size-4" /> Phân tích ngay</>}</Button>}
           </div>
         </div>
       </DialogContent>
@@ -102,9 +175,9 @@ export function JobAiParserModal() {
   );
 }
 
-function ReviewSummary({ result, selected, onChange, ruleIds, onRulesChange, newNames, onNewNamesChange }: { result: Record<string, unknown>; selected: Array<Record<string, unknown>>; onChange: (items: Array<Record<string, unknown>>) => void; ruleIds: string[]; onRulesChange: (ids: string[]) => void; newNames: string[]; onNewNamesChange: (names: string[]) => void }) {
-  const proposals = Array.isArray(result.competencyProposals) ? result.competencyProposals as Array<Record<string, unknown>> : [];
-  const rules = Array.isArray(result.suggestedRules) ? result.suggestedRules as Array<Record<string, unknown>> : [];
+function ReviewSummary({ result, selected, onChange, onToggle, ruleIds, onRulesChange, newNames, onNewNamesChange }: { result: AiParseResult; selected: AiCompetencyProposal[]; onChange: (items: AiCompetencyProposal[]) => void; onToggle: (items: AiCompetencyProposal[]) => void; ruleIds: string[]; onRulesChange: (ids: string[]) => void; newNames: string[]; onNewNamesChange: (names: string[]) => void }) {
+  const proposals = result.competencyProposals ?? [];
+  const rules = result.suggestedRules ?? [];
   const update = (id: string, key: string, value: unknown) => onChange(selected.map((item) => String(item.competencyId) === id ? { ...item, [key]: value } : item));
-  return <div className="space-y-3"><p className="text-sm font-medium text-ink">Xác nhận và chỉnh sửa bản nháp AI</p>{proposals.map((item) => item.status === "PROPOSED_NEW" ? <label key={String(item.name)} className="block rounded border border-warning/40 p-3 text-xs text-muted"><input type="checkbox" checked={newNames.includes(String(item.name))} onChange={(e) => onNewNamesChange(e.target.checked ? [...newNames, String(item.name)] : newNames.filter((name) => name !== String(item.name)))} /> {String(item.name)} — tạo competency dùng chung trong Kho năng lực</label> : <div key={String(item.competencyId)} className="grid grid-cols-[1fr_58px_58px_auto] gap-2 rounded border border-border p-3 text-xs"><label><input type="checkbox" checked={selected.some((x) => String(x.competencyId) === String(item.competencyId))} onChange={(e) => onChange(e.target.checked ? [...selected, item] : selected.filter((x) => String(x.competencyId) !== String(item.competencyId)))} /> {String(item.name)}</label><input type="number" min="1" max="5" value={Number(selected.find((x) => String(x.competencyId) === String(item.competencyId))?.requiredLevel ?? 3)} onChange={(e) => update(String(item.competencyId), "requiredLevel", Number(e.target.value))} /><input type="number" min="1" max="100" value={Number(selected.find((x) => String(x.competencyId) === String(item.competencyId))?.weight ?? 10)} onChange={(e) => update(String(item.competencyId), "weight", Number(e.target.value))} /><label><input type="checkbox" checked={Boolean(selected.find((x) => String(x.competencyId) === String(item.competencyId))?.isMandatory)} onChange={(e) => update(String(item.competencyId), "isMandatory", e.target.checked)} /> Bắt buộc</label></div>)}<div className="rounded border border-border p-3 text-xs text-muted"><p className="mb-2 font-medium text-ink">Rule gợi ý</p>{rules.map((rule) => <label key={String(rule.ruleId)} className="mr-3 inline-flex items-center gap-1"><input type="checkbox" checked={ruleIds.includes(String(rule.ruleId))} onChange={(e) => onRulesChange(e.target.checked ? [...ruleIds, String(rule.ruleId)] : ruleIds.filter((id) => id !== String(rule.ruleId)))} /> {String(rule.reason || rule.ruleId)}</label>)}</div></div>;
+  return <div className="space-y-4"><div><p className="text-sm font-medium text-ink">Xác nhận và chỉnh sửa bản nháp AI</p><p className="mt-1 text-xs leading-5 text-muted">Chọn các năng lực cần dùng. Cấp độ thể hiện mức thành thạo yêu cầu (1–5); trọng số là mức độ ảnh hưởng đến tổng điểm đối sánh. Khi chọn hoặc bỏ năng lực, hệ thống tự cân bằng tổng trọng số về 100%.</p></div><div className="space-y-2">{proposals.map((item) => item.status === "PROPOSED_NEW" ? <label key={String(item.name)} className="block rounded border border-warning/40 p-3 text-xs text-muted"><input type="checkbox" checked={newNames.includes(String(item.name))} onChange={(e) => onNewNamesChange(e.target.checked ? [...newNames, String(item.name)] : newNames.filter((name) => name !== String(item.name)))} /> {String(item.name)} — tạo competency dùng chung trong Kho năng lực</label> : <div key={String(item.competencyId)} className="rounded border border-border p-3 text-xs"><div className="flex items-start justify-between gap-3"><label className="font-medium text-ink"><input type="checkbox" checked={selected.some((x) => String(x.competencyId) === String(item.competencyId))} onChange={(e) => onToggle(e.target.checked ? [...selected, item] : selected.filter((x) => String(x.competencyId) !== String(item.competencyId)))} /> {String(item.name)}</label><label className="shrink-0 text-muted"><input type="checkbox" checked={Boolean(selected.find((x) => String(x.competencyId) === String(item.competencyId))?.isMandatory)} onChange={(e) => update(String(item.competencyId), "isMandatory", e.target.checked)} /> Bắt buộc</label></div>{item.reason ? <p className="mt-1.5 leading-5 text-muted">{item.reason}</p> : null}<div className="mt-3 grid grid-cols-2 gap-3"><label className="text-muted">Cấp độ yêu cầu <input aria-label={`Cấp độ yêu cầu ${item.name}`} className="mt-1 block w-full rounded border border-border px-2 py-1 text-ink" type="number" min="1" max="5" value={Number(selected.find((x) => String(x.competencyId) === String(item.competencyId))?.requiredLevel ?? 3)} onChange={(e) => update(String(item.competencyId), "requiredLevel", Number(e.target.value))} /></label><label className="text-muted">Trọng số (%) <input aria-label={`Trọng số ${item.name}`} className="mt-1 block w-full rounded border border-border px-2 py-1 text-ink" type="number" min="1" max="100" value={Number(selected.find((x) => String(x.competencyId) === String(item.competencyId))?.weight ?? 10)} onChange={(e) => update(String(item.competencyId), "weight", Number(e.target.value))} /></label></div></div>)}</div><div className="rounded border border-border p-3 text-xs text-muted"><p className="mb-2 font-medium text-ink">Rule gợi ý</p>{rules.length ? <div className="space-y-2">{rules.map((rule) => <label key={String(rule.ruleId)} className="flex items-center gap-2"><input type="checkbox" checked={ruleIds.includes(String(rule.ruleId))} onChange={(e) => onRulesChange(e.target.checked ? [...ruleIds, String(rule.ruleId)] : ruleIds.filter((id) => id !== String(rule.ruleId)))} /> {String(rule.reason || "Rule từ kho chính sách")}</label>)}</div> : <p>AI không đề xuất rule phù hợp.</p>}</div></div>;
 }

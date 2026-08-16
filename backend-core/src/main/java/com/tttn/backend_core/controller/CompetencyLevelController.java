@@ -1,12 +1,17 @@
 package com.tttn.backend_core.controller;
 
+import com.tttn.backend_core.dto.request.CompetencyLevelsRequest;
 import com.tttn.backend_core.dto.response.ApiResponse;
 import com.tttn.backend_core.dto.response.CompetencyLevelResponse;
 import com.tttn.backend_core.service.CompetencyLevelService;
+import jakarta.validation.Valid;
+import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,9 +30,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class CompetencyLevelController {
 
   private final CompetencyLevelService competencyLevelService;
+  private final com.tttn.backend_core.service.AdminKnowledgeService adminKnowledgeService;
 
-  public CompetencyLevelController(CompetencyLevelService competencyLevelService) {
+  public CompetencyLevelController(
+      CompetencyLevelService competencyLevelService,
+      com.tttn.backend_core.service.AdminKnowledgeService adminKnowledgeService) {
     this.competencyLevelService = competencyLevelService;
+    this.adminKnowledgeService = adminKnowledgeService;
   }
 
   /**
@@ -51,5 +60,14 @@ public class CompetencyLevelController {
   public ApiResponse<CompetencyLevelResponse> getOneLevel(
       @PathVariable UUID competencyId, @PathVariable Integer level) {
     return ApiResponse.success(competencyLevelService.getOne(competencyId, level));
+  }
+
+  @PutMapping("/{competencyId}/levels")
+  public ApiResponse<?> updateLevels(
+      @PathVariable UUID competencyId,
+      @Valid @RequestBody CompetencyLevelsRequest request,
+      Principal principal) {
+    return ApiResponse.success(
+        adminKnowledgeService.updateCompetencyLevels(competencyId, request, principal.getName()));
   }
 }

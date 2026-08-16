@@ -14,6 +14,8 @@ import logging
 import time
 from typing import Optional
 
+from langsmith import traceable
+
 from app.core.config import settings
 from app.core.schemas import (
     CategorizedSkills,
@@ -118,7 +120,7 @@ Return a JSON object with this exact structure:
         }}
     ],
     "certifications": [
-        {"name": "certificate name", "issuer": "issuing organization or null", "credential_id": "id or null", "issued_at": "YYYY-MM or null", "expires_at": "YYYY-MM or null"}
+        {{"name": "certificate name", "issuer": "issuing organization or null", "credential_id": "id or null", "issued_at": "YYYY-MM or null", "expires_at": "YYYY-MM or null"}}
     ]
 }}
 
@@ -178,6 +180,7 @@ class GeminiProvider:
             self._client = genai.Client(api_key=settings.GOOGLE_API_KEY)
         return self._client
 
+    @traceable(name="cv-llm-extraction", run_type="llm")
     async def extract_cv_data(self, text: str) -> Optional[dict]:
         """Extract CV data using Gemini API asynchronously."""
         if not settings.GOOGLE_API_KEY:

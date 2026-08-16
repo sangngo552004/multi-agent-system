@@ -67,6 +67,10 @@ public interface ApplicationRepository
   @Query("select a from Application a where a.id in :ids")
   List<Application> findAdminApplicationsByIds(@Param("ids") List<UUID> ids);
 
+  @org.springframework.data.jpa.repository.EntityGraph(
+      attributePaths = {"candidate", "job", "job.hr", "job.requiredCompetencies"})
+  List<Application> findByStatusAndIsCandidateNotifiedFalse(ApplicationStatus status);
+
   @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"candidate", "job"})
   @Query("select a from Application a where a.id = :id")
   java.util.Optional<Application> findAdminApplicationById(@Param("id") UUID id);

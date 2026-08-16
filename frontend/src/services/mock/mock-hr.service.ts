@@ -269,7 +269,7 @@ class MockHrService implements HrService {
     const funnelLabels: Record<RecruitmentStatus, string> = {
       PENDING: "Mới nhận",
       REVIEWING: "Đang xem",
-      SHORTLISTED: "Danh sách ngắn",
+      SHORTLISTED: "Đã duyệt",
       HIRED: "Đã tuyển",
       REJECTED: "Không phù hợp",
     };
@@ -289,7 +289,7 @@ class MockHrService implements HrService {
         { id: "open-jobs", label: "Vị trí đang tuyển", value: openJobs.length, note: `${jobs.length} tin đang phụ trách`, href: "/hr/jobs?status=OPEN" },
         { id: "new-applications", label: `Hồ sơ mới / ${range} ngày`, value: applicationsInRange.filter((item) => item.recruitmentStatus === "PENDING").length, note: "Theo ngày ứng tuyển", href: "/hr/applications?status=PENDING" },
         { id: "pending-review", label: "Đang chờ xem xét", value: pendingApplications.length + reviewingApplications.length, note: `${reviewingApplications.length} hồ sơ đã mở`, href: "/hr/applications?status=REVIEWING", emphasis: pendingApplications.length > 0 },
-        { id: "shortlisted", label: "Danh sách ngắn", value: shortlistedApplications.length, note: "Đang tiếp tục trao đổi", href: "/hr/applications?status=SHORTLISTED" },
+        { id: "shortlisted", label: "Đã duyệt", value: shortlistedApplications.length, note: "Chờ liên hệ", href: "/hr/applications?status=SHORTLISTED" },
         { id: "expiring-jobs", label: "Tin sắp hết hạn", value: expiringJobs.length, note: "Trong 7 ngày tới", href: "/hr/jobs?deadline=EXPIRING", emphasis: expiringJobs.length > 0 },
       ],
       attention: [

@@ -26,6 +26,11 @@ export function useUpdateHrApplicationStatus() {
   return useMutation({ mutationFn: (input: UpdateHrApplicationStatusInput) => hrService.updateApplicationStatus(input), onSuccess: invalidate });
 }
 
+export function useRetryCareerPath() {
+  const invalidate = useInvalidateApplications();
+  return useMutation({ mutationFn: (applicationId: string) => hrService.retryCareerPath(applicationId), onSuccess: invalidate });
+}
+
 export function useAddHrApplicationNote() {
   const invalidate = useInvalidateApplications();
   return useMutation({ mutationFn: (input: AddHrApplicationNoteInput) => hrService.addApplicationNote(input), onSuccess: invalidate });

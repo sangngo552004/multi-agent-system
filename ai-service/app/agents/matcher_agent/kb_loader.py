@@ -158,7 +158,7 @@ def _load_raw(force: bool = False) -> None:
 
     try:
         url = f"{settings.BACKEND_BASE_URL}/api/v1/hr/knowledge-base/pedigrees"
-        with httpx.Client(timeout=5.0) as client:
+        with httpx.Client(timeout=settings.KB_WARMUP_TIMEOUT_SECONDS) as client:
             response = client.get(url)
             response.raise_for_status()
             entities = response.json().get("result", [])

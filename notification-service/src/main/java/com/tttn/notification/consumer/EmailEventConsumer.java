@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,6 +22,9 @@ public class EmailEventConsumer {
     private final EmailJobRepository emailJobRepository;
     private final EmailService emailService;
     private final RabbitTemplate rabbitTemplate;
+
+    @Value("${notification.email.demo-delay-ms:0}")
+    private long demoDelayMs;
 
     private static final String REPLY_QUEUE = "core.status.reply.queue";
 
@@ -55,13 +59,22 @@ public class EmailEventConsumer {
             // If eventId already exists, this will throw DataIntegrityViolationException
             emailJobRepository.saveAndFlush(job);
         } catch (DataIntegrityViolationException e) {
-            log.warn("Duplicate message detected for event {}. Ignoring.", eventId);
-            return; // Exit early, do not process again
+            EmailJob existingJob = emailJobRepository.findById(eventId).orElse(null);
+            if (existingJob == null || "PROCESSING".equals(existingJob.getStatus())) {
+                log.warn("Duplicate message detected for event {} while still processing.", eventId);
+                return;
+            }
+            log.info("Duplicate message detected for event {}; replaying stored result.", eventId);
+            publishReply(eventId, applicationId, batchJobId, action, existingJob.getStatus());
+            return;
         }
 
         // 2. Send Email
         String status = "SUCCESS";
         try {
+            if (demoDelayMs > 0) {
+                Thread.sleep(demoDelayMs);
+            }
             emailService.sendEmail(recipient, subjectTemplate, bodyTemplate);
             job.setStatus(status);
         } catch (Exception e) {
@@ -75,12 +88,16 @@ public class EmailEventConsumer {
         emailJobRepository.save(job);
 
         // 3. Saga Reply back to Core
+        publishReply(eventId, applicationId, batchJobId, action, status);
+    }
+
+    private void publishReply(String eventId, String applicationId, String batchJobId, String action, String status) {
         Map<String, String> reply = new HashMap<>();
+        reply.put("eventId", eventId);
         reply.put("applicationId", applicationId);
         reply.put("batchJobId", batchJobId);
         reply.put("action", action);
         reply.put("status", status);
-
         rabbitTemplate.convertAndSend(REPLY_QUEUE, reply);
         log.info("Published reply {} to {} for application {}", status, REPLY_QUEUE, applicationId);
     }

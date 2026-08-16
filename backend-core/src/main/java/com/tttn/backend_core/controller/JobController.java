@@ -91,18 +91,18 @@ public class JobController {
   }
 
   @PostMapping("/{id}/publish")
-  public ApiResponse<JobResponse> publishJob(@PathVariable UUID id, Principal principal) {
-    return ApiResponse.success(jobService.publishJob(id, principal.getName()));
+  public ApiResponse<JobResponse> publishJob(@PathVariable UUID id) {
+    return ApiResponse.success(jobService.publishJob(id));
   }
 
   @PostMapping("/{id}/close")
-  public ApiResponse<JobResponse> closeJob(@PathVariable UUID id, Principal principal) {
-    return ApiResponse.success(jobService.closeJob(id, principal.getName()));
+  public ApiResponse<JobResponse> closeJob(@PathVariable UUID id) {
+    return ApiResponse.success(jobService.closeJob(id));
   }
 
   @PutMapping("/{id}/competencies")
   public ApiResponse<JobResponse> updateJobCompetencies(
-      @PathVariable UUID id, @Valid @RequestBody List<JobCompetencyRequest> requests) {
+      @PathVariable UUID id, @RequestBody List<@Valid JobCompetencyRequest> requests) {
     return ApiResponse.success(jobService.updateJobCompetencies(id, requests));
   }
 

@@ -45,21 +45,31 @@ function toHrApplication(item: Record<string, unknown>): HrApplicationDetail {
   const aiStatus = item.aiStatus as HrApplicationDetail["aiStatus"];
   const score = item.fitScore == null ? undefined : Number(item.fitScore);
   const persisted = asRecord(item.scoringBreakdown);
-  const cvData = asRecord(persisted.extracted_cv_data);
-  const matching = asRecord(persisted.matching_result);
+  // Accept snapshots produced by both the current event contract and older
+  // camelCase/snake_case deployments so historical applications remain readable.
+  const cvData = asRecord(
+    persisted.extracted_cv_data ?? persisted.extractedCvData ?? persisted.cv_data ?? persisted.cvData,
+  );
+  const matching = asRecord(
+    persisted.matching_result ?? persisted.matchingResult ?? persisted.match_result ?? persisted.matchResult,
+  );
   const metadata = asRecord(cvData.professional_metadata);
   const processingLog = asRecord(cvData.processing_log);
   const categorizedSkills = asRecord(cvData.categorized_skills);
-  const scoreDetails = asRecords(asRecord(matching.scoring_breakdown).competency_scores);
+  const scoreDetails = asRecords(
+    asRecord(matching.scoring_breakdown ?? matching.scoringBreakdown).competency_scores
+      ?? asRecord(matching.scoring_breakdown ?? matching.scoringBreakdown).competencyScores,
+  );
   const scoreByCompetency = new Map(scoreDetails.map((detail) => [String(detail.competency_id), detail]));
-  const competencyEvidence = asRecords(matching.evidence_matrix).map((evidence) => {
-    const detail = scoreByCompetency.get(String(evidence.competency_id)) ?? {};
-    const meets = Boolean(evidence.meets_requirement);
+  const competencyEvidence = asRecords(matching.evidence_matrix ?? matching.evidenceMatrix).map((evidence) => {
+    const competencyId = String(evidence.competency_id ?? evidence.competencyId ?? "");
+    const detail = scoreByCompetency.get(competencyId) ?? {};
+    const meets = Boolean(evidence.meets_requirement ?? evidence.meetsRequirement);
     const confidence = String(evidence.confidence ?? "LOW").toUpperCase() as "HIGH" | "MEDIUM" | "LOW";
     return {
-      competencyId: String(evidence.competency_id ?? ""),
-      name: String(evidence.competency_name ?? detail.competency_name ?? "Năng lực chưa xác định"),
-      requiredLevel: Number(detail.required_level ?? 0),
+      competencyId,
+      name: String(evidence.competency_name ?? evidence.competencyName ?? detail.competency_name ?? detail.competencyName ?? "Năng lực chưa xác định"),
+      requiredLevel: Number(detail.required_level ?? detail.requiredLevel ?? 0),
       weight: Number(detail.weight ?? 0),
       mandatory: Boolean(detail.is_mandatory),
       evidence: String(evidence.evidence ?? "Không có thông tin trong CV."),
@@ -74,8 +84,8 @@ function toHrApplication(item: Record<string, unknown>): HrApplicationDetail {
   ].map(([group, skills]) => ({ group: String(group), skills: toTextList(skills) })).filter((group) => group.skills.length > 0);
   return {
     id: String(item.id), candidateId: String(item.candidateId), candidateName: String(item.candidateName ?? ""), candidateEmail: String(item.candidateEmail ?? ""),
-    jobId: String(item.jobId), jobTitle: String(item.jobTitle ?? ""), jobLocation: String(item.jobLocation ?? ""), departmentName: String(item.departmentName ?? ""),
-    recruitmentStatus: status, aiStatus, submittedAt: String(item.appliedAt ?? ""), updatedAt: String(item.updatedAt ?? ""),
+    jobId: String(item.jobId), jobTitle: String(item.jobTitle ?? ""), jobLocation: String(item.jobLocation ?? ""), departmentName: String(item.departmentName ?? ""), resumeUrl: item.resumeUrl ? String(item.resumeUrl) : undefined,
+    recruitmentStatus: status, aiStatus, submittedAt: String(item.appliedAt ?? ""), updatedAt: String(item.updatedAt ?? ""), careerPathReady: Boolean(item.careerPathReady), careerPathNotApplicable: Boolean(item.careerPathNotApplicable),
     matchScore: score, aiConfidence: Number(item.aiConfidence ?? 0), needsReview: Boolean(item.needsReview),
     extractionMethod: processingLog.ocr_used ? "OCR" : "TEXT_LAYER", extractionWarnings: toTextList(cvData.warnings), errorCode: item.aiErrorCode as HrApplicationDetail["errorCode"], errorMessage: item.aiErrorMessage as string | undefined,
     canRetry: false, personalSummary: String(metadata.candidate_summary ?? item.aiFeedback ?? "Chưa có nhận xét AI."), skillGroups,
@@ -124,7 +134,7 @@ export const httpHrService: HrService = {
         { id: "open-jobs", label: "Tin đang mở", value: Number(jobs.published ?? 0), note: "Đang nhận CV", href: "/hr/jobs" },
         { id: "new-applications", label: "CV mới", value: Number(applications.newApplications ?? 0), note: `${range} ngày gần đây`, href: "/hr/applications" },
         { id: "pending-review", label: "Cần đối chiếu", value: Number(applications.needsReview ?? 0), note: "Cần HR kiểm tra", href: "/hr/applications?review=REQUIRED", emphasis: true },
-        { id: "shortlisted", label: "Danh sách ngắn", value: Number(applications.shortlisted ?? 0), note: "Đã duyệt", href: "/hr/applications?status=SHORTLISTED" },
+        { id: "shortlisted", label: "Đã duyệt", value: Number(applications.shortlisted ?? 0), note: "Chờ liên hệ", href: "/hr/applications?status=SHORTLISTED" },
         { id: "expiring-jobs", label: "Sắp hết hạn", value: Number(jobs.expiringSoon ?? 0), note: "Trong 7 ngày", href: "/hr/jobs" },
       ],
       attention: [
@@ -133,7 +143,7 @@ export const httpHrService: HrService = {
       ].filter((item) => item.count > 0),
       trend: [], funnel: [
         { status: "PENDING", label: "Mới nhận", value: Number(applications.newApplications ?? 0), color: "#CFE574" },
-        { status: "SHORTLISTED", label: "Danh sách ngắn", value: Number(applications.shortlisted ?? 0), color: "#66BFA6" },
+        { status: "SHORTLISTED", label: "Đã duyệt", value: Number(applications.shortlisted ?? 0), color: "#66BFA6" },
         { status: "REJECTED", label: "Không phù hợp", value: Number(applications.rejected ?? 0), color: "#EC8C8C" },
       ], activeJobs: [],
     };
@@ -230,6 +240,9 @@ export const httpHrService: HrService = {
     const path = input.status === "SHORTLISTED" ? "approve" : "reject";
     await apiRequest(`/api/v1/hr/applications/${input.applicationId}/${path}`, { method: "POST" });
     return httpHrService.getApplication(input.applicationId);
+  },
+  retryCareerPath: async (applicationId: string): Promise<void> => {
+    await apiRequest(`/api/v1/hr/applications/${applicationId}/retry-career-path`, { method: "POST" });
   },
   addApplicationNote: async () => { throw new Error("Ghi chú nội bộ chưa thuộc phase này."); },
   getTalentPool: async () => { throw new Error("Talent pool không thuộc phase này."); },

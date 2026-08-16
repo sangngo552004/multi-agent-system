@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogIn, ArrowLeft } from "lucide-react";
+import { LogIn, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/auth-provider";
@@ -11,7 +11,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useTranslations } from "next-intl";
-import { Link as I18nLink } from "@/i18n/routing";
 
 const roleDestinations = {
   ADMIN: "/admin/dashboard",
@@ -31,6 +30,7 @@ export default function LoginPage() {
   const t = useTranslations("Auth");
   const { adminLogin } = useAuth();
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const loginSchema = getLoginSchema(t);
 
@@ -111,14 +111,12 @@ export default function LoginPage() {
             >
               {t("login.password")}
             </label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="••••••••"
-              {...register("password")}
-              className={errors.password ? "border-danger" : ""}
-            />
+            <div className="relative">
+              <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="••••••••" {...register("password")} className={errors.password ? "border-danger pr-10" : "pr-10"} />
+              <button type="button" aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"} onClick={() => setShowPassword((value) => !value)} className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted hover:text-ink">
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
             {errors.password && (
               <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
             )}

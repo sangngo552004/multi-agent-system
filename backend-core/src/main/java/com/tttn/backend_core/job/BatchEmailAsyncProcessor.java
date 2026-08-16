@@ -32,6 +32,7 @@ public class BatchEmailAsyncProcessor {
 
   // Run every 10 seconds to scan for PENDING jobs or stalled PROCESSING jobs
   @Scheduled(fixedDelay = 10000)
+  @Transactional
   public void processPendingBatchJobs() {
     // In a real system, you'd only pick PROCESSING jobs if updated_at is old
     List<BatchJob> jobs =
@@ -64,8 +65,8 @@ public class BatchEmailAsyncProcessor {
     int chunkSize = 500;
 
     if (currentIndex >= total) {
-      job.setStatus("COMPLETED");
-      batchJobRepository.save(job);
+      // Wait for notification-service replies. Those replies are the source of truth for
+      // processed/success/failed counters and will transition the batch to COMPLETED.
       return;
     }
 
@@ -75,13 +76,17 @@ public class BatchEmailAsyncProcessor {
     List<UUID> uuidChunkIds = chunkIds.stream().map(UUID::fromString).toList();
 
     // 1. UPDATE applications status to PENDING_EMAIL_SEND conditionally to avoid Race Condition
+    ApplicationStatus expectedStatus =
+        "INVITE".equals(payload.get("action"))
+            ? ApplicationStatus.SHORTLISTED
+            : ApplicationStatus.REJECTED;
     int updatedCount =
         applicationRepository.updateStatusConditionally(
-            uuidChunkIds, ApplicationStatus.SHORTLISTED, ApplicationStatus.PENDING_EMAIL_SEND);
+            uuidChunkIds, expectedStatus, ApplicationStatus.PENDING_EMAIL_SEND);
 
     if (updatedCount == 0) {
       log.warn(
-          "No applications updated for job {}. Maybe already processed or not SHORTLISTED.",
+          "No applications updated for batch {}. They may have changed status before send.",
           job.getId());
       job.setLastProcessedIndex(endIndex);
       if (endIndex >= total) job.setStatus("COMPLETED");
@@ -95,7 +100,20 @@ public class BatchEmailAsyncProcessor {
       Map<String, Object> outboxPayload = new HashMap<>();
       outboxPayload.put("action", payload.get("action"));
       outboxPayload.put("subjectTemplate", payload.get("subjectTemplate"));
-      outboxPayload.put("bodyTemplate", payload.get("bodyTemplate"));
+      String bodyTemplate = String.valueOf(payload.get("bodyTemplate"));
+      if ("REJECT".equals(payload.get("action"))) {
+        Map<String, String> careerPathSummaries =
+            payload.get("careerPathSummaries") == null
+                ? Map.of()
+                : objectMapper.convertValue(
+                    payload.get("careerPathSummaries"),
+                    new TypeReference<Map<String, String>>() {});
+        String careerPath = careerPathSummaries == null ? null : careerPathSummaries.get(appId);
+        if (careerPath != null && !careerPath.isBlank()) {
+          bodyTemplate += "\n\n" + careerPath;
+        }
+      }
+      outboxPayload.put("bodyTemplate", bodyTemplate);
       @SuppressWarnings("unchecked")
       Map<String, String> candidateEmails = (Map<String, String>) payload.get("candidateEmails");
       String candidateEmail = candidateEmails == null ? null : candidateEmails.get(appId);

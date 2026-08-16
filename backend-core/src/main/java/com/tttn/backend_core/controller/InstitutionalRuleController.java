@@ -3,6 +3,7 @@ package com.tttn.backend_core.controller;
 import com.querydsl.core.types.Predicate;
 import com.tttn.backend_core.dto.request.InstitutionalRuleRequest;
 import com.tttn.backend_core.dto.response.ApiResponse;
+import com.tttn.backend_core.dto.response.InstitutionalRuleResponse;
 import com.tttn.backend_core.entity.InstitutionalRule;
 import com.tttn.backend_core.service.InstitutionalRuleService;
 import jakarta.validation.Valid;
@@ -22,20 +23,20 @@ public class InstitutionalRuleController {
   private final InstitutionalRuleService institutionalRuleService;
 
   @GetMapping
-  public ApiResponse<Page<InstitutionalRule>> getRules(
+  public ApiResponse<Page<InstitutionalRuleResponse>> getRules(
       @QuerydslPredicate(root = InstitutionalRule.class) Predicate predicate, Pageable pageable) {
     return ApiResponse.success(institutionalRuleService.findAll(predicate, pageable));
   }
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  public ApiResponse<InstitutionalRule> createRule(
+  public ApiResponse<InstitutionalRuleResponse> createRule(
       @Valid @RequestBody InstitutionalRuleRequest request) {
     return ApiResponse.success(institutionalRuleService.createRule(request));
   }
 
   @PutMapping("/{id}")
-  public ApiResponse<InstitutionalRule> updateRule(
+  public ApiResponse<InstitutionalRuleResponse> updateRule(
       @PathVariable UUID id, @Valid @RequestBody InstitutionalRuleRequest request) {
     return ApiResponse.success(institutionalRuleService.updateRule(id, request));
   }

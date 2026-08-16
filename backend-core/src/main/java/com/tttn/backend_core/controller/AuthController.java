@@ -121,7 +121,8 @@ public class AuthController {
             .httpOnly(true)
             .secure(secureRefreshCookie)
             .sameSite("Lax")
-            .path("/api/auth")
+            // Must match /api/v1/auth/refresh; otherwise browsers omit the cookie after reload.
+            .path("/api/v1/auth")
             .maxAge(maxAge)
             .build();
     response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());

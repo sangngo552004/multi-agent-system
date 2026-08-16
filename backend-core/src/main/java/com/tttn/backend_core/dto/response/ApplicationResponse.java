@@ -29,6 +29,8 @@ public class ApplicationResponse {
   private String aiErrorMessage;
   private String aiFeedback;
   private Map<String, Object> scoringBreakdown;
+  private boolean careerPathReady;
+  private boolean careerPathNotApplicable;
   private LocalDateTime appliedAt;
   private LocalDateTime updatedAt;
 }

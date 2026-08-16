@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Edit2, ListTree, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCompetencies, useDeleteCompetency } from "../knowledge-base.queries";
 import { CompetencyFormModal } from "./competency-form-modal";
 import type { Competency } from "../knowledge-base.types";
+import { CompetencyLevelsDialog } from "./competency-levels-dialog";
 
 export function CompetencyTable() {
   const { data: competencies, isLoading } = useCompetencies();
@@ -13,6 +14,7 @@ export function CompetencyTable() {
 
   const [editingItem, setEditingItem] = useState<Competency | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [levelsItem, setLevelsItem] = useState<{ competency: Competency; initialLevel?: number } | null>(null);
 
   const handleEdit = (item: Competency) => {
     setEditingItem(item);
@@ -59,7 +61,7 @@ export function CompetencyTable() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(item)}><Edit2 className="size-4" /></Button>
+                  <Button variant="ghost" size="sm" title="Thang năng lực" onClick={() => setLevelsItem({ competency: item })}><ListTree className="size-4" /></Button><Button variant="ghost" size="sm" onClick={() => handleEdit(item)}><Edit2 className="size-4" /></Button>
                   <Button variant="ghost" size="sm" className="text-danger hover:text-danger" onClick={() => handleDelete(item.id)}><Trash2 className="size-4" /></Button>
                 </td>
               </tr>
@@ -77,7 +79,9 @@ export function CompetencyTable() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         initialData={editingItem}
+        onConfigureLevels={(competency, level) => setLevelsItem({ competency, initialLevel: level })}
       />
+      <CompetencyLevelsDialog competency={levelsItem?.competency ?? null} initialLevel={levelsItem?.initialLevel} onClose={() => setLevelsItem(null)} />
     </div>
   );
 }

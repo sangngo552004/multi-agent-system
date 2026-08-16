@@ -44,13 +44,11 @@ public interface MasterDataMapper {
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "isActive", constant = "true")
   @Mapping(target = "createdAt", ignore = true)
-  @Mapping(target = "category", ignore = true)
   Competency toCompetency(MasterDataRequest request);
 
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "isActive", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
-  @Mapping(target = "category", ignore = true)
   void updateCompetency(MasterDataRequest request, @MappingTarget Competency entity);
 
   // InstitutionalRule

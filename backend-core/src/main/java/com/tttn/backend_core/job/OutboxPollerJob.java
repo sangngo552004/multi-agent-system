@@ -3,6 +3,7 @@ package com.tttn.backend_core.job;
 import com.tttn.backend_core.config.RabbitMQConfig;
 import com.tttn.backend_core.entity.OutboxEvent;
 import com.tttn.backend_core.repository.OutboxEventRepository;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,12 @@ public class OutboxPollerJob {
   public void pollOutboxEvents() {
     // Query locked rows to prevent multiple instances from picking the same events
     List<OutboxEvent> events = outboxEventRepository.findNewEventsForProcessing();
+    // A reply can be lost while an older notification-service version is deployed. Re-publishing a
+    // stale event is safe: notification-service uses eventId as its idempotency key and only emits
+    // the stored result instead of sending a second email.
+    events.addAll(
+        outboxEventRepository.findPublishedEventsNeedingReplyRecovery(
+            LocalDateTime.now().minusSeconds(20)));
 
     if (events.isEmpty()) {
       return;
@@ -45,7 +52,7 @@ public class OutboxPollerJob {
         // Publish to RabbitMQ
         rabbitTemplate.convertAndSend(RabbitMQConfig.EMAIL_QUEUE, message);
 
-        // Mark as PUBLISHED
+        // Mark as PUBLISHED. Recovered events remain PUBLISHED until a reply marks them DELIVERED.
         event.setStatus("PUBLISHED");
       } catch (Exception e) {
         log.error("Failed to publish outbox event {}: {}", event.getId(), e.getMessage());

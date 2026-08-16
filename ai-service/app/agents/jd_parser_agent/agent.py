@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from google import genai
 from google.genai import types
+from langsmith import traceable
 from pydantic import BaseModel
 
 from app.agents.jd_parser_agent.master_data import (
@@ -38,6 +39,7 @@ class LLM_JD_Extraction(BaseModel):
     suggestedRuleIds: List[str] = []
 
 
+@traceable(name="jd-parser", run_type="chain")
 async def parse_jd_with_llm(request: JDParseRequest) -> JDParseResponse:
     """
     Parses a raw JD text using Google Gemini, then fuzzy-matches
@@ -61,6 +63,8 @@ async def parse_jd_with_llm(request: JDParseRequest) -> JDParseResponse:
     - jobFamilyName: the general category/family of this job (e.g. Software Engineering, Marketing, HR)
     - careerLevelName: the level of the job (e.g. Junior, Senior, Manager, Director)
     - competencyProposals: use competencyId ONLY from the supplied catalog when it exists; otherwise set status=PROPOSED_NEW and competencyId=null.
+      Propose only competencies materially needed for the role. Set requiredLevel on a 1–5 scale
+      and assign weights whose total across all proposals is exactly 100.
     - suggestedRuleIds: choose ONLY IDs from the supplied active rule catalog.
 
     COMPETENCY CATALOG: {json.dumps(competencies, ensure_ascii=False)}
@@ -112,11 +116,17 @@ async def parse_jd_with_llm(request: JDParseRequest) -> JDParseResponse:
         careerLevelId=extracted_data.get("careerLevelId"),
     )
 
-    valid_rule_ids = {item.get("id") for item in rules}
+    rules_by_id = {item.get("id"): item for item in rules}
     suggested_rules = [
-        JDRuleSuggestion(ruleId=item, reason="Suggested by JD parser")
+        JDRuleSuggestion(
+            ruleId=item,
+            # The frontend needs a human-readable label.  The LLM returns only
+            # IDs for safety, so resolve that ID against the catalog here.
+            reason=rules_by_id[item].get("name")
+            or rules_by_id[item].get("ruleCode", ""),
+        )
         for item in extracted_data.get("suggestedRuleIds", [])
-        if item in valid_rule_ids
+        if item in rules_by_id
     ]
     return JDParseResponse(
         jobInfo=job_info, competencyProposals=proposals, suggestedRules=suggested_rules

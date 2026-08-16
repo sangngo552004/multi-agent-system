@@ -224,6 +224,14 @@ class ApplicationProcessRequest(BaseModel):
     skip_matching: bool = Field(False, alias="skipMatching")
     skip_extraction: bool = Field(False, alias="skipExtraction")
     cv_data: Optional[dict] = Field(None, alias="cvData")
+    match_result: Optional[dict] = Field(None, alias="matchResult")
+    force_career_path: bool = Field(False, alias="forceCareerPath")
+    decision_outcome: Optional[Literal["REJECTED"]] = Field(
+        None, alias="decisionOutcome"
+    )
+    decision_source: Optional[Literal["HR", "AUTO_POLICY"]] = Field(
+        None, alias="decisionSource"
+    )
 
 
 # ── Matching Schema ────────────────────────────────────────────────────
@@ -772,7 +780,7 @@ class JDCompetencyProposal(BaseModel):
     name: str
     category: str = "HARD_SKILL"
     requiredLevel: int = Field(default=3, ge=1, le=5)
-    weight: float = Field(default=10.0, gt=0, le=100)
+    weight: float = Field(default=10.0, ge=1, le=100)
     isMandatory: bool = False
     reason: str = ""
     status: Literal["MATCHED", "PROPOSED_NEW"] = "MATCHED"

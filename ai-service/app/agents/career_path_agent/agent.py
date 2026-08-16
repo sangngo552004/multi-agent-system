@@ -9,6 +9,7 @@ import re
 import time
 from typing import Any
 
+from langsmith import traceable
 from pydantic import ValidationError
 
 from app.agents.career_path_agent.gap_analyzer import analyze_gaps
@@ -102,23 +103,17 @@ class CareerPathAgent:
         max_retries: int | None = None,
         temperature: float | None = None,
     ) -> None:
-        self.enabled = (
-            settings.CAREER_PATH_ENABLED if enabled is None else enabled
-        )
+        self.enabled = settings.CAREER_PATH_ENABLED if enabled is None else enabled
         self.timeout_seconds = (
             settings.CAREER_PATH_TIMEOUT_SECONDS
             if timeout_seconds is None
             else timeout_seconds
         )
         self.max_retries = (
-            settings.CAREER_PATH_MAX_RETRIES
-            if max_retries is None
-            else max_retries
+            settings.CAREER_PATH_MAX_RETRIES if max_retries is None else max_retries
         )
         self.temperature = (
-            settings.CAREER_PATH_TEMPERATURE
-            if temperature is None
-            else temperature
+            settings.CAREER_PATH_TEMPERATURE if temperature is None else temperature
         )
         self.model = model
         if self.enabled and self.model is None and settings.GOOGLE_API_KEY:
@@ -233,7 +228,31 @@ class CareerPathAgent:
                 fallback_reason="DETERMINISTIC_SKELETON_INVALID",
             )
 
+        # HR has already made the final rejection decision.  Data-quality flags
+        # remain in the generated roadmap diagnostics, but must not block the
+        # separate post-review Career Path flow from calling the planner.
         if analysis.requires_human_review:
+            review_gaps = [
+                {
+                    "competency_id": gap.competency_id,
+                    "competency_name": gap.competency_name,
+                }
+                for gap in analysis.all_gaps
+                if gap.requires_human_review
+            ]
+            logger.warning(
+                "Career Path input warnings application_id=%s data_quality=%s "
+                "limitations=%s review_gaps=%s hr_final_decision=%s",
+                request.application_id,
+                analysis.data_quality.value,
+                analysis.limitations,
+                review_gaps,
+                request.policy.allow_candidate_auto_delivery,
+            )
+        if (
+            analysis.requires_human_review
+            and not request.policy.allow_candidate_auto_delivery
+        ):
             return self._fallback_output(
                 request,
                 analysis,
@@ -348,6 +367,7 @@ class CareerPathAgent:
         )
 
     async def _call_model(self, prompt: str) -> str:
+        @traceable(name="career-path-llm", run_type="llm")
         async def invoke() -> str:
             response = await self.model.aio.models.generate_content(
                 model=settings.LLM_MODEL_NAME,
@@ -364,9 +384,7 @@ class CareerPathAgent:
                 raise ValueError("empty model response")
             return text
 
-        return await asyncio.wait_for(
-            invoke(), timeout=self.timeout_seconds
-        )
+        return await asyncio.wait_for(invoke(), timeout=self.timeout_seconds)
 
     @staticmethod
     def _provider_error_code(exc: Exception) -> int | None:
@@ -420,9 +438,7 @@ class CareerPathAgent:
                     "target_level_description": gap.target_level_description,
                     "assessment": gap.assessment.value,
                     "priority": gap.priority.value if gap.priority else None,
-                    "action_mode": (
-                        gap.action_mode.value if gap.action_mode else None
-                    ),
+                    "action_mode": (gap.action_mode.value if gap.action_mode else None),
                     "UNTRUSTED_EVIDENCE": [
                         {
                             "summary": _sanitize_evidence(reference.summary),
@@ -513,15 +529,12 @@ class CareerPathAgent:
             raise ProtectedFieldViolation("top-level protected field changed")
 
         phases: list[RoadmapPhase] = []
-        for protected, generated in zip(
-            skeleton.phases, proposed.phases, strict=True
-        ):
+        for protected, generated in zip(skeleton.phases, proposed.phases, strict=True):
             if (
                 generated.phase_id != protected.phase_id
                 or generated.duration_weeks != protected.duration_weeks
                 or generated.addressed_gap_ids != protected.addressed_gap_ids
-                or generated.prerequisite_phase_ids
-                != protected.prerequisite_phase_ids
+                or generated.prerequisite_phase_ids != protected.prerequisite_phase_ids
                 or generated.resource_ids != protected.resource_ids
             ):
                 raise ProtectedFieldViolation("phase protected field changed")
@@ -539,9 +552,7 @@ class CareerPathAgent:
             ]
             deliverables = [
                 RoadmapDeliverable(
-                    deliverable_id=(
-                        f"{protected.phase_id}:deliverable:{index + 1}"
-                    ),
+                    deliverable_id=(f"{protected.phase_id}:deliverable:{index + 1}"),
                     title=deliverable.title,
                     description=deliverable.description,
                 )
@@ -553,9 +564,7 @@ class CareerPathAgent:
                     title=generated.title,
                     duration_weeks=protected.duration_weeks,
                     addressed_gap_ids=list(protected.addressed_gap_ids),
-                    prerequisite_phase_ids=list(
-                        protected.prerequisite_phase_ids
-                    ),
+                    prerequisite_phase_ids=list(protected.prerequisite_phase_ids),
                     activities=activities,
                     deliverables=deliverables,
                     assessment=RoadmapAssessment(
@@ -624,13 +633,13 @@ class CareerPathAgent:
         retry_count: int = 0,
     ) -> CareerPathOutput:
         analysis_limitations = list(analysis.limitations) if analysis else []
-        all_limitations = sorted(
-            set(analysis_limitations + list(limitations or []))
-        )
+        all_limitations = sorted(set(analysis_limitations + list(limitations or [])))
         errors = (
             list(validation_errors)
             if validation_errors is not None
-            else list(validation.errors) if validation else []
+            else list(validation.errors)
+            if validation
+            else []
         )
         warnings = list(validation.warnings) if validation else []
         resource_versions = sorted(
@@ -653,9 +662,7 @@ class CareerPathAgent:
                 validation_errors=errors,
                 validation_warnings=warnings,
                 data_quality=(
-                    analysis.data_quality
-                    if analysis
-                    else DataQualityGrade.INSUFFICIENT
+                    analysis.data_quality if analysis else DataQualityGrade.INSUFFICIENT
                 ),
                 limitations=all_limitations,
                 llm_used=llm_used,

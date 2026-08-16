@@ -5,7 +5,10 @@ const requiredText = (label: string, minimum = 2) => z.string().trim().min(minim
 export const competencySchema = z.object({
   name: requiredText("Tên kỹ năng"),
   description: requiredText("Mô tả", 5),
-  category: requiredText("Danh mục"),
+  category: z.enum(["HARD_SKILL", "SOFT_SKILL", "EXPERIENCE", "PEDIGREE"], {
+    message: "Hãy chọn danh mục.",
+  }),
+  initialLevel: z.number().int().min(1).max(5).optional(),
 });
 
 export type CompetencyFormValues = z.infer<typeof competencySchema>;
@@ -33,7 +36,7 @@ export const institutionalRuleSchema = z.object({
   maxImpactPercent: z.number().min(0, "Phần trăm ảnh hưởng không được âm").max(100, "Phần trăm tối đa là 100"),
   appliesToDomain: requiredText("Lĩnh vực áp dụng"),
   pedigreeGroupId: z.string().uuid("Hãy chọn nhóm đối chiếu"),
-  jobFamilyIds: z.array(z.string()).default([]),
+  jobFamilyIds: z.array(z.string()),
 });
 
 export type InstitutionalRuleFormValues = z.infer<typeof institutionalRuleSchema>;

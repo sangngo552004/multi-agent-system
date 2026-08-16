@@ -5,6 +5,7 @@ import logging
 
 from google import genai
 from google.genai import types
+from langsmith import traceable
 
 from app.agents.matcher_agent.kb_loader import get_competency_level_description
 from app.agents.matcher_agent.scoring_engine import scoring_engine
@@ -37,11 +38,13 @@ Bạn sẽ nhận được:
 
 class MatchingAgent:
     def __init__(self):
-        if settings.GOOGLE_API_KEY:
-            self.client = genai.Client(api_key=settings.GOOGLE_API_KEY)
-        else:
-            self.client = None
+        # The RabbitMQ consumer creates and closes an event loop for each job.
+        # Keep only configuration at module scope; an async Gemini client must
+        # be created inside that job's active loop, not reused after its loop
+        # has been closed.
+        self.api_key = settings.GOOGLE_API_KEY
 
+    @traceable(name="candidate-matcher", run_type="chain")
     async def evaluate_async(self, request: MatchRequest) -> MatchingOutput:
         """Run the competency-based matching process asynchronously."""
         # 1. Fallback & Parse Job Config
@@ -63,7 +66,7 @@ class MatchingAgent:
             cv_skills, job_skills
         )
 
-        if not self.client:
+        if not self.api_key:
             logger.warning("GOOGLE_API_KEY not set. Returning vector-only results.")
             return MatchingOutput(
                 status="ERROR",
@@ -131,7 +134,8 @@ class MatchingAgent:
                 response_schema=MatchingOutput,
             )
             model_name = getattr(settings, "LLM_MODEL_NAME", "gemini-1.5-flash")
-            response = await self.client.aio.models.generate_content(
+            client = genai.Client(api_key=self.api_key)
+            response = await client.aio.models.generate_content(
                 model=model_name,
                 contents=prompt,
                 config=config,

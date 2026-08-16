@@ -24,9 +24,13 @@ export const jobStatusMap = {
 
 export const recruitmentStatusMap = {
   PENDING: { label: "Mới nhận", tone: "neutral" },
+  PENDING_HR_REVIEW: { label: "Chờ HR xem xét", tone: "info" },
   REVIEWING: { label: "Đang xem xét", tone: "info" },
-  SHORTLISTED: { label: "Danh sách ngắn", tone: "warning" },
+  SHORTLISTED: { label: "Đã duyệt", tone: "warning" },
+  PENDING_EMAIL_SEND: { label: "Đang gửi email", tone: "info" },
   REJECTED: { label: "Không phù hợp", tone: "danger" },
+  REJECTED_FINAL: { label: "Đã gửi thư từ chối", tone: "danger" },
+  INVITED: { label: "Đã gửi thư mời", tone: "success" },
   HIRED: { label: "Đã tuyển", tone: "success" },
 } as const satisfies Record<string, StatusPresentation>;
 
