@@ -30,7 +30,7 @@ public class CandidateApplicationController {
   private final UserRepository userRepository;
 
   @PostMapping("/jobs/{jobId}/apply")
-  @RateLimit(action = "apply_job", maxRequests = 3, duration = 1, unit = ChronoUnit.DAYS)
+  @RateLimit(action = "apply_job_v2", maxRequests = 20, duration = 1, unit = ChronoUnit.HOURS)
   public ApiResponse<CandidateApplicationResponse> applyForJob(
       @PathVariable UUID jobId, @RequestParam("cvFile") MultipartFile cvFile, Principal principal) {
 
@@ -64,7 +64,11 @@ public class CandidateApplicationController {
   }
 
   @PostMapping("/jobs/{jobId}/apply-master")
-  @RateLimit(action = "apply_job_master", maxRequests = 3, duration = 1, unit = ChronoUnit.DAYS)
+  @RateLimit(
+      action = "apply_job_master_v2",
+      maxRequests = 20,
+      duration = 1,
+      unit = ChronoUnit.HOURS)
   public ApiResponse<CandidateApplicationResponse> applyWithMasterCv(
       @PathVariable UUID jobId, Principal principal) {
 

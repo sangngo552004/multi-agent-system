@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest as fetchApi } from "@/services/http/api-client";
-import type { CareerLevel, Competency, InstitutionalRule, JobFamily, PedigreeEntity, PedigreeGroup } from "./knowledge-base.types";
+import type { CareerLevel, Competency, CompetencyLevel, InstitutionalRule, JobFamily, PedigreeEntity, PedigreeGroup } from "./knowledge-base.types";
 import type { CareerLevelFormValues, CompetencyFormValues, InstitutionalRuleFormValues, JobFamilyFormValues } from "./knowledge-base.schema";
 import { hrQueryKeys } from "@/services/query-keys";
 
@@ -27,9 +27,12 @@ export function useCompetencies() {
 export function useSaveCompetency() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id?: string; data: CompetencyFormValues }) =>
-      id ? fetchApi<Competency>(hrPath(`/competencies/${id}`), { method: "PUT", body: JSON.stringify(data) })
-         : fetchApi<Competency>(hrPath("/competencies"), { method: "POST", body: JSON.stringify(data) }),
+    mutationFn: ({ id, data }: { id?: string; data: CompetencyFormValues }) => {
+      const payload = { name: data.name, description: data.description, category: data.category };
+      return id
+        ? fetchApi<Competency>(hrPath(`/competencies/${id}`), { method: "PUT", body: JSON.stringify(payload) })
+        : fetchApi<Competency>(hrPath("/competencies"), { method: "POST", body: JSON.stringify(payload) });
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: kbQueryKeys.competencies() }); queryClient.invalidateQueries({ queryKey: hrQueryKeys.catalog }); }
   });
 }
@@ -39,6 +42,13 @@ export function useDeleteCompetency() {
     mutationFn: (id: string) => fetchApi<void>(hrPath(`/competencies/${id}`), { method: "DELETE" }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: kbQueryKeys.competencies() }); queryClient.invalidateQueries({ queryKey: hrQueryKeys.catalog }); }
   });
+}
+export function useCompetencyLevels(competencyId: string | null) {
+  return useQuery({ queryKey: [...kbQueryKeys.competencies(), competencyId, "levels"], enabled: Boolean(competencyId), queryFn: () => fetchApi<CompetencyLevel[]>(hrPath(`/competencies/${competencyId}/levels`)) });
+}
+export function useSaveCompetencyLevels() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: ({ competencyId, levels }: { competencyId: string; levels: CompetencyLevel[] }) => fetchApi(hrPath(`/competencies/${competencyId}/levels`), { method: "PUT", body: JSON.stringify({ levels: levels.map(({ level, label, description }) => ({ level, title: label, description })) }) }), onSuccess: () => queryClient.invalidateQueries({ queryKey: kbQueryKeys.competencies() }) });
 }
 
 // --- Job Families ---
@@ -93,6 +103,11 @@ export function usePedigrees() {
 export function usePedigreeGroups() {
   return useQuery({ queryKey: kbQueryKeys.pedigreeGroups(), queryFn: () => fetchApi<PedigreeGroup[]>(hrPath("/knowledge-base/pedigree-groups")) });
 }
+export function useCreatePedigree() { const queryClient = useQueryClient(); return useMutation({ mutationFn: (data: Record<string, unknown>) => fetchApi<PedigreeEntity>(hrPath("/knowledge-base/pedigrees"), { method: "POST", body: JSON.stringify(data) }), onSuccess: () => queryClient.invalidateQueries({ queryKey: kbQueryKeys.pedigrees() }) }); }
+export function useCreatePedigreeGroup() { const queryClient = useQueryClient(); return useMutation({ mutationFn: (data: Record<string, unknown>) => fetchApi<PedigreeGroup>(hrPath("/knowledge-base/pedigree-groups"), { method: "POST", body: JSON.stringify(data) }), onSuccess: () => queryClient.invalidateQueries({ queryKey: kbQueryKeys.pedigreeGroups() }) }); }
+export function useSavePedigree() { const queryClient = useQueryClient(); return useMutation({ mutationFn: ({ id, data }: { id?: string; data: Record<string, unknown> }) => fetchApi<PedigreeEntity>(hrPath(`/knowledge-base/pedigrees${id ? `/${id}` : ""}`), { method: id ? "PUT" : "POST", body: JSON.stringify(data) }), onSuccess: () => queryClient.invalidateQueries({ queryKey: kbQueryKeys.pedigrees() }) }); }
+export function useDeletePedigree() { const queryClient = useQueryClient(); return useMutation({ mutationFn: (id: string) => fetchApi<void>(hrPath(`/knowledge-base/pedigrees/${id}`), { method: "DELETE" }), onSuccess: () => queryClient.invalidateQueries({ queryKey: kbQueryKeys.pedigrees() }) }); }
+export function useSavePedigreeGroup() { const queryClient = useQueryClient(); return useMutation({ mutationFn: ({ id, data }: { id?: string; data: Record<string, unknown> }) => fetchApi<PedigreeGroup>(hrPath(`/knowledge-base/pedigree-groups${id ? `/${id}` : ""}`), { method: id ? "PUT" : "POST", body: JSON.stringify(data) }), onSuccess: () => queryClient.invalidateQueries({ queryKey: kbQueryKeys.pedigreeGroups() }) }); }
 export function useSaveRule() {
   const queryClient = useQueryClient();
   return useMutation({

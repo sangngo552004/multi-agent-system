@@ -1,5 +1,6 @@
 package com.tttn.backend_core.dto.response;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.Builder;
 import lombok.Data;
@@ -13,5 +14,7 @@ public class BatchJobResponse {
   private int processedCount;
   private int successCount;
   private int failedCount;
+  private LocalDateTime createdAt;
+  private LocalDateTime updatedAt;
   private Map<String, Object> payload;
 }

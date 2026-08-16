@@ -26,7 +26,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const handleApplyClick = () => {
     if (!user) {
       toast.info("Vui lòng đăng nhập để ứng tuyển.");
-      router.push(`/login?callbackUrl=/jobs/${params.id}`);
+      router.push(`/login?next=/jobs/${resolvedParams.id}`);
       return;
     }
     setIsApplyModalOpen(true);
@@ -37,12 +37,16 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setIsApplying(true);
     try {
       await CandidateApplicationService.applyForJob(job.id, file);
-      toast.success("Ứng tuyển thành công! AI đang tiến hành trích xuất CV của bạn.");
+      toast.success("Ứng tuyển thành công. Hồ sơ của bạn đã được ghi nhận.");
       setIsApplyModalOpen(false);
       // Optional: Redirect to candidate applications page
       router.push("/profile/applications");
-    } catch (error) {
-      toast.error("Có lỗi xảy ra khi nộp hồ sơ. Vui lòng thử lại.");
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi nộp hồ sơ. Vui lòng thử lại.",
+      );
     } finally {
       setIsApplying(false);
     }
@@ -53,7 +57,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setIsApplying(true);
     try {
       await CandidateApplicationService.applyWithMasterCv(job.id);
-      toast.success("Ứng tuyển bằng Master CV thành công! AI đang tiến hành đánh giá.");
+      toast.success("Ứng tuyển thành công. Hồ sơ của bạn đã được ghi nhận.");
       setIsApplyModalOpen(false);
       router.push("/profile/applications");
     } catch (error: unknown) {

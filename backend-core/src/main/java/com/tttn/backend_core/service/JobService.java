@@ -146,13 +146,12 @@ public class JobService {
   }
 
   @Transactional
-  public JobResponse publishJob(UUID id, String hrEmail) {
+  public JobResponse publishJob(UUID id) {
     Job job =
         jobRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
     if (job.getStatus() != JobStatus.DRAFT) {
       throw new AppException(ErrorCode.JOB_NOT_DRAFT);
     }
-    assertOwner(job, hrEmail);
     job.setStatus(JobStatus.PUBLISHED);
 
     JobResponse snapshotObj = jobMapper.toResponse(job);
@@ -168,10 +167,9 @@ public class JobService {
   }
 
   @Transactional
-  public JobResponse closeJob(UUID id, String hrEmail) {
+  public JobResponse closeJob(UUID id) {
     Job job =
         jobRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_FOUND));
-    assertOwner(job, hrEmail);
     if (job.getStatus() != JobStatus.PUBLISHED && job.getStatus() != JobStatus.PAUSED) {
       throw new AppException(ErrorCode.JOB_NOT_DRAFT);
     }
@@ -326,12 +324,6 @@ public class JobService {
       if (applicantCount > 0) {
         throw new AppException(ErrorCode.CANNOT_UPDATE_PUBLISHED_JOB_WITH_APPLICANTS);
       }
-    }
-  }
-
-  private void assertOwner(Job job, String hrEmail) {
-    if (job.getHr() == null || !hrEmail.equalsIgnoreCase(job.getHr().getEmail())) {
-      throw new AppException(ErrorCode.UNAUTHORIZED);
     }
   }
 }

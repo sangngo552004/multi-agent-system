@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { ChevronDown, LogOut, User as UserIcon, Briefcase } from "lucide-react";
 
 import { useAuth } from "@/features/auth/auth-provider";
@@ -20,7 +18,6 @@ import {
 export function PublicHeader() {
   const t = useTranslations("LandingPage.header");
   const { user, logout } = useAuth();
-  const router = useRouter();
 
   const handleLogout = async () => {
     try {
@@ -128,12 +125,20 @@ export function PublicHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link
-              href="/login"
-              className="hidden sm:inline-flex h-9 items-center justify-center rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-hover transition-colors"
-            >
-              {t("login")}
-            </Link>
+            <div className="hidden items-center gap-2 sm:flex">
+              <Link
+                href="/register"
+                className="inline-flex h-9 items-center justify-center rounded-full border border-brand px-4 py-2 text-sm font-semibold text-brand transition-colors hover:bg-brand/5"
+              >
+                Đăng ký
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex h-9 items-center justify-center rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-hover"
+              >
+                {t("login")}
+              </Link>
+            </div>
           )}
         </div>
       </div>

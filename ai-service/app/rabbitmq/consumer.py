@@ -207,7 +207,13 @@ def _on_application_message(channel, method, properties, body):
         logger.error("Invalid application command JSON: %s", exc)
         channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
     except Exception as exc:
-        logger.error("Application processing failed: %s", type(exc).__name__)
+        logger.exception(
+            "Application processing failed application_id=%s run_id=%s error_type=%s error=%s",
+            request.application_id if request else None,
+            request.run_id if request else None,
+            type(exc).__name__,
+            exc,
+        )
         if request is not None:
             _publish_application_event(
                 channel,
@@ -231,18 +237,20 @@ async def _process_application(channel, request: ApplicationProcessRequest):
         match_node,
     )
 
-    file_content = _download_file(request.file_url)
-    if file_content is None:
-        _publish_application_event(
-            channel,
-            request,
-            "RUN_FAILED",
-            step="EXTRACTION",
-            message="The CV file could not be downloaded.",
-            errorCode="FILE_UNAVAILABLE",
-            errorMessage="The CV file could not be downloaded.",
-        )
-        return
+    file_content = b""
+    if not (request.skip_extraction and request.cv_data):
+        file_content = _download_file(request.file_url)
+        if file_content is None:
+            _publish_application_event(
+                channel,
+                request,
+                "RUN_FAILED",
+                step="EXTRACTION",
+                message="The CV file could not be downloaded.",
+                errorCode="FILE_UNAVAILABLE",
+                errorMessage="The CV file could not be downloaded.",
+            )
+            return
 
     state = {
         "application_id": request.application_id,
@@ -284,6 +292,9 @@ async def _process_application(channel, request: ApplicationProcessRequest):
             "STEP_SKIPPED",
             step="EXTRACTION",
             message="Skipped CV extraction (using provided Master CV data).",
+            # Extraction is skipped for this run, but the immutable Master CV
+            # snapshot is still needed by Core for the HR application detail.
+            cvData=state["cv_data"].model_dump(mode="json"),
             aiConfidence=state["cv_data"].confidence_scores.overall,
             warningCount=len(state["cv_data"].warnings),
             extractionMethod=state["cv_data"].extraction_method.value.upper(),
@@ -343,7 +354,33 @@ async def _process_application(channel, request: ApplicationProcessRequest):
             **extraction_metrics,
         )
 
-    if request.skip_matching:
+    if request.skip_matching and request.match_result:
+        from app.core.schemas import MatchingOutput
+
+        try:
+            match_result = MatchingOutput(**request.match_result)
+        except Exception as e:
+            logger.error("Failed to parse persisted match_result: %s", e)
+            _publish_application_event(
+                channel,
+                request,
+                "RUN_FAILED",
+                step="MATCHING",
+                message="The persisted matching snapshot is invalid.",
+                errorCode="INVALID_MATCHING_SNAPSHOT",
+                errorMessage=str(e),
+            )
+            return
+        state["match_result"] = match_result
+        state["needs_human_review"] = False
+        _publish_application_event(
+            channel,
+            request,
+            "STEP_SKIPPED",
+            step="MATCHING",
+            message="Skipped matching (using the persisted matching snapshot).",
+        )
+    elif request.skip_matching:
         _publish_application_event(
             channel,
             request,
@@ -376,6 +413,21 @@ async def _process_application(channel, request: ApplicationProcessRequest):
         matching_update = await match_node(state)
         state.update(matching_update)
         match_result = state["match_result"]
+        if match_result.status == "ERROR":
+            # A fallback/vector score without semantic evidence must never be
+            # presented as a completed AI assessment to HR.
+            _publish_application_event(
+                channel,
+                request,
+                "RUN_FAILED",
+                step="MATCHING",
+                message="AI matching could not produce an evidence-backed assessment.",
+                errorCode="AI_MATCHING_FAILED",
+                errorMessage=match_result.rejection_reason
+                or "AI matching could not produce an evidence-backed assessment.",
+                needsReview=True,
+            )
+            return
         _publish_application_event(
             channel,
             request,
@@ -389,16 +441,9 @@ async def _process_application(channel, request: ApplicationProcessRequest):
             matchResult=match_result.model_dump(mode="json"),
         )
 
-    should_build_career_path = (
-        settings.CAREER_PATH_ENABLED
-        and not request.skip_matching
-        and (
-            request.force_career_path
-            or (
-                not state["needs_human_review"]
-                and match_result.status == "REJECTED"
-            )
-        )
+    should_build_career_path = settings.CAREER_PATH_ENABLED and (
+        request.force_career_path
+        or (not state["needs_human_review"] and match_result.status == "REJECTED")
     )
     if should_build_career_path:
         _publish_application_event(

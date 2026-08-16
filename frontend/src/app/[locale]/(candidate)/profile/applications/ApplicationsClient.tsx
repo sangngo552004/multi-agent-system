@@ -1,11 +1,12 @@
 "use client";
 
 import { format } from "date-fns";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/auth-provider";
 import {
   CandidateApplicationService,
@@ -55,6 +56,15 @@ export function ApplicationsClient() {
   const [applications, setApplications] = useState<CandidateApplicationResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAdvice, setSelectedAdvice] = useState<Advice | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("ALL");
+
+  const filteredApplications = applications.filter((application) => {
+    const matchesSearch = application.jobTitle
+      ?.toLocaleLowerCase("vi")
+      .includes(search.trim().toLocaleLowerCase("vi"));
+    return Boolean(matchesSearch) && (status === "ALL" || application.status === status);
+  });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -80,12 +90,32 @@ export function ApplicationsClient() {
 
   return (
     <div className="space-y-6">
+      {applications.length ? (
+        <section className="flex flex-col gap-3 rounded-xl border border-border bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo vị trí ứng tuyển..." className="pl-9" />
+          </div>
+          <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-10 rounded-md border border-border bg-white px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/30">
+            <option value="ALL">Tất cả trạng thái</option>
+            <option value="PENDING">Đang xử lý</option>
+            <option value="SHORTLISTED">Vào vòng tiếp theo</option>
+            <option value="INVITED">Được mời phỏng vấn</option>
+            <option value="REJECTED">Chưa phù hợp</option>
+            <option value="REJECTED_FINAL">Chưa phù hợp</option>
+          </select>
+        </section>
+      ) : null}
       {!applications.length ? (
         <div className="rounded-xl border border-border bg-white p-12 text-center text-muted">
           Bạn chưa nộp hồ sơ ứng tuyển nào.
         </div>
+      ) : !filteredApplications.length ? (
+        <div className="rounded-xl border border-border bg-white p-12 text-center text-muted">
+          Không tìm thấy hồ sơ phù hợp với bộ lọc hiện tại.
+        </div>
       ) : (
-        applications.map((application) => (
+        filteredApplications.map((application) => (
           <article key={application.id} className="rounded-xl border border-border bg-white shadow-sm">
             <div className="flex items-start justify-between gap-5 p-6 pb-2">
               <div>

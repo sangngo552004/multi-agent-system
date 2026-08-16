@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { UserPlus, Loader2, ArrowLeft } from "lucide-react";
+import { UserPlus, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -36,6 +36,8 @@ export function RegisterClient() {
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const registerSchema = getRegisterSchema(t);
 
@@ -156,13 +158,12 @@ export function RegisterClient() {
             >
               {t("register.password")}
             </label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              {...register("password")}
-              className={errors.password ? "border-danger" : ""}
-            />
+            <div className="relative">
+              <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" {...register("password")} className={errors.password ? "border-danger pr-10" : "pr-10"} />
+              <button type="button" aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"} onClick={() => setShowPassword((value) => !value)} className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted hover:text-ink">
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
             {errors.password && (
               <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
             )}
@@ -174,13 +175,12 @@ export function RegisterClient() {
             >
               {t("register.confirmPassword")}
             </label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
-              {...register("confirmPassword")}
-              className={errors.confirmPassword ? "border-danger" : ""}
-            />
+            <div className="relative">
+              <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" {...register("confirmPassword")} className={errors.confirmPassword ? "border-danger pr-10" : "pr-10"} />
+              <button type="button" aria-label={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"} onClick={() => setShowConfirmPassword((value) => !value)} className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted hover:text-ink">
+                {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
             {errors.confirmPassword && (
               <p className="mt-1 text-xs text-danger">{errors.confirmPassword.message}</p>
             )}

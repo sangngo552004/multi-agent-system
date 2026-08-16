@@ -5,6 +5,7 @@ export type Competency = {
   category: string;
   isActive: boolean;
 };
+export type CompetencyLevel = { level: number; label: string; description: string };
 
 export type JobFamily = {
   id: string;
@@ -35,5 +36,9 @@ export type InstitutionalRule = {
 };
 
 export type EvidenceSource = "EXPERIENCE" | "EDUCATION" | "CERTIFICATION" | "GPA";
-export type PedigreeEntity = { id: string; name: string; type: "UNIVERSITY" | "COMPANY" | "AGENCY"; aliases: string[]; isActive: boolean };
+export type PedigreeEntity = {
+  id: string; name: string; type: "UNIVERSITY" | "COMPANY" | "AGENCY";
+  rank: "INTERNATIONAL" | "TIER_1" | "TIER_2" | "TIER_3"; domain: string; country: string;
+  aliases: string[]; isActive: boolean;
+};
 export type PedigreeGroup = { id: string; code: string; name: string; evidenceSource: EvidenceSource; isActive: boolean; memberIds: string[] };

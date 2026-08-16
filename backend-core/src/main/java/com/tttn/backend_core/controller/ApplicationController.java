@@ -35,6 +35,13 @@ public class ApplicationController {
     return ApiResponse.success("Application rejected successfully.");
   }
 
+  @PostMapping("/{id}/retry-career-path")
+  @ResponseStatus(HttpStatus.ACCEPTED)
+  public ApiResponse<String> retryCareerPath(@PathVariable UUID id, Principal principal) {
+    applicationService.retryCareerPath(id, principal.getName());
+    return ApiResponse.success("Career Path request accepted.");
+  }
+
   @PostMapping("/batch-email")
   @ResponseStatus(HttpStatus.ACCEPTED)
   public ApiResponse<String> batchEmail(
@@ -67,5 +74,11 @@ public class ApplicationController {
   public ApiResponse<BatchJobResponse> getBatchJobStatus(
       @PathVariable String batchJobId, Principal principal) {
     return ApiResponse.success(batchJobService.getBatchJobStatus(batchJobId, principal.getName()));
+  }
+
+  @GetMapping("/batch-email")
+  public ApiResponse<java.util.List<BatchJobResponse>> getBatchHistory(
+      @RequestParam UUID jobId, Principal principal) {
+    return ApiResponse.success(batchJobService.getBatchHistory(jobId, principal.getName()));
   }
 }

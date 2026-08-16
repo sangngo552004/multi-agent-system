@@ -72,7 +72,7 @@ class JobPublishingIntegrationTest {
     update.setIsMandatory(true);
     jobService.updateJobCompetencies(job.getId(), List.of(update));
 
-    JobResponse published = jobService.publishJob(job.getId(), owner.getEmail());
+    JobResponse published = jobService.publishJob(job.getId());
     entityManager.flush();
     entityManager.clear();
 

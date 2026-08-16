@@ -28,6 +28,7 @@ export interface HrService {
   getApplications(filters?: HrApplicationFilters): Promise<HrApplicationListItem[]>;
   getApplication(applicationId: string): Promise<HrApplicationDetail>;
   updateApplicationStatus(input: UpdateHrApplicationStatusInput): Promise<HrApplicationDetail>;
+  retryCareerPath(applicationId: string): Promise<void>;
   addApplicationNote(input: AddHrApplicationNoteInput): Promise<HrApplicationNote>;
   getTalentPool(filters?: TalentPoolFilters): Promise<TalentPoolListItem[]>;
   saveTalentPoolEntry(input: SaveTalentPoolInput): Promise<TalentPoolListItem>;

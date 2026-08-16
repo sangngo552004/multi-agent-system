@@ -224,6 +224,7 @@ class ApplicationProcessRequest(BaseModel):
     skip_matching: bool = Field(False, alias="skipMatching")
     skip_extraction: bool = Field(False, alias="skipExtraction")
     cv_data: Optional[dict] = Field(None, alias="cvData")
+    match_result: Optional[dict] = Field(None, alias="matchResult")
     force_career_path: bool = Field(False, alias="forceCareerPath")
     decision_outcome: Optional[Literal["REJECTED"]] = Field(
         None, alias="decisionOutcome"

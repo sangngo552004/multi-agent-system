@@ -267,11 +267,12 @@ async def career_path_node(state: AgentState) -> dict:
 
     if settings.ENABLE_METRICS_LOGGING:
         logger.info(
-            "[TELEMETRY] App=%s Node=CareerPath Duration=%dms TotalPipeline=%dms Status=%s",
+            "[TELEMETRY] App=%s Node=CareerPath Duration=%dms TotalPipeline=%dms Status=%s Fallback=%s",
             state["application_id"],
             elapsed_ms,
             total_ms,
             output.status.value if output else "NONE",
+            output.diagnostics.fallback_reason if output else None,
         )
 
     return {"career_path_result": output, "telemetry": telemetry}

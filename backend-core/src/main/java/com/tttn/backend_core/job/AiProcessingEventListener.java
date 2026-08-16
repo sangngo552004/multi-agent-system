@@ -69,7 +69,7 @@ public class AiProcessingEventListener {
           startStep(run, application, stepName(event), message(event), occurredAt);
       case "STEP_COMPLETED" ->
           completeStep(run, application, stepName(event), message(event), occurredAt, event);
-      case "STEP_SKIPPED" -> skipStep(run, stepName(event), message(event));
+      case "STEP_SKIPPED" -> skipStep(run, application, stepName(event), message(event), event);
       case "RUN_COMPLETED" -> completeRun(run, application, occurredAt, event);
       case "RUN_FAILED" -> failRun(run, application, occurredAt, event);
       default -> throw new IllegalArgumentException("Unknown AI event type");
@@ -110,39 +110,7 @@ public class AiProcessingEventListener {
     step.setFinishedAt(occurredAt);
     if (name == AiStepName.EXTRACTION) {
       updateMetrics(application, event);
-      // Events use camelCase like the Core -> AI command. Accept the previous
-      // snake_case spelling during a rolling deployment.
-      JsonNode cvDataNode = event.hasNonNull("cvData") ? event.get("cvData") : event.get("cv_data");
-      if (cvDataNode != null && !cvDataNode.isNull()) {
-        java.util.Map<String, Object> cvData =
-            objectMapper.convertValue(cvDataNode, java.util.Map.class);
-
-        // If this is a Job Application (job != null), we only store the cv_data in
-        // scoringBreakdown.
-        // We DO NOT update the CandidateProfile to avoid overwriting their master data.
-        if (application.getJob() != null) {
-          java.util.Map<String, Object> breakdown = application.getScoringBreakdown();
-          if (breakdown == null) {
-            breakdown = new java.util.HashMap<>();
-          }
-          breakdown.put("extracted_cv_data", cvData);
-          application.setScoringBreakdown(breakdown);
-          applicationRepository.save(application);
-        } else {
-          // Master Profile Upload (job == null): Update CandidateProfile
-          CandidateProfile profile =
-              candidateProfileRepository
-                  .findById(application.getCandidate().getId())
-                  .orElseGet(
-                      () -> CandidateProfile.builder().user(application.getCandidate()).build());
-
-          profile.setCvUrl(application.getResumeUrl());
-          profile.setRawCvData(cvData);
-          profile.setProfileData(profileDataFromCv(cvData));
-
-          candidateProfileRepository.save(profile);
-        }
-      }
+      persistCvData(application, event);
     }
     if (name == AiStepName.MATCHING && event.hasNonNull("matchResult")) {
       java.util.Map<String, Object> breakdown = application.getScoringBreakdown();
@@ -156,6 +124,15 @@ public class AiProcessingEventListener {
           objectMapper.convertValue(event.get("matchResult"), java.util.Map.class));
       application.setScoringBreakdown(breakdown);
       applicationRepository.save(application);
+      java.util.Map<String, Object> matchResult =
+          objectMapper.convertValue(event.get("matchResult"), java.util.Map.class);
+      log.info(
+          "AI matching completed: applicationId={}, score={}, status={}, needsReview={}, rejectionReason={}",
+          application.getId(),
+          matchResult.get("overall_score"),
+          matchResult.get("status"),
+          event.path("needsReview").asBoolean(false),
+          matchResult.get("rejection_reason"));
     }
   }
 
@@ -189,17 +166,60 @@ public class AiProcessingEventListener {
       application.setScoringBreakdown(scoringBreakdown);
     }
     if (run.getTrigger() == AiRunTrigger.HR_REJECTION
-        && application.getStatus() == ApplicationStatus.REJECTED) {
+        && application.getStatus() == ApplicationStatus.REJECTED
+        && hasCandidateCareerPath(application)) {
       application.setIsCandidateNotified(true);
     }
     activityLogService.recordAiProcessingTerminal(
         application.getId(), application.getCandidate().getFullName(), true, null);
   }
 
-  private void skipStep(AiProcessingRun run, AiStepName name, String message) {
+  private void skipStep(
+      AiProcessingRun run,
+      Application application,
+      AiStepName name,
+      String message,
+      JsonNode event) {
     AiProcessingStep step = findStep(run, name);
     step.setStatus(AiStepStatus.SKIPPED);
     step.setMessage(message);
+    if (name == AiStepName.EXTRACTION) {
+      updateMetrics(application, event);
+      persistCvData(application, event);
+    }
+  }
+
+  private void persistCvData(Application application, JsonNode event) {
+    // Events use camelCase like the Core -> AI command. Accept the previous
+    // snake_case spelling during a rolling deployment.
+    JsonNode cvDataNode = event.hasNonNull("cvData") ? event.get("cvData") : event.get("cv_data");
+    if (cvDataNode == null || cvDataNode.isNull()) {
+      return;
+    }
+    java.util.Map<String, Object> cvData =
+        objectMapper.convertValue(cvDataNode, java.util.Map.class);
+
+    // If this is a Job Application (job != null), only store the per-application
+    // snapshot. Do not overwrite the candidate's Master CV.
+    if (application.getJob() != null) {
+      java.util.Map<String, Object> breakdown = application.getScoringBreakdown();
+      if (breakdown == null) {
+        breakdown = new java.util.HashMap<>();
+      }
+      breakdown.put("extracted_cv_data", cvData);
+      application.setScoringBreakdown(breakdown);
+      applicationRepository.save(application);
+      return;
+    }
+
+    CandidateProfile profile =
+        candidateProfileRepository
+            .findById(application.getCandidate().getId())
+            .orElseGet(() -> CandidateProfile.builder().user(application.getCandidate()).build());
+    profile.setCvUrl(application.getResumeUrl());
+    profile.setRawCvData(cvData);
+    profile.setProfileData(profileDataFromCv(cvData));
+    candidateProfileRepository.save(profile);
   }
 
   private void failRun(
@@ -231,13 +251,28 @@ public class AiProcessingEventListener {
     application.setAiStatus(AiProcessingStatus.FAILED);
     application.setAiErrorCode(errorCode);
     application.setAiErrorMessage(errorMessage);
+    // Scores are valid only for a completed, evidence-backed matching result.
+    // Clear any partial/fallback score that may have been produced before failure.
+    application.setFitScore(null);
+    application.setNeedsReview(true);
     if (run.getTrigger() == AiRunTrigger.HR_REJECTION
         && application.getStatus() == ApplicationStatus.REJECTED) {
-      application.setIsCandidateNotified(true);
+      // The candidate must not be notified until a usable Career Path exists.
+      // Keeping this false also lets the recovery job retry this failed run.
+      application.setIsCandidateNotified(false);
     }
     updateMetrics(application, event);
     activityLogService.recordAiProcessingTerminal(
         application.getId(), application.getCandidate().getFullName(), false, errorCode);
+  }
+
+  private boolean hasCandidateCareerPath(Application application) {
+    if (application.getScoringBreakdown() == null) {
+      return false;
+    }
+    Object result = application.getScoringBreakdown().get("career_path_result");
+    return result instanceof java.util.Map<?, ?> resultMap
+        && resultMap.get("candidate_view") instanceof java.util.Map<?, ?>;
   }
 
   private java.util.Map<String, Object> profileDataFromCv(java.util.Map<String, Object> rawCvData) {

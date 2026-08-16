@@ -106,7 +106,32 @@ public class ApplicationService {
   @Transactional(readOnly = true)
   public ApplicationResponse getApplicationDetail(UUID id, String hrEmail) {
     Application application = findForHr(id, hrEmail);
+    var breakdown = application.getScoringBreakdown();
+    log.info(
+        "HR application detail loaded: applicationId={}, aiStatus={}, breakdownKeys={}, hasExtractedCv={}, hasMatchingResult={}, evidenceCount={}, matchStatus={}, rejectionReason={}",
+        id,
+        application.getAiStatus(),
+        breakdown == null ? java.util.Set.of() : breakdown.keySet(),
+        breakdown != null && breakdown.containsKey("extracted_cv_data"),
+        breakdown != null && breakdown.containsKey("matching_result"),
+        evidenceCount(breakdown),
+        matchingValue(breakdown, "status"),
+        matchingValue(breakdown, "rejection_reason"));
     return applicationMapper.toResponse(application);
+  }
+
+  private int evidenceCount(java.util.Map<String, Object> breakdown) {
+    Object matching = breakdown == null ? null : breakdown.get("matching_result");
+    if (!(matching instanceof java.util.Map<?, ?> matchingMap)) {
+      return 0;
+    }
+    Object evidence = matchingMap.get("evidence_matrix");
+    return evidence instanceof java.util.Collection<?> collection ? collection.size() : 0;
+  }
+
+  private Object matchingValue(java.util.Map<String, Object> breakdown, String key) {
+    Object matching = breakdown == null ? null : breakdown.get("matching_result");
+    return matching instanceof java.util.Map<?, ?> matchingMap ? matchingMap.get(key) : null;
   }
 
   @Transactional
@@ -139,28 +164,22 @@ public class ApplicationService {
     log.info("Application {} rejected (Status -> REJECTED)", id);
   }
 
-  @org.springframework.scheduling.annotation.Scheduled(
-      fixedDelayString = "${ai.processing.rejected-career-path-delay-ms:5000}")
   @Transactional
-  public void recoverRejectedApplicationsAwaitingCareerPath() {
-    for (Application application :
-        applicationRepository.findByStatusAndIsCandidateNotifiedFalse(ApplicationStatus.REJECTED)) {
-      if (hasCandidateCareerPath(application)) {
-        application.setIsCandidateNotified(true);
-        continue;
-      }
-      if (application.getAiStatus() == com.tttn.backend_core.entity.AiProcessingStatus.WAITING
-          || application.getAiStatus() == com.tttn.backend_core.entity.AiProcessingStatus.PROCESSING
-          || hasActiveAiRun(application.getId())) {
-        continue;
-      }
-      createAiProcessingTask(
-          application,
-          com.tttn.backend_core.entity.AiRunTrigger.HR_REJECTION,
-          application.getJob().getHr(),
-          true);
-      log.info("Recovered Career Path processing for rejected application {}", application.getId());
+  public void retryCareerPath(UUID id, String hrEmail) {
+    Application application = findForHr(id, hrEmail);
+    if (application.getStatus() != ApplicationStatus.REJECTED
+        || hasCandidateCareerPath(application)
+        || hasNoLearnableGapsCareerPath(application)
+        || hasActiveAiRun(application.getId())) {
+      throw new AppException(ErrorCode.INVALID_REQUEST);
     }
+    application.setIsCandidateNotified(false);
+    createAiProcessingTask(
+        application,
+        com.tttn.backend_core.entity.AiRunTrigger.HR_REJECTION,
+        application.getJob().getHr(),
+        true);
+    log.info("Career Path retry requested for rejected application {}", id);
   }
 
   private boolean hasCandidateCareerPath(Application application) {
@@ -169,6 +188,20 @@ public class ApplicationService {
     }
     Object result = application.getScoringBreakdown().get("career_path_result");
     return result instanceof java.util.Map<?, ?> map && map.get("candidate_view") != null;
+  }
+
+  private boolean hasNoLearnableGapsCareerPath(Application application) {
+    if (application.getScoringBreakdown() == null) {
+      return false;
+    }
+    Object result = application.getScoringBreakdown().get("career_path_result");
+    if (!(result instanceof java.util.Map<?, ?> resultMap)
+        || !"NOT_APPLICABLE".equals(String.valueOf(resultMap.get("status")))) {
+      return false;
+    }
+    Object diagnostics = resultMap.get("diagnostics");
+    return diagnostics instanceof java.util.Map<?, ?> diagnosticsMap
+        && "NO_LEARNABLE_GAPS".equals(String.valueOf(diagnosticsMap.get("fallback_reason")));
   }
 
   private boolean hasActiveAiRun(UUID applicationId) {
@@ -340,6 +373,22 @@ public class ApplicationService {
       message.put("forceCareerPath", true);
       message.put("decisionOutcome", "REJECTED");
       message.put("decisionSource", "HR");
+      java.util.Map<String, Object> breakdown = application.getScoringBreakdown();
+      Object cvData = breakdown == null ? null : breakdown.get("extracted_cv_data");
+      Object matchResult = breakdown == null ? null : breakdown.get("matching_result");
+      if (cvData instanceof java.util.Map<?, ?> && matchResult instanceof java.util.Map<?, ?>) {
+        message.put("skipExtraction", true);
+        message.put("skipMatching", true);
+        message.put("cvData", cvData);
+        message.put("matchResult", matchResult);
+        log.info(
+            "Application {} rejection will reuse persisted CV and matching snapshots",
+            application.getId());
+      } else {
+        log.warn(
+            "Application {} rejection has no reusable AI snapshots; full pipeline is required",
+            application.getId());
+      }
       application.setAiStatus(com.tttn.backend_core.entity.AiProcessingStatus.WAITING);
       application.setAiErrorCode(null);
       application.setAiErrorMessage(null);

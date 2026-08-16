@@ -22,6 +22,8 @@ export type HrApplicationListItem = Pick<RecruitmentApplication,
   jobTitle: string;
   departmentName: string;
   updatedAt: string;
+  careerPathReady?: boolean;
+  careerPathNotApplicable?: boolean;
 };
 
 export type CompetencyEvidence = JobCompetencyRequirement & {
@@ -37,6 +39,7 @@ export type HrApplicationDetail = RecruitmentApplication & {
   jobTitle: string;
   departmentName: string;
   jobLocation: string;
+  resumeUrl?: string;
   competencyEvidence: CompetencyEvidence[];
   histories: ApplicationStatusHistoryEntry[];
   notes: HrApplicationNote[];

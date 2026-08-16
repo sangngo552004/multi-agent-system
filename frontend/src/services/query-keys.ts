@@ -33,6 +33,7 @@ export const hrQueryKeys = {
   job: (jobId: string) => ["hr", "jobs", "detail", jobId] as const,
   applications: (filters: HrApplicationFilters) => ["hr", "applications", filters] as const,
   application: (applicationId: string) => ["hr", "applications", "detail", applicationId] as const,
+  jobEmailHistory: (jobId: string) => ["hr", "job-email-history", jobId] as const,
   talentPool: (filters: TalentPoolFilters) => ["hr", "talent-pool", filters] as const,
   notifications: ["hr", "notifications"] as const,
 };

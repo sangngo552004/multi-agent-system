@@ -3,6 +3,7 @@ package com.tttn.backend_core.service;
 import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Predicate;
 import com.tttn.backend_core.dto.request.InstitutionalRuleRequest;
+import com.tttn.backend_core.dto.response.InstitutionalRuleResponse;
 import com.tttn.backend_core.entity.InstitutionalRule;
 import com.tttn.backend_core.entity.QInstitutionalRule;
 import com.tttn.backend_core.exception.AppException;
@@ -26,23 +27,23 @@ public class InstitutionalRuleService {
   private final com.tttn.backend_core.mapper.MasterDataMapper masterDataMapper;
 
   @Transactional(readOnly = true)
-  public Page<InstitutionalRule> findAll(Predicate predicate, Pageable pageable) {
+  public Page<InstitutionalRuleResponse> findAll(Predicate predicate, Pageable pageable) {
     QInstitutionalRule q = QInstitutionalRule.institutionalRule;
     Predicate activePredicate = q.isActive.eq(true);
     Predicate finalPredicate =
         predicate != null ? ExpressionUtils.allOf(predicate, activePredicate) : activePredicate;
-    return institutionalRuleRepository.findAll(finalPredicate, pageable);
+    return institutionalRuleRepository.findAll(finalPredicate, pageable).map(this::toResponse);
   }
 
   @Transactional
-  public InstitutionalRule createRule(InstitutionalRuleRequest request) {
+  public InstitutionalRuleResponse createRule(InstitutionalRuleRequest request) {
     InstitutionalRule entity = masterDataMapper.toRule(request);
     applyRelations(entity, request);
-    return institutionalRuleRepository.save(entity);
+    return toResponse(institutionalRuleRepository.save(entity));
   }
 
   @Transactional
-  public InstitutionalRule updateRule(UUID id, InstitutionalRuleRequest request) {
+  public InstitutionalRuleResponse updateRule(UUID id, InstitutionalRuleRequest request) {
     InstitutionalRule entity =
         institutionalRuleRepository
             .findById(id)
@@ -52,7 +53,7 @@ public class InstitutionalRuleService {
     }
     masterDataMapper.updateRule(request, entity);
     applyRelations(entity, request);
-    return institutionalRuleRepository.save(entity);
+    return toResponse(institutionalRuleRepository.save(entity));
   }
 
   @Transactional
@@ -78,5 +79,35 @@ public class InstitutionalRuleService {
         request.getJobFamilyIds() == null
             ? java.util.List.of()
             : jobFamilyRepository.findAllById(request.getJobFamilyIds()));
+  }
+
+  private InstitutionalRuleResponse toResponse(InstitutionalRule rule) {
+    InstitutionalRuleResponse.PedigreeGroupItem group =
+        rule.getPedigreeGroup() == null
+            ? null
+            : new InstitutionalRuleResponse.PedigreeGroupItem(
+                rule.getPedigreeGroup().getId(),
+                rule.getPedigreeGroup().getCode(),
+                rule.getPedigreeGroup().getName(),
+                rule.getPedigreeGroup().getEvidenceSource());
+    return new InstitutionalRuleResponse(
+        rule.getId(),
+        rule.getRuleCode(),
+        rule.getName(),
+        rule.getDescription(),
+        rule.getBonusPoints(),
+        rule.getMaxImpactPercent(),
+        rule.getAppliesToDomain(),
+        group,
+        rule.getJobFamilies().stream()
+            .map(
+                family ->
+                    new InstitutionalRuleResponse.JobFamilyItem(
+                        family.getId(),
+                        family.getName(),
+                        family.getDescription(),
+                        Boolean.TRUE.equals(family.getIsActive())))
+            .toList(),
+        Boolean.TRUE.equals(rule.getIsActive()));
   }
 }

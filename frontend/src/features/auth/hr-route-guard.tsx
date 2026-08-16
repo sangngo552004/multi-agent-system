@@ -13,7 +13,7 @@ export function HrRouteGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      router.replace(`/hr/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
     if (user.role !== "HR") router.replace("/");

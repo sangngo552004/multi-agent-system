@@ -51,13 +51,17 @@ public class RateLimitAspect {
     if (attributes == null) return;
 
     HttpServletRequest request = attributes.getRequest();
-    String ipAddress = request.getRemoteAddr();
+    String requester =
+        request.getUserPrincipal() != null
+            ? request.getUserPrincipal().getName()
+            : request.getRemoteAddr();
 
-    // Generate unique key based on action, IP, and duration window
+    // Authenticated users receive their own quota. Anonymous endpoints fall back to IP-based
+    // limiting.
     String key =
         String.format(
             "rate_limit:%s:%s:%d%s",
-            rateLimit.action(), ipAddress, rateLimit.duration(), rateLimit.unit().name());
+            rateLimit.action(), requester, rateLimit.duration(), rateLimit.unit().name());
 
     Long count = redisTemplate.opsForValue().increment(key);
 
