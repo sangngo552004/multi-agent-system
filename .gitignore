@@ -20,9 +20,6 @@ target/
 *.war
 *.ear
 *.class
-.mvn/
-mvnw
-mvnw.cmd
 .springBeans
 
 # =========================
