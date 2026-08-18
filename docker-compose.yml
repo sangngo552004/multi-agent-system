@@ -157,6 +157,19 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  nginx:
+    image: nginx:alpine
+    container_name: tttn-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend-core
+      - ai-service
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   rabbitmq_data:
